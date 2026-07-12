@@ -1,0 +1,1840 @@
+{
+  "manifest_version": "1.0",
+  "source_dimensions": [
+    1254,
+    1254
+  ],
+  "coordinate_system": "pixels, origin top-left, bbox=[x0,y0,x1,y1], x1/y1 exclusive",
+  "important_warning": "All generated sheets are RGB with a baked light checker/white background, not true alpha. Remove background before trimming.",
+  "recommended_output": {
+    "projectiles": "32x32 canvas unless silhouette requires 48x48",
+    "small_vfx": "32x32 or 48x48",
+    "large_vfx": "64x64 to 128x128",
+    "props": "trimmed canvas, then place in power-of-two atlas",
+    "filtering": "nearest-neighbor only",
+    "padding": "8 transparent pixels around trimmed subject; 2px extrusion in atlas"
+  },
+  "sheets": {
+    "projectiles": {
+      "file": "a_clean_white_transparent_checkerboard_background_1_batch_1.png",
+      "source_path": "/mnt/data/ghostwriter_images/generated/a_clean_white_transparent_checkerboard_background_1_batch_1.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "layout": "4x4 equal cells",
+      "cell_size_approx": [
+        313.5,
+        313.5
+      ],
+      "entries": [
+        {
+          "name": "aqua_pearl",
+          "bbox": [
+            0,
+            0,
+            314,
+            314
+          ],
+          "pivot": "center",
+          "scope": "single projectile; trim after background removal but preserve 8 px transparent padding"
+        },
+        {
+          "name": "coral_dart",
+          "bbox": [
+            314,
+            0,
+            627,
+            314
+          ],
+          "pivot": "center",
+          "scope": "single projectile; trim after background removal but preserve 8 px transparent padding"
+        },
+        {
+          "name": "amber_seed",
+          "bbox": [
+            627,
+            0,
+            940,
+            314
+          ],
+          "pivot": "center",
+          "scope": "single projectile; trim after background removal but preserve 8 px transparent padding"
+        },
+        {
+          "name": "bubble_orb",
+          "bbox": [
+            940,
+            0,
+            1254,
+            314
+          ],
+          "pivot": "center",
+          "scope": "single projectile; trim after background removal but preserve 8 px transparent padding"
+        },
+        {
+          "name": "spore",
+          "bbox": [
+            0,
+            314,
+            314,
+            627
+          ],
+          "pivot": "center",
+          "scope": "single projectile; trim after background removal but preserve 8 px transparent padding"
+        },
+        {
+          "name": "mechanical_pellet",
+          "bbox": [
+            314,
+            314,
+            627,
+            627
+          ],
+          "pivot": "center",
+          "scope": "single projectile; trim after background removal but preserve 8 px transparent padding"
+        },
+        {
+          "name": "hot_vent_ember",
+          "bbox": [
+            627,
+            314,
+            940,
+            627
+          ],
+          "pivot": "center",
+          "scope": "single projectile; trim after background removal but preserve 8 px transparent padding"
+        },
+        {
+          "name": "abyssal_eye_mote",
+          "bbox": [
+            940,
+            314,
+            1254,
+            627
+          ],
+          "pivot": "center",
+          "scope": "single projectile; trim after background removal but preserve 8 px transparent padding"
+        },
+        {
+          "name": "pulsing_orb",
+          "bbox": [
+            0,
+            627,
+            314,
+            940
+          ],
+          "pivot": "center",
+          "scope": "single projectile; trim after background removal but preserve 8 px transparent padding"
+        },
+        {
+          "name": "spinning_coral_shard",
+          "bbox": [
+            314,
+            627,
+            627,
+            940
+          ],
+          "pivot": "center",
+          "scope": "single projectile; trim after background removal but preserve 8 px transparent padding"
+        },
+        {
+          "name": "jelly_glob",
+          "bbox": [
+            627,
+            627,
+            940,
+            940
+          ],
+          "pivot": "center",
+          "scope": "single projectile; trim after background removal but preserve 8 px transparent padding"
+        },
+        {
+          "name": "poison_sack",
+          "bbox": [
+            940,
+            627,
+            1254,
+            940
+          ],
+          "pivot": "center",
+          "scope": "single projectile; trim after background removal but preserve 8 px transparent padding"
+        },
+        {
+          "name": "electrical_node",
+          "bbox": [
+            0,
+            940,
+            314,
+            1254
+          ],
+          "pivot": "center",
+          "scope": "single projectile; trim after background removal but preserve 8 px transparent padding"
+        },
+        {
+          "name": "homing_larva",
+          "bbox": [
+            314,
+            940,
+            627,
+            1254
+          ],
+          "pivot": "center",
+          "scope": "single projectile; trim after background removal but preserve 8 px transparent padding"
+        },
+        {
+          "name": "angler_light",
+          "bbox": [
+            627,
+            940,
+            940,
+            1254
+          ],
+          "pivot": "center",
+          "scope": "single projectile; trim after background removal but preserve 8 px transparent padding"
+        },
+        {
+          "name": "rotating_mine",
+          "bbox": [
+            940,
+            940,
+            1254,
+            1254
+          ],
+          "pivot": "center",
+          "scope": "single projectile; trim after background removal but preserve 8 px transparent padding"
+        }
+      ]
+    },
+    "impacts_telegraphs": {
+      "file": "a_clean_game_asset_pixel_art_sprite_sheet_on_a_2_batch_2.png",
+      "source_path": "/mnt/data/ghostwriter_images/generated/a_clean_game_asset_pixel_art_sprite_sheet_on_a_2_batch_2.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "entries": [
+        {
+          "name": "impact_aqua_f1",
+          "bbox": [
+            40,
+            20,
+            275,
+            235
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "impact_aqua_f2",
+          "bbox": [
+            285,
+            20,
+            525,
+            235
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "impact_aqua_f3",
+          "bbox": [
+            540,
+            20,
+            800,
+            235
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "impact_aqua_f4",
+          "bbox": [
+            820,
+            10,
+            1215,
+            250
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "impact_coral_f1",
+          "bbox": [
+            40,
+            260,
+            275,
+            475
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "impact_coral_f2",
+          "bbox": [
+            285,
+            255,
+            525,
+            480
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "impact_coral_f3",
+          "bbox": [
+            540,
+            250,
+            800,
+            490
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "impact_coral_f4",
+          "bbox": [
+            820,
+            245,
+            1215,
+            500
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "impact_amber_f1",
+          "bbox": [
+            40,
+            500,
+            275,
+            715
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "impact_amber_f2",
+          "bbox": [
+            285,
+            495,
+            525,
+            725
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "impact_amber_f3",
+          "bbox": [
+            540,
+            490,
+            800,
+            735
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "impact_amber_f4",
+          "bbox": [
+            820,
+            485,
+            1215,
+            750
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "telegraph_circle",
+          "bbox": [
+            20,
+            735,
+            325,
+            1045
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "telegraph_aim_line",
+          "bbox": [
+            290,
+            750,
+            675,
+            970
+          ],
+          "pivot": "left-center"
+        },
+        {
+          "name": "telegraph_cone",
+          "bbox": [
+            650,
+            735,
+            935,
+            1015
+          ],
+          "pivot": "apex-left"
+        },
+        {
+          "name": "telegraph_radial_spokes",
+          "bbox": [
+            930,
+            730,
+            1235,
+            1035
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "telegraph_delayed_ring",
+          "bbox": [
+            260,
+            975,
+            565,
+            1245
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "charge_flash",
+          "bbox": [
+            520,
+            970,
+            810,
+            1245
+          ],
+          "pivot": "center"
+        }
+      ]
+    },
+    "movement_utility_vfx": {
+      "file": "a_clean_square_sprite_sheet_style_image_on_a_full_3_batch_3.png",
+      "source_path": "/mnt/data/ghostwriter_images/generated/a_clean_square_sprite_sheet_style_image_on_a_full_3_batch_3.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "entries": [
+        {
+          "name": "wake_bubbles_f1",
+          "bbox": [
+            80,
+            0,
+            190,
+            175
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "wake_bubbles_f2",
+          "bbox": [
+            205,
+            0,
+            340,
+            175
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "wake_bubbles_f3",
+          "bbox": [
+            355,
+            0,
+            485,
+            175
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "wake_bubbles_f4",
+          "bbox": [
+            500,
+            0,
+            635,
+            175
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "wake_bubbles_f5",
+          "bbox": [
+            650,
+            0,
+            805,
+            175
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "wake_bubbles_f6",
+          "bbox": [
+            815,
+            0,
+            970,
+            175
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "wake_bubbles_f7",
+          "bbox": [
+            980,
+            0,
+            1145,
+            175
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "boost_f1",
+          "bbox": [
+            60,
+            180,
+            250,
+            355
+          ],
+          "pivot": "left-center"
+        },
+        {
+          "name": "boost_f2",
+          "bbox": [
+            220,
+            175,
+            455,
+            360
+          ],
+          "pivot": "left-center"
+        },
+        {
+          "name": "boost_f3",
+          "bbox": [
+            430,
+            175,
+            690,
+            360
+          ],
+          "pivot": "left-center"
+        },
+        {
+          "name": "boost_f4",
+          "bbox": [
+            660,
+            175,
+            915,
+            365
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "boost_f5",
+          "bbox": [
+            900,
+            175,
+            1225,
+            365
+          ],
+          "pivot": "right-center"
+        },
+        {
+          "name": "scan_ring_f1",
+          "bbox": [
+            60,
+            360,
+            235,
+            535
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "scan_ring_f2",
+          "bbox": [
+            220,
+            355,
+            405,
+            540
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "scan_ring_f3",
+          "bbox": [
+            390,
+            350,
+            580,
+            545
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "scan_ring_f4",
+          "bbox": [
+            555,
+            345,
+            755,
+            550
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "scan_ring_f5",
+          "bbox": [
+            735,
+            340,
+            965,
+            555
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "scan_ring_f6",
+          "bbox": [
+            945,
+            350,
+            1215,
+            550
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "current_streak_f1",
+          "bbox": [
+            55,
+            540,
+            300,
+            665
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "current_streak_f2",
+          "bbox": [
+            245,
+            530,
+            520,
+            670
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "current_streak_f3",
+          "bbox": [
+            455,
+            520,
+            800,
+            680
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "current_streak_f4",
+          "bbox": [
+            745,
+            510,
+            1215,
+            690
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "pressure_ripple_f1",
+          "bbox": [
+            70,
+            660,
+            260,
+            790
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "pressure_ripple_f2",
+          "bbox": [
+            245,
+            650,
+            465,
+            795
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "pressure_ripple_f3",
+          "bbox": [
+            450,
+            645,
+            665,
+            800
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "pressure_ripple_f4",
+          "bbox": [
+            650,
+            640,
+            870,
+            800
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "pressure_ripple_f5",
+          "bbox": [
+            850,
+            645,
+            1085,
+            800
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "pickup_sparkle_f1",
+          "bbox": [
+            70,
+            775,
+            190,
+            870
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "pickup_sparkle_f2",
+          "bbox": [
+            190,
+            770,
+            315,
+            875
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "pickup_sparkle_f3",
+          "bbox": [
+            305,
+            765,
+            440,
+            880
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "pickup_sparkle_f4",
+          "bbox": [
+            430,
+            760,
+            580,
+            885
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "pickup_sparkle_f5",
+          "bbox": [
+            565,
+            755,
+            735,
+            890
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "pickup_sparkle_f6",
+          "bbox": [
+            720,
+            750,
+            900,
+            895
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "collection_spiral_f1",
+          "bbox": [
+            60,
+            845,
+            220,
+            1010
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "collection_spiral_f2",
+          "bbox": [
+            205,
+            835,
+            380,
+            1015
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "collection_spiral_f3",
+          "bbox": [
+            365,
+            830,
+            545,
+            1020
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "collection_spiral_f4",
+          "bbox": [
+            530,
+            830,
+            710,
+            1020
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "collection_spiral_f5",
+          "bbox": [
+            695,
+            835,
+            875,
+            1015
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "glow_orb_f1",
+          "bbox": [
+            65,
+            965,
+            185,
+            1085
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "glow_orb_f2",
+          "bbox": [
+            175,
+            955,
+            300,
+            1090
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "glow_orb_f3",
+          "bbox": [
+            285,
+            950,
+            420,
+            1095
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "glow_orb_f4",
+          "bbox": [
+            405,
+            945,
+            550,
+            1100
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "glow_orb_f5",
+          "bbox": [
+            535,
+            940,
+            690,
+            1105
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "glow_orb_f6",
+          "bbox": [
+            675,
+            935,
+            845,
+            1110
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "sample_burst_f1",
+          "bbox": [
+            65,
+            1040,
+            225,
+            1205
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "sample_burst_f2",
+          "bbox": [
+            210,
+            1030,
+            390,
+            1215
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "sample_burst_f3",
+          "bbox": [
+            375,
+            1020,
+            575,
+            1225
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "sample_burst_f4",
+          "bbox": [
+            555,
+            1005,
+            790,
+            1235
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "sample_burst_dissipate",
+          "bbox": [
+            775,
+            1025,
+            1015,
+            1225
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "codex_flash_f1",
+          "bbox": [
+            55,
+            1120,
+            210,
+            1250
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "codex_flash_f2",
+          "bbox": [
+            205,
+            1100,
+            390,
+            1250
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "codex_flash_f3",
+          "bbox": [
+            385,
+            1080,
+            590,
+            1250
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "codex_flash_f4",
+          "bbox": [
+            575,
+            1060,
+            805,
+            1250
+          ],
+          "pivot": "center"
+        }
+      ]
+    },
+    "twilight_drift_props": {
+      "file": "top_down_description_a_sprite_sheet_concept_art_4_batch_4.png",
+      "source_path": "/mnt/data/ghostwriter_images/generated/top_down_description_a_sprite_sheet_concept_art_4_batch_4.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "entries": [
+        {
+          "name": "jelly_colony_f1",
+          "bbox": [
+            25,
+            20,
+            245,
+            285
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "jelly_colony_f2",
+          "bbox": [
+            250,
+            20,
+            475,
+            285
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "jelly_colony_f3",
+          "bbox": [
+            480,
+            20,
+            705,
+            285
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "egg_cluster_f1",
+          "bbox": [
+            725,
+            55,
+            895,
+            250
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "egg_cluster_f2",
+          "bbox": [
+            885,
+            55,
+            1055,
+            250
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "egg_cluster_f3",
+          "bbox": [
+            1045,
+            55,
+            1225,
+            250
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "suspended_coral_chunk",
+          "bbox": [
+            20,
+            265,
+            450,
+            605
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "floating_rock_large_a",
+          "bbox": [
+            470,
+            300,
+            640,
+            470
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "floating_rock_large_b",
+          "bbox": [
+            670,
+            290,
+            850,
+            480
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "floating_rock_med_a",
+          "bbox": [
+            875,
+            310,
+            1035,
+            455
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "floating_rock_med_b",
+          "bbox": [
+            1070,
+            300,
+            1225,
+            450
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "floating_rock_small_a",
+          "bbox": [
+            580,
+            470,
+            715,
+            590
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "floating_rock_small_b",
+          "bbox": [
+            785,
+            465,
+            940,
+            605
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "floating_rock_tiny_a",
+          "bbox": [
+            995,
+            490,
+            1080,
+            580
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "floating_rock_tiny_b",
+          "bbox": [
+            1060,
+            475,
+            1145,
+            565
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "research_probe_f1",
+          "bbox": [
+            25,
+            600,
+            175,
+            825
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "research_probe_f2",
+          "bbox": [
+            205,
+            600,
+            355,
+            825
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "research_probe_f3",
+          "bbox": [
+            385,
+            600,
+            535,
+            825
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "current_ribbon",
+          "bbox": [
+            545,
+            610,
+            1230,
+            830
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "plankton_sparse",
+          "bbox": [
+            30,
+            820,
+            245,
+            1010
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "plankton_dense",
+          "bbox": [
+            230,
+            810,
+            475,
+            1015
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "plankton_ring",
+          "bbox": [
+            455,
+            810,
+            690,
+            1015
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "plankton_cluster_large",
+          "bbox": [
+            675,
+            810,
+            895,
+            1010
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "plankton_cluster_medium",
+          "bbox": [
+            870,
+            820,
+            1055,
+            1000
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "plankton_cluster_small",
+          "bbox": [
+            1035,
+            825,
+            1220,
+            995
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "debris_coral_branch",
+          "bbox": [
+            20,
+            990,
+            235,
+            1245
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "debris_rocks",
+          "bbox": [
+            200,
+            1000,
+            405,
+            1245
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "debris_vines",
+          "bbox": [
+            390,
+            985,
+            620,
+            1245
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "debris_leaves",
+          "bbox": [
+            590,
+            990,
+            820,
+            1245
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "dead_drifting_creature",
+          "bbox": [
+            805,
+            965,
+            1235,
+            1248
+          ],
+          "pivot": "center"
+        }
+      ]
+    },
+    "kelp_forest_props": {
+      "file": "a_clean_top_down_sprite_sheet_style_pixel_art_ima_5_batch_5.png",
+      "source_path": "/mnt/data/ghostwriter_images/generated/a_clean_top_down_sprite_sheet_style_pixel_art_ima_5_batch_5.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "entries": [
+        {
+          "name": "kelp_tall_1",
+          "bbox": [
+            25,
+            10,
+            170,
+            370
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "kelp_tall_2",
+          "bbox": [
+            175,
+            10,
+            305,
+            370
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "kelp_tall_3",
+          "bbox": [
+            310,
+            10,
+            445,
+            370
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "kelp_tall_4",
+          "bbox": [
+            450,
+            10,
+            595,
+            370
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "kelp_tall_5",
+          "bbox": [
+            600,
+            10,
+            785,
+            370
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "kelp_tall_6",
+          "bbox": [
+            790,
+            10,
+            935,
+            370
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "kelp_tall_7",
+          "bbox": [
+            940,
+            10,
+            1080,
+            370
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "kelp_tall_8",
+          "bbox": [
+            1085,
+            10,
+            1235,
+            370
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "kelp_mid_1",
+          "bbox": [
+            20,
+            360,
+            175,
+            595
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "kelp_mid_2",
+          "bbox": [
+            185,
+            360,
+            350,
+            595
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "kelp_mid_3",
+          "bbox": [
+            365,
+            370,
+            545,
+            595
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "kelp_mid_4",
+          "bbox": [
+            555,
+            390,
+            700,
+            590
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "sprout_aqua_1",
+          "bbox": [
+            730,
+            420,
+            840,
+            580
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "sprout_aqua_2",
+          "bbox": [
+            840,
+            430,
+            930,
+            580
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "sprout_aqua_3",
+          "bbox": [
+            925,
+            410,
+            1025,
+            580
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "sprout_amber_1",
+          "bbox": [
+            1030,
+            420,
+            1120,
+            580
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "sprout_amber_2",
+          "bbox": [
+            1120,
+            420,
+            1225,
+            580
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "tangle_large_a",
+          "bbox": [
+            15,
+            590,
+            265,
+            790
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "tangle_large_b",
+          "bbox": [
+            260,
+            590,
+            500,
+            790
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "root_bundle_small",
+          "bbox": [
+            500,
+            590,
+            620,
+            790
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "tangle_long",
+          "bbox": [
+            610,
+            590,
+            860,
+            790
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "tangle_glowing",
+          "bbox": [
+            850,
+            590,
+            1070,
+            790
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "tangle_small",
+          "bbox": [
+            1060,
+            590,
+            1235,
+            790
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "root_cluster_a",
+          "bbox": [
+            20,
+            790,
+            225,
+            975
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "root_cluster_b",
+          "bbox": [
+            220,
+            790,
+            410,
+            975
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "fish_skeleton",
+          "bbox": [
+            400,
+            800,
+            620,
+            970
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "loot_pod_closed",
+          "bbox": [
+            650,
+            790,
+            800,
+            975
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "loot_pod_wake",
+          "bbox": [
+            795,
+            790,
+            935,
+            975
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "loot_pod_open",
+          "bbox": [
+            925,
+            790,
+            1070,
+            975
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "loot_pod_empty",
+          "bbox": [
+            1060,
+            790,
+            1225,
+            975
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "ambush_burrow_f1",
+          "bbox": [
+            20,
+            970,
+            225,
+            1235
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "ambush_burrow_f2",
+          "bbox": [
+            215,
+            970,
+            410,
+            1235
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "ambush_burrow_f3",
+          "bbox": [
+            400,
+            970,
+            595,
+            1235
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "ambush_burrow_f4",
+          "bbox": [
+            585,
+            970,
+            765,
+            1235
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "bubble_vent_f1",
+          "bbox": [
+            750,
+            970,
+            850,
+            1235
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "bubble_vent_f2",
+          "bbox": [
+            845,
+            970,
+            950,
+            1235
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "bubble_vent_f3",
+          "bbox": [
+            940,
+            970,
+            1065,
+            1235
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "bubble_vent_f4",
+          "bbox": [
+            1050,
+            970,
+            1230,
+            1235
+          ],
+          "pivot": "bottom-center"
+        }
+      ]
+    },
+    "wreck_thermal_props": {
+      "file": "a_clean_high_resolution_pixel_art_sprite_sheet_6_batch_6.png",
+      "source_path": "/mnt/data/ghostwriter_images/generated/a_clean_high_resolution_pixel_art_sprite_sheet_6_batch_6.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "entries": [
+        {
+          "name": "salvage_crate",
+          "bbox": [
+            35,
+            45,
+            315,
+            295
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "emergency_lamp_f1",
+          "bbox": [
+            330,
+            65,
+            480,
+            295
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "emergency_lamp_f2",
+          "bbox": [
+            500,
+            65,
+            655,
+            295
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "emergency_lamp_f3",
+          "bbox": [
+            680,
+            65,
+            830,
+            295
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "leaking_pipe_bubbles_f1",
+          "bbox": [
+            885,
+            45,
+            1015,
+            300
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "leaking_pipe_bubbles_f2",
+          "bbox": [
+            1040,
+            45,
+            1185,
+            300
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "pipe_cluster",
+          "bbox": [
+            30,
+            305,
+            445,
+            595
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "valve_wheel",
+          "bbox": [
+            465,
+            365,
+            660,
+            575
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "vent_chimney",
+          "bbox": [
+            665,
+            305,
+            880,
+            600
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "sparking_cable_f1",
+          "bbox": [
+            870,
+            300,
+            1045,
+            455
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "sparking_cable_f2",
+          "bbox": [
+            1030,
+            300,
+            1210,
+            455
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "vent_bubble_f1",
+          "bbox": [
+            35,
+            545,
+            260,
+            825
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "vent_bubble_f2",
+          "bbox": [
+            245,
+            535,
+            475,
+            825
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "vent_warning",
+          "bbox": [
+            455,
+            520,
+            665,
+            835
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "vent_eruption_f1",
+          "bbox": [
+            645,
+            495,
+            900,
+            845
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "vent_eruption_f2",
+          "bbox": [
+            880,
+            455,
+            1225,
+            850
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "mineral_crystal",
+          "bbox": [
+            30,
+            810,
+            350,
+            1225
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "gas_pocket",
+          "bbox": [
+            330,
+            800,
+            610,
+            1225
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "tube_worm_colony",
+          "bbox": [
+            600,
+            790,
+            960,
+            1235
+          ],
+          "pivot": "bottom-center"
+        }
+      ]
+    }
+  }
+}
