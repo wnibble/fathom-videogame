@@ -6,6 +6,7 @@ import { bus } from "./events";
 export type StateName =
   | "boot" | "loading" | "error"
   | "menu" | "howto"
+  | "station"
   | "cutscene" | "dive"
   | "levelup" | "pause" | "gameover";
 

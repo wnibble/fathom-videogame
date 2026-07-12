@@ -4,6 +4,7 @@
 
 import type { EmitterSpec } from "../core/types";
 import { UPGRADES, UPGRADE_BY_ID, type Upgrade } from "../content/upgrades";
+import { applyMetaToStats, type MetaState } from "./meta";
 
 export const MULT_CAP = 4;
 export const COMBO_WINDOW = 5; // sec
@@ -41,6 +42,8 @@ export interface PlayerStats {
   maxHpBonus: number;
   postDashHaste: number;
   regenPerSec: number;
+  shieldCapBonus: number; // in-run shield capacity added (Aegis Cell)
+  shieldRegenBonus: number; // in-run shield regen/s added
 }
 
 export interface RunState {
@@ -73,6 +76,8 @@ export function freshStats(): PlayerStats {
     maxHpBonus: 0,
     postDashHaste: 0,
     regenPerSec: 0,
+    shieldCapBonus: 0,
+    shieldRegenBonus: 0,
   };
 }
 
@@ -99,8 +104,9 @@ export function fireInterval(s: PlayerStats, hasteFactor = 1): number {
   return BASE_FIRE_INTERVAL / (s.fireRateMult * hasteFactor);
 }
 
-export function freshRun(baseWeapon: EmitterSpec): RunState {
+export function freshRun(baseWeapon: EmitterSpec, meta?: MetaState): RunState {
   const stats = freshStats();
+  if (meta) applyMetaToStats(stats, meta);
   return {
     score: { score: 0, combo: 0, comboTimer: 0, multiplier: 1, noHitTimer: 0, depthScored: 0 },
     xp: { level: 1, xp: 0, xpToNext: xpForLevel(1), pendingLevelUps: 0 },
@@ -188,6 +194,9 @@ function available(run: RunState): Upgrade[] {
 }
 export function hasUpgradesAvailable(run: RunState): boolean {
   return available(run).length > 0;
+}
+export function maxedAnyUpgrade(run: RunState): boolean {
+  return UPGRADES.some((u) => (run.stacks[u.id] ?? 0) >= u.maxStacks);
 }
 
 /** Weighted, distinct 3-card roll (uses Math.random — menu-side, not sim). */

@@ -177,6 +177,46 @@ score 1050, level-up card legible, affordance rings visible).
 - Threat arrows kept clear of the score; "warm = danger, cool = you" added to the in-game
   hint; an early loot pod in the start clearing.
 
+## Pass 5 — Surface Station meta-progression + refinement (2026-07-12)
+
+Architect designed the meta layer (`contracts/pass5-meta.md`); this pass builds it +
+folds owner graphical/UX feedback. QA PASS: menu→**station**→dive→pause, 0 errors, store
+renders with tier pips/costs/gating, dive visibly cleaner.
+
+### Meta-progression (the "reason to dive again")
+- **Surface Station** hub (`src/ui/station.ts`, new `station` state): banked pearls, a
+  10-upgrade permanent store, badge grid, LAUNCH DIVE. Loop is now menu→station→dive→
+  gameover→station→dive.
+- **Pearl banking** — surfacing banks samples as permanent **pearls**: **40% on death,
+  100% if you survive-and-surface** (owner's ask; the surface path is wired, the in-dive
+  ascend trigger is a P0 feature TODO). `bankDive` is the single meta write + badge point.
+- **Permanent upgrade store** (`meta_upgrades.ts`) — 10 upgrades that seed each fresh run
+  (+base HP/damage/fire-rate/speed, shield unlock+capacity, regen, magnet, dash CD, extra
+  starting pick, better bank ratio); rising cost curve, tier pips, `requires` gating.
+- **Shield** (`shield.ts`) — a regenerating buffer absorbed before HP; a fully-absorbed
+  hit keeps your combo. Unlocked by meta + in-run Aegis Cell/Flow upgrades.
+- **Scaling HUD bars** — the HP bar visibly widens with max HP; a **shield bar** appears
+  above it when unlocked (capacity ticks); a compact **build readout** lists owned
+  upgrades. All responsive.
+- **13 badges** (`badges.ts`) — depth/kills/relics/score/dives/maxed-build milestones,
+  evaluated at bank time, shown in the station, toasted on the game-over that earns them.
+- **UI-appeal pass** — shared `panel()/label()/chip()` helpers (drop shadow, top accent,
+  faux gradient); game-over shows pearls banked + new badges.
+
+### Graphical / UX fixes (owner feedback)
+- **Fixed `bubble_vent`** (stray extraction artifact) → clean procedural animated vent.
+- **Culled orb-like decoration** (`glow_orb`, ring/cluster plankton) that read as pickups.
+- **Reduced over-glow** — smaller/dimmer player headlamp + calmer bloom.
+- **Fixed HOW TO PLAY** closing instantly (the opening click's edge self-dismissed it) —
+  added `input.clearEdges()` on screen entry (also fixes pause insta-resume).
+- **Game-over now requires pressing C** (no accidental dismiss) and returns to the station.
+- Fixed the dark-sprite extraction (per-crop bg-type) — committed separately (`cf6785d`).
+
+### Roadmaps added
+- `docs/GRAPHICS-TODO.md` (animated actors, impact-edge softening, per-stratum palettes…)
+- `docs/FEATURES-TODO.md` (P0: **strata transitions / real depth**, voluntary surface,
+  more enemies, companion, codex…).
+
 ### Accepted deviations / deferred (documented, not silently skipped)
 
 - **Render interpolation** (contract `core.md`): the slice renders raw fixed-step sim

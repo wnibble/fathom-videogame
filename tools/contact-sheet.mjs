@@ -9,10 +9,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.resolve(__dirname, "..", "public", "assets", "sprites");
 const atlas = JSON.parse(fs.readFileSync(path.join(OUT, "atlas.json"), "utf8"));
 
-const items = [
+let items = [
   ...Object.entries(atlas.sprites).map(([name, s]) => ({ name, file: s.file, kind: "sprite" })),
-  ...Object.entries(atlas.animations).map(([name, a]) => ({ name, file: a.frames[0], kind: "anim" })),
+  ...Object.entries(atlas.animations).flatMap(([name, a]) => a.frames.map((f, i) => ({ name: `${name}_${i}`, file: f, kind: "anim" }))),
 ];
+const filter = process.argv[2];
+if (filter) {
+  const terms = filter.split(",");
+  items = items.filter((it) => terms.some((t) => it.name.includes(t)));
+}
 
 const CELL = 72, PAD = 4, COLS = 12;
 const rows = Math.ceil(items.length / COLS);

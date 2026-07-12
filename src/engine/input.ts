@@ -101,6 +101,11 @@ export class Input {
   anyPress(): boolean {
     return this.justDown.size > 0;
   }
+  /** Swallow pending edges so the click/key that opened a screen can't also dismiss it. */
+  clearEdges(): void {
+    this.justDown.clear();
+    this.edgeBuffer.clear();
+  }
   /** Which choose-slot (0,1,2) was pressed this frame, or -1. */
   choiceIndex(): number {
     if (this.justDown.has("Digit1")) return 0;

@@ -14,7 +14,10 @@ import { Cutscene } from "./systems/cutscene";
 import { coldOpen } from "./content/cutscene_coldopen";
 import { DiveScene } from "./game/dive";
 import * as persistence from "./game/persistence";
+import type { DiveResult } from "./game/persistence";
+import { deriveMeta } from "./game/meta";
 import { audio } from "./engine/audio";
+import { StationOverlay } from "./ui/station";
 import { COLOR } from "./palette";
 import {
   MenuOverlay,
@@ -83,12 +86,10 @@ async function main(): Promise<void> {
   let seed = 20260712;
 
   let goLock = 0;
-  let goBaseline = 0;
   let goPrevBestDepth = 0;
   let goPrevBestScore = 0;
-  let goDepth = 0;
-  let goScore = 0;
-  let goSamples = 0;
+  let goResult: DiveResult | null = null;
+  let lastBank: { pearlsEarned: number; newBadges: string[] } | null = null;
 
   const setOverlay = (o: Overlay | null) => {
     if (activeOverlay) {
@@ -120,20 +121,35 @@ async function main(): Promise<void> {
 
   const startDive = () => {
     seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-    dive = new DiveScene(engine, assets, seed, save.settings.reducedMotion, save.settings.screenShake);
-    dive.onGameOver = (depth, score, samples) => {
+    const meta = deriveMeta(save.metaTiers);
+    dive = new DiveScene(engine, assets, seed, save.settings.reducedMotion, save.settings.screenShake, meta);
+    dive.onGameOver = (result) => {
       goPrevBestDepth = save.bestDepth;
       goPrevBestScore = save.bestScore;
-      goDepth = depth;
-      goScore = score;
-      goSamples = samples;
-      save = persistence.recordDive(save, depth, score, 0, []);
+      const bank = persistence.bankDive(save, result);
+      save = bank.save;
+      lastBank = { pearlsEarned: bank.pearlsEarned, newBadges: bank.newBadges };
+      goResult = result;
       fsm.change("gameover");
     };
     if (!hud.root.parent) engine.uiRoot.addChild(hud.root);
     hud.root.visible = true;
     hud.layout(engine.width, engine.height);
   };
+
+  const buildStation = () =>
+    new StationOverlay(save, lastBank, {
+      onLaunch: () => fsm.change(playedIntro ? "dive" : "cutscene"),
+      onBack: () => fsm.change("menu"),
+      onBuy: (id) => {
+        const r = persistence.purchaseMeta(save, id);
+        if (r.ok) {
+          save = r.save;
+          audio.uiConfirm();
+        } else audio.uiMove();
+        return save;
+      },
+    });
 
   const teardownDive = () => {
     dive?.destroy();
@@ -144,7 +160,7 @@ async function main(): Promise<void> {
 
   const buildMenu = () =>
     new MenuOverlay(save.bestDepth, save.bestScore, save.settings, {
-      onDive: () => fsm.change(playedIntro ? "dive" : "cutscene"),
+      onStation: () => fsm.change("station"),
       onHowTo: () => fsm.change("howto"),
       onToggleMotion: () => {
         save = persistence.saveSettings(save, { ...save.settings, reducedMotion: !save.settings.reducedMotion });
@@ -208,7 +224,10 @@ async function main(): Promise<void> {
       },
     })
     .define("menu", {
-      enter: () => setOverlay(buildMenu()),
+      enter: () => {
+        input.clearEdges();
+        setOverlay(buildMenu());
+      },
       update: () => {
         const m = activeOverlay as MenuOverlay;
         if (input.pressed(KEYS.up)) m.move(-1);
@@ -218,9 +237,27 @@ async function main(): Promise<void> {
       exit: () => setOverlay(null),
     })
     .define("howto", {
-      enter: () => setOverlay(new HowToOverlay(() => fsm.change("menu"))),
+      enter: () => {
+        input.clearEdges();
+        setOverlay(new HowToOverlay(() => fsm.change("menu")));
+      },
       update: () => {
         if (input.pressed(KEYS.confirm) || input.pressed(KEYS.pause)) fsm.change("menu");
+      },
+      exit: () => setOverlay(null),
+    })
+    .define("station", {
+      enter: () => {
+        input.clearEdges();
+        setOverlay(buildStation());
+        lastBank = null;
+      },
+      update: () => {
+        const s = activeOverlay as StationOverlay;
+        if (input.pressed(KEYS.up)) s.move(-1);
+        if (input.pressed(KEYS.down)) s.move(1);
+        if (input.pressed(KEYS.confirm)) s.activate();
+        if (input.pressed(KEYS.pause)) fsm.change("menu");
       },
       exit: () => setOverlay(null),
     })
@@ -250,7 +287,7 @@ async function main(): Promise<void> {
         // A death during update() may have already switched to gameover — don't
         // override it with levelup/pause (that stranded the player in a dead dive).
         if (dive!.ended || fsm.current !== "dive") return;
-        hud.update(dive!.runState, dive!.hpRatio, dive!.currentDepth, Math.max(save.bestDepth, dive!.currentDepth), dive!.dashCooldownFrac, dt);
+        hud.update(dive!.runState, dive!.hp, dive!.maxHp, dive!.shield, dive!.shieldMax, dive!.currentDepth, Math.max(save.bestDepth, dive!.currentDepth), dive!.dashCooldownFrac, dt);
         hud.setThreats(dive!.threatMarkers(engine.width, engine.height));
         if (dive!.consumeLevelUp()) fsm.change("levelup");
         else if (input.pressed(KEYS.pause)) fsm.change("pause");
@@ -272,7 +309,8 @@ async function main(): Promise<void> {
       // exit handled inside openLevelUp's resolve
     })
     .define("pause", {
-      enter: () =>
+      enter: () => {
+        input.clearEdges();
         setOverlay(
           new PauseOverlay({
             onResume: () => fsm.change("dive"),
@@ -282,10 +320,11 @@ async function main(): Promise<void> {
             },
             onQuit: () => {
               teardownDive();
-              fsm.change("menu");
+              fsm.change("station");
             },
           })
-        ),
+        );
+      },
       update: () => {
         const p = activeOverlay as PauseOverlay;
         if (input.pressed(KEYS.up)) p.move(-1);
@@ -298,15 +337,18 @@ async function main(): Promise<void> {
     .define("gameover", {
       enter: () => {
         goLock = 0.6;
-        goBaseline = input.pressCount;
+        input.clearEdges();
+        const r = goResult!;
         setOverlay(
           new GameOverOverlay({
-            depth: goDepth,
-            score: goScore,
-            samplesLost: goSamples,
-            kills: dive?.kills ?? 0,
-            level: dive?.level ?? 1,
-            relics: dive?.relicsFound ?? 0,
+            depth: r.depth,
+            score: r.score,
+            samplesLost: r.samples,
+            pearlsEarned: lastBank?.pearlsEarned ?? 0,
+            newBadges: lastBank?.newBadges ?? [],
+            kills: r.kills,
+            level: r.level,
+            relics: r.relics,
             prevBestDepth: goPrevBestDepth,
             prevBestScore: goPrevBestScore,
           })
@@ -314,9 +356,10 @@ async function main(): Promise<void> {
       },
       update: (dt) => {
         goLock = Math.max(0, goLock - dt);
-        if (goLock <= 0 && input.pressCount > goBaseline) {
+        // Requires a deliberate key (C); returns to the Surface Station (banked).
+        if (goLock <= 0 && input.pressed(["KeyC"])) {
           teardownDive();
-          fsm.change("menu");
+          fsm.change("station");
         }
       },
       exit: () => setOverlay(null),

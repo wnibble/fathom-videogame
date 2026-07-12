@@ -23,6 +23,9 @@ import { audio } from "../engine/audio";
 import { Pickups, type PickupKind, type PickupSink } from "../systems/pickups";
 import { Interactables, type InteractableSink } from "../systems/interactables";
 import { freshDash, tickDash, tryDash, type DashState, DASH_COOLDOWN } from "../systems/dash";
+import { tickShield, absorb } from "./shield";
+import { freshMeta, type MetaState } from "./meta";
+import type { DiveResult } from "./persistence";
 import {
   freshRun,
   addScore,
@@ -35,6 +38,7 @@ import {
   applyUpgrade as applyRunUpgrade,
   rollChoices,
   hasUpgradesAvailable,
+  maxedAnyUpgrade,
   BASE_HP,
   type RunState,
   type UpgradeChoice,
@@ -67,6 +71,7 @@ export class DiveScene implements HitSink, PickupSink {
   private shake = 0;
   private spawnTimer = 2;
   private nextResupply = 200; // depth (m) of next interactable resupply
+  private eliteKills = 0;
   private lowHp = false;
   private depthAudioT = 0;
   private stepDt = FIXED;
@@ -74,7 +79,7 @@ export class DiveScene implements HitSink, PickupSink {
   private lastAim: Vec2 = { x: 1, y: 0 };
   ended = false;
 
-  onGameOver: (depth: number, score: number, samples: number) => void = () => {};
+  onGameOver: (r: DiveResult) => void = () => {};
   private interactSink: InteractableSink;
 
   constructor(
@@ -82,7 +87,8 @@ export class DiveScene implements HitSink, PickupSink {
     private assets: AssetStore,
     seed: number,
     private reducedMotion = false,
-    screenShake = true
+    screenShake = true,
+    private meta: MetaState = freshMeta()
   ) {
     this.shakeEnabled = screenShake && !reducedMotion;
     this.rng = new Rng((seed ^ 0x9e3779b9) >>> 0);
@@ -90,17 +96,23 @@ export class DiveScene implements HitSink, PickupSink {
     this.proj = new Projectiles(assets, engine.worldLayer);
     this.pickups = new Pickups(engine.worldLayer, engine.lightLayer);
     this.interactables = new Interactables(this.arena.interactables, engine.worldLayer, engine.lightLayer, assets);
-    this.run = freshRun(PLAYER_SHOT);
+    this.run = freshRun(PLAYER_SHOT, meta);
+    const maxHp = BASE_HP + meta.bonusMaxHp;
+    const shieldMax = meta.shieldCapacity + this.run.stats.shieldCapBonus;
     this.player = {
       pos: { ...this.arena.playerStart },
       vel: { x: 0, y: 0 },
       radius: 10,
-      hp: BASE_HP,
-      maxHp: BASE_HP,
+      hp: maxHp,
+      maxHp,
       fireCooldown: 0,
       invuln: 0,
       alive: true,
+      shieldMax,
+      shield: shieldMax,
+      shieldRegenT: 0,
     };
+    this.run.xp.pendingLevelUps += meta.startingLevelUps;
     this.interactSink = {
       loot: (kind, x, y, value) => this.pickups.spawn(kind, x + this.rng.range(-8, 8), y + this.rng.range(-8, 8), value),
       score: (base) => addScore(this.run, base, true),
@@ -188,6 +200,7 @@ export class DiveScene implements HitSink, PickupSink {
     p.invuln = Math.max(0, p.invuln - dt);
     p.fireCooldown = Math.max(0, p.fireCooldown - dt);
     if (p.alive && this.run.stats.regenPerSec > 0) p.hp = Math.min(p.maxHp, p.hp + this.run.stats.regenPerSec * dt);
+    tickShield(p, { regenRate: this.meta.shieldRegenRate + this.run.stats.shieldRegenBonus, regenDelay: this.meta.shieldRegenDelay }, dt);
 
     // aim
     const aim = this.engine.screenToWorld(input.state.aimScreen.x, input.state.aimScreen.y);
@@ -275,8 +288,23 @@ export class DiveScene implements HitSink, PickupSink {
 
     if (!p.alive && !this.ended) {
       this.ended = true;
-      this.onGameOver(this.depth, this.run.score.score, this.run.samples);
+      this.onGameOver(this.buildResult(false));
     }
+  }
+
+  private buildResult(surfaced: boolean): DiveResult {
+    return {
+      depth: this.depth,
+      score: this.run.score.score,
+      samples: this.run.samples,
+      kills: this.run.kills,
+      elites: this.eliteKills,
+      relics: this.run.relics,
+      level: this.run.xp.level,
+      surfaced,
+      maxedUpgrade: maxedAnyUpgrade(this.run),
+      seen: [],
+    };
   }
 
   private spawnEnemy(tier: number): void {
@@ -332,13 +360,15 @@ export class DiveScene implements HitSink, PickupSink {
 
   // ---- HitSink ----
   onPlayerHit(damage: number, at: Vec2): void {
-    this.player.hp -= damage;
+    const { hpDamage, absorbed } = absorb(this.player, damage);
+    this.player.hp -= hpDamage;
     this.player.invuln = 0.85;
-    if (this.shakeEnabled) this.shake = 10;
-    if (!this.reducedMotion) this.hitstop = 0.05;
-    onPlayerHitScore(this.run);
+    if (this.shakeEnabled) this.shake = absorbed ? 5 : 10;
+    if (!this.reducedMotion) this.hitstop = absorbed ? 0.03 : 0.05;
+    // A fully-shielded hit keeps your combo — the payoff for a shield build.
+    if (!absorbed) onPlayerHitScore(this.run);
     audio.playerHit();
-    this.spawnFx("impact_coral", at.x, at.y);
+    this.spawnFx(absorbed ? "impact_aqua" : "impact_coral", at.x, at.y);
     bus.emit("player:hit", { damage });
     if (this.player.hp <= 0) {
       this.player.hp = 0;
@@ -355,6 +385,7 @@ export class DiveScene implements HitSink, PickupSink {
   }
   onEnemyKilled(enemy: Enemy): void {
     onKill(this.run, enemy.elite);
+    if (enemy.elite) this.eliteKills++;
     audio.kill();
     if (this.shakeEnabled) this.shake = enemy.elite ? 10 : 6;
     if (!this.reducedMotion) this.hitstop = 0.04;
@@ -532,10 +563,16 @@ export class DiveScene implements HitSink, PickupSink {
     return rollChoices(this.run);
   }
   applyUpgrade(id: string): void {
+    const beforeShield = this.run.stats.shieldCapBonus;
     const dHp = applyRunUpgrade(this.run, id, PLAYER_SHOT);
     if (dHp > 0) {
       this.player.maxHp += dHp;
       this.player.hp = Math.min(this.player.maxHp, this.player.hp + dHp);
+    }
+    const dCap = this.run.stats.shieldCapBonus - beforeShield;
+    if (dCap > 0) {
+      this.player.shieldMax += dCap;
+      this.player.shield += dCap;
     }
     this.run.xp.pendingLevelUps = Math.max(0, this.run.xp.pendingLevelUps - 1);
   }
@@ -585,6 +622,18 @@ export class DiveScene implements HitSink, PickupSink {
   }
   get hpRatio(): number {
     return this.player.hp / this.player.maxHp;
+  }
+  get hp(): number {
+    return this.player.hp;
+  }
+  get maxHp(): number {
+    return this.player.maxHp;
+  }
+  get shield(): number {
+    return this.player.shield;
+  }
+  get shieldMax(): number {
+    return this.player.shieldMax;
   }
   get currentDepth(): number {
     return this.depth;

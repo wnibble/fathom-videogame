@@ -36,7 +36,12 @@ try {
     report.verdict = "FAIL";
   }
 
-  // Dive from the menu (DIVE is selected by default)
+  // Menu → Surface Station
+  await page.keyboard.press("Enter");
+  report.phases.stationReached = await waitState("station", 5000);
+  await page.screenshot({ path: `${OUT}/01b-station.png` });
+  // Navigate to LAUNCH DIVE (below the 10 store rows) and confirm.
+  for (let i = 0; i < 10; i++) { await page.keyboard.press("ArrowDown"); await sleep(40); }
   await page.keyboard.press("Enter");
   report.phases.diveReached = await waitState("dive", 12000); // through cold-open cutscene
   await page.screenshot({ path: `${OUT}/02-dive.png` });

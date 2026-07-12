@@ -47,3 +47,7 @@
 {"ts":"2026-07-12T19:45:00Z","phase":"build","agent":"parent","msg":"pass 4: Darter enemy, resupply, procedural audio, affordance rings, 2 soft-lock fixes, label/hint fixes"}
 {"ts":"2026-07-12T19:55:00Z","phase":"qa","agent":"qa","msg":"PASS: darters spawn (3) at depth 254, level-up legible, rings visible, 0 errors"}
 {"ts":"2026-07-12T19:58:00Z","phase":"ship","agent":"parent","msg":"pass 4 shipped: enemy variety + audio + affordances + soft-lock fixes"}
+{"ts":"2026-07-12T20:30:00Z","phase":"plan","agent":"architect","msg":"pass5-meta design: surface station, pearls, meta store, shield, scaling bars, 13 badges"}
+{"ts":"2026-07-12T21:10:00Z","phase":"build","agent":"parent","msg":"pass 5: surface station + meta store + shield + badges + banking + UI polish; fixed bubble_vent/decoration/over-glow/howto/gameover-C"}
+{"ts":"2026-07-12T21:20:00Z","phase":"qa","agent":"qa","msg":"PASS: menu->station->dive->pause, store renders, 0 errors, dive cleaner"}
+{"ts":"2026-07-12T21:22:00Z","phase":"ship","agent":"parent","msg":"pass 5 shipped; roadmaps added (strata/real-depth is next P0)"}

@@ -51,6 +51,7 @@ export interface Interactable extends Damageable {
   view: Container;
   glow?: Sprite;
   ring: Graphics; // affordance: marks the object as INTERACTIVE (vs decoration)
+  ventBubbles?: Graphics[]; // procedural bubble-vent animation
 }
 
 export interface InteractableSink {
@@ -79,7 +80,25 @@ export class Interactables {
     const def = DEFS[d.kind];
     const view = new Container();
     let node: Container;
-    if (this.assets.sprites[def.sprite]) node = this.assets.sprite(def.sprite);
+    let ventBubbles: Graphics[] | undefined;
+    if (d.kind === "bubble_vent") {
+      // Drawn procedurally (the concept sprite had a stray artifact) — a clean
+      // dark nozzle with rising bubbles.
+      const c = new Container();
+      const base = new Graphics();
+      base.ellipse(0, 11, 13, 5).fill(COLOR.deepNavy).stroke({ width: 1.5, color: COLOR.teal });
+      base.rect(-4, 2, 8, 9).fill(COLOR.navy);
+      c.addChild(base);
+      ventBubbles = [];
+      for (let i = 0; i < 4; i++) {
+        const g = new Graphics();
+        g.circle(0, 0, 2 + (i % 2)).fill({ color: COLOR.aquaBright, alpha: 0.7 });
+        g.position.set(i % 2 ? 4 : -4, -i * 9);
+        c.addChild(g);
+        ventBubbles.push(g);
+      }
+      node = c;
+    } else if (this.assets.sprites[def.sprite]) node = this.assets.sprite(def.sprite);
     else if (this.assets.anims[def.sprite]) node = this.assets.anim(def.sprite);
     else node = new Container();
     node.scale.set(d.kind === "relic" ? 0.9 : 1);
@@ -125,6 +144,7 @@ export class Interactables {
       view,
       glow,
       ring,
+      ventBubbles,
     });
   }
 
@@ -193,6 +213,13 @@ export class Interactables {
           if (playerAlive && dist <= touchR) this.trigger(it, sink);
           break;
         case "bubble_vent": {
+          if (it.ventBubbles) {
+            for (const g of it.ventBubbles) {
+              g.y -= dt * 26;
+              g.alpha = Math.max(0.05, 0.7 * (1 - -g.y / 42));
+              if (g.y < -42) g.y = 0;
+            }
+          }
           if (dist <= it.radius) {
             const s = 1 - dist / it.radius;
             sink.push(0, -320 * s); // upward push

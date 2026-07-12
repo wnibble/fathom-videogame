@@ -31,6 +31,8 @@ export const UPGRADES: Upgrade[] = [
   { id: "range", name: "Long Barrel", desc: "+range & bullet speed", category: "offense", weight: 7, maxStacks: 4, apply: (s) => { s.projSpeedMult += 0.2; s.ttlMult += 0.15; } },
   { id: "haste", name: "Adrenal Surge", desc: "fire faster after a dash", category: "utility", weight: 5, maxStacks: 3, apply: (s) => (s.postDashHaste += 0.4) },
   { id: "regen", name: "Symbiont Bloom", desc: "slowly regenerate HP", category: "defense", weight: 5, maxStacks: 3, apply: (s) => (s.regenPerSec += 1.2) },
+  { id: "shieldcap", name: "Aegis Cell", desc: "+30 shield capacity", category: "defense", weight: 5, maxStacks: 3, apply: (s) => (s.shieldCapBonus += 30) },
+  { id: "shieldregen", name: "Aegis Flow", desc: "+3 shield regen/sec", category: "defense", weight: 4, maxStacks: 3, apply: (s) => (s.shieldRegenBonus += 3) },
 ];
 
 export const UPGRADE_BY_ID: Record<string, Upgrade> = Object.fromEntries(UPGRADES.map((u) => [u.id, u]));

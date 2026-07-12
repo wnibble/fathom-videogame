@@ -17,9 +17,10 @@ export interface ArenaData {
 }
 
 // Prefer these if present in the atlas; filtered against what actually extracted.
-// research_probe is now FUNCTIONAL (an interactable), not decoration.
-const GLOW_ANIMS = ["jelly_colony", "glow_orb"];
-const GLOW_SPRITES = ["plankton_dense", "plankton_ring", "plankton_cluster_large", "plankton_cluster_medium", "plankton_sparse"];
+// research_probe is now FUNCTIONAL (an interactable), not decoration. glow_orb +
+// the orb/ring plankton were culled — they read as pickups/UI, not atmosphere.
+const GLOW_ANIMS = ["jelly_colony"];
+const GLOW_SPRITES = ["plankton_dense", "plankton_sparse"];
 const STRUCT_SPRITES = [
   "suspended_coral_chunk", "floating_rock_large_a", "floating_rock_large_b",
   "floating_rock_med_a", "floating_rock_med_b", "floating_rock_small_a",

@@ -79,6 +79,9 @@ export interface Player {
   fireCooldown: number;
   invuln: number; // i-frames after a hit
   alive: boolean;
+  shieldMax: number; // 0 = no shield (locked)
+  shield: number; // current shield points (absorbed before HP)
+  shieldRegenT: number; // sec since last hit (regen gated by delay)
 }
 
 /** A directional current band that pushes entities inside it. */

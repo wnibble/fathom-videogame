@@ -71,8 +71,8 @@ export class Engine {
     // Calm bloom: only the brightest cores glow, and gently — so bullets stay
     // readable (pillar 1) instead of washing into slabs of light.
     this.bloom = new AdvancedBloomFilter({
-      threshold: 0.5,
-      bloomScale: 0.7,
+      threshold: 0.55,
+      bloomScale: 0.6,
       brightness: 1.0,
       blur: 4,
       quality: 4,

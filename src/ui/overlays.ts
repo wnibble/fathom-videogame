@@ -6,6 +6,7 @@ import { Container, Graphics, Text, TextStyle } from "pixi.js";
 import { COLOR } from "../palette";
 import type { UpgradeChoice } from "../game/progression";
 import type { Settings } from "../game/persistence";
+import { BADGE_BY_ID } from "../content/badges";
 import { audio } from "../engine/audio";
 
 export interface Overlay {
@@ -24,6 +25,20 @@ function txt(s: string, size: number, color: number, weight: "normal" | "bold" =
 function scrim(g: Graphics, w: number, h: number, alpha = 0.72): void {
   g.clear();
   g.rect(0, 0, w, h).fill({ color: COLOR.abyss, alpha });
+}
+
+// Shared UI-appeal helpers (used by overlays + station) — one cohesive look.
+export function panel(g: Graphics, x: number, y: number, w: number, h: number, accent: number = COLOR.teal): void {
+  g.roundRect(x, y + 3, w, h, 12).fill({ color: COLOR.abyss, alpha: 0.35 }); // drop shadow
+  g.roundRect(x, y, w, h, 12).fill({ color: COLOR.deepNavy, alpha: 0.96 }).stroke({ width: 1.5, color: COLOR.navy });
+  g.roundRect(x, y + h * 0.5, w, h * 0.5, 12).fill({ color: COLOR.abyss, alpha: 0.14 }); // faux gradient
+  g.roundRect(x, y, w, 4, 12).fill({ color: accent, alpha: 0.9 }); // top accent
+}
+export function label(s: string, size: number, color: number, weight: "normal" | "bold" = "normal"): Text {
+  return txt(s, size, color, weight);
+}
+export function chip(g: Graphics, x: number, y: number, w: number, h: number, color: number, on = false): void {
+  g.roundRect(x, y, w, h, 6).fill({ color: on ? COLOR.navy : COLOR.deepNavy, alpha: 0.95 }).stroke({ width: on ? 2 : 1, color });
 }
 
 class Button {
@@ -110,14 +125,14 @@ export class MenuOverlay extends ButtonMenu {
     best: number,
     bestScore: number,
     private settings: Settings,
-    cbs: { onDive: () => void; onHowTo: () => void; onToggleMotion: () => void; onToggleShake: () => void; onToggleSound: () => void }
+    cbs: { onStation: () => void; onHowTo: () => void; onToggleMotion: () => void; onToggleShake: () => void; onToggleSound: () => void }
   ) {
     super();
     this.title.style.letterSpacing = 10;
     this.stats = txt("", 14, COLOR.amber);
     this.settingsLine = txt("", 13, COLOR.teal);
     this.root.addChild(this.title, this.tagline, this.stats, this.settingsLine);
-    this.addButton("DIVE", cbs.onDive);
+    this.addButton("SURFACE STATION", cbs.onStation);
     this.addButton("HOW TO PLAY", cbs.onHowTo);
     this.addButton("", () => {
       cbs.onToggleMotion();
@@ -162,7 +177,7 @@ export class PauseOverlay extends ButtonMenu {
     this.root.addChild(this.title);
     this.addButton("RESUME", cbs.onResume);
     this.addButton("RESTART DIVE", cbs.onRestart);
-    this.addButton("QUIT TO MENU", cbs.onQuit);
+    this.addButton("QUIT TO SURFACE", cbs.onQuit);
     this.buttons[0].setSelected(true);
   }
   layout(w: number, h: number): void {
@@ -211,6 +226,8 @@ export interface GameOverData {
   depth: number;
   score: number;
   samplesLost: number;
+  pearlsEarned: number;
+  newBadges: string[];
   kills: number;
   level: number;
   relics: number;
@@ -235,18 +252,19 @@ export class GameOverOverlay implements Overlay {
     add("YOU SURFACED", 30, COLOR.aquaBright, "bold");
     add(recScore ? "★ NEW HIGH SCORE ★" : recDepth ? "★ NEW DEEPEST DIVE ★" : "you carried this back", 15, recScore || recDepth ? COLOR.amberBright : COLOR.teal);
     add(`SCORE   ${Math.floor(d.score)}`, 22, COLOR.amberBright, "bold");
-    add(`DEPTH ${Math.floor(d.depth)} m    ·    LV ${d.level}    ·    ${d.kills} kills    ·    ${d.relics} relics`, 15, COLOR.teal);
-    add(`◈ ${d.samplesLost} samples lost to the deep`, 14, COLOR.coralBright);
-    add("press any key to return to the surface", 13, 0x5a7a9a);
+    add(`DEPTH ${Math.floor(d.depth)} m   ·   LV ${d.level}   ·   ${d.kills} kills   ·   ${d.relics} relics`, 14, COLOR.teal);
+    add(`◈ +${d.pearlsEarned} pearls banked   (lost ${d.samplesLost} unbanked)`, 15, COLOR.sample, "bold");
+    if (d.newBadges.length) add(`★ NEW BADGE: ${d.newBadges.map((b) => BADGE_BY_ID[b]?.name ?? b).join(", ")}`, 13, COLOR.amberBright);
+    add("press  C  to return to the surface", 14, COLOR.aquaBright, "bold");
   }
   layout(w: number, h: number): void {
     scrim(this.bgG, w, h, 0.55);
-    const pw = Math.min(520, w * 0.9);
-    const ph = 300;
+    const pw = Math.min(560, w * 0.9);
+    const ph = 60 + this.texts.length * 40;
     this.panelG.clear();
-    this.panelG.roundRect(w / 2 - pw / 2, h / 2 - ph / 2, pw, ph, 12).fill({ color: COLOR.deepNavy, alpha: 0.96 }).stroke({ width: 2, color: COLOR.navy });
-    const ys = [-108, -74, -30, 8, 40, 96];
-    this.texts.forEach((t, i) => t.position.set(w / 2, h / 2 + ys[i]));
+    panel(this.panelG, w / 2 - pw / 2, h / 2 - ph / 2, pw, ph, COLOR.aqua);
+    const top = h / 2 - ph / 2 + 34;
+    this.texts.forEach((t, i) => t.position.set(w / 2, top + i * 38));
   }
   destroy(): void {
     this.root.destroy({ children: true });

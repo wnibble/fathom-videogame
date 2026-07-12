@@ -32,7 +32,8 @@ export function buildPlayerView(): PlayerView {
   g.poly([-9, 7, -15, 11, -12, 5]).fill(COLOR.teal);
   root.addChild(g);
 
-  const lamp = glow(230, COLOR.aqua, 0.5);
+  // A restrained headlamp pool — enough to read "a small light," not a blinding disc.
+  const lamp = glow(155, COLOR.aqua, 0.3);
   return { root, lamp };
 }
 

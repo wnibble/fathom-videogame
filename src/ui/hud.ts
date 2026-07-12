@@ -4,7 +4,8 @@
 
 import { Container, Graphics, Text, TextStyle } from "pixi.js";
 import { COLOR } from "../palette";
-import type { RunState } from "../game/progression";
+import { BASE_HP, type RunState } from "../game/progression";
+import { UPGRADE_BY_ID } from "../content/upgrades";
 
 const mono = (size: number, color: number, weight: "normal" | "bold" = "normal") =>
   new TextStyle({ fontFamily: "Consolas, ui-monospace, monospace", fontSize: size, fill: color, fontWeight: weight });
@@ -19,6 +20,7 @@ export class Hud {
   private bestText: Text;
   private sampleText: Text;
   private levelText: Text;
+  private buildText: Text;
   private hintText: Text;
   private w = 1280;
   private h = 720;
@@ -31,10 +33,11 @@ export class Hud {
     this.bestText = new Text({ text: "BEST 0 m", style: mono(12, COLOR.teal) });
     this.sampleText = new Text({ text: "◈ 0", style: mono(16, COLOR.sample, "bold") });
     this.levelText = new Text({ text: "LV 1", style: mono(13, COLOR.aqua, "bold") });
+    this.buildText = new Text({ text: "", style: mono(12, COLOR.teal) });
     this.hintText = new Text({ text: "WASD move · mouse aim · click fire · Shift dash · Esc pause   —   warm = danger, cool = you", style: mono(12, 0x5a7a9a) });
     this.scoreText.anchor.set(0.5, 0);
     this.comboText.anchor.set(0.5, 0);
-    this.root.addChild(this.bars, this.threats, this.scoreText, this.comboText, this.depthText, this.bestText, this.sampleText, this.levelText, this.hintText);
+    this.root.addChild(this.bars, this.threats, this.scoreText, this.comboText, this.depthText, this.bestText, this.sampleText, this.levelText, this.buildText, this.hintText);
   }
 
   layout(w: number, h: number): void {
@@ -64,7 +67,7 @@ export class Hud {
     }
   }
 
-  update(run: RunState, hpRatio: number, depth: number, best: number, dashFrac: number, dt: number): void {
+  update(run: RunState, hp: number, maxHp: number, shield: number, shieldMax: number, depth: number, best: number, dashFrac: number, dt: number): void {
     const w = this.w;
     const h = this.h;
     if (this.hintTimer > 0) {
@@ -89,34 +92,51 @@ export class Hud {
     this.bestText.position.set(w - this.bestText.width - 20, 40);
     this.sampleText.text = `◈ ${run.samples}`;
     this.levelText.text = `LV ${run.xp.level}`;
-    this.levelText.position.set(20, h - 70);
 
-    // bars
+    // Build readout — owned in-run upgrades, compact (power made visible).
+    const stacks = Object.entries(run.stacks).filter(([, n]) => n > 0);
+    this.buildText.text = stacks.length
+      ? stacks.slice(0, 6).map(([id, n]) => `${(UPGRADE_BY_ID[id]?.name ?? id).split(" ")[0]}×${n}`).join("  ") + (stacks.length > 6 ? " +" + (stacks.length - 6) : "")
+      : "";
+
     const g = this.bars;
     g.clear();
-    // HP
     const bx = 20;
-    const bw = 240;
+    // HP bar width scales with max HP (power is visible), clamped.
+    const hpW = Math.round(Math.max(160, Math.min(360, 200 + (maxHp - BASE_HP) * 0.9)));
     const hpY = h - 52;
-    g.roundRect(bx, hpY, bw, 14, 4).fill({ color: COLOR.deepNavy, alpha: 0.9 }).stroke({ width: 1, color: COLOR.navy });
-    const r = Math.max(0, Math.min(1, hpRatio));
-    if (r > 0) g.roundRect(bx + 1, hpY + 1, (bw - 2) * r, 12, 3).fill(r > 0.35 ? COLOR.hpFull : COLOR.hpLow);
-    // XP
+    g.roundRect(bx, hpY, hpW, 14, 4).fill({ color: COLOR.deepNavy, alpha: 0.9 }).stroke({ width: 1, color: COLOR.navy });
+    const r = Math.max(0, Math.min(1, hp / maxHp));
+    if (r > 0) g.roundRect(bx + 1, hpY + 1, (hpW - 2) * r, 12, 3).fill(r > 0.35 ? COLOR.hpFull : COLOR.hpLow);
+
+    // Shield bar — only when unlocked; sits above HP, capacity-tick segments.
+    if (shieldMax > 0) {
+      const shW = Math.round(Math.max(120, Math.min(360, 120 + shieldMax * 1.2)));
+      const shY = hpY - 14;
+      g.roundRect(bx, shY, shW, 10, 3).fill({ color: COLOR.deepNavy, alpha: 0.9 }).stroke({ width: 1, color: COLOR.navy });
+      const sr = Math.max(0, Math.min(1, shield / shieldMax));
+      if (sr > 0) g.roundRect(bx + 1, shY + 1, (shW - 2) * sr, 8, 2).fill(COLOR.aqua);
+      for (let seg = 30; seg < shieldMax; seg += 30) {
+        const sx = bx + 1 + (shW - 2) * (seg / shieldMax);
+        g.rect(sx, shY + 1, 1, 8).fill({ color: COLOR.deepNavy, alpha: 0.8 });
+      }
+    }
+
+    // XP bar below HP; LV + build labels tucked above the HP bar.
     const xpY = h - 34;
     const xpFrac = Math.max(0, Math.min(1, run.xp.xp / run.xp.xpToNext));
-    g.roundRect(bx, xpY, bw, 10, 3).fill({ color: COLOR.deepNavy, alpha: 0.9 }).stroke({ width: 1, color: COLOR.navy });
-    if (xpFrac > 0) g.roundRect(bx + 1, xpY + 1, (bw - 2) * xpFrac, 8, 2).fill(COLOR.sample);
-    // combo timer bar under combo pill
+    g.roundRect(bx, xpY, 200, 10, 3).fill({ color: COLOR.deepNavy, alpha: 0.9 }).stroke({ width: 1, color: COLOR.navy });
+    if (xpFrac > 0) g.roundRect(bx + 1, xpY + 1, (200 - 2) * xpFrac, 8, 2).fill(COLOR.sample);
+    this.levelText.position.set(bx, shieldMax > 0 ? hpY - 30 : hpY - 18);
+    this.buildText.position.set(bx + 44, shieldMax > 0 ? hpY - 30 : hpY - 18);
+
     if (c.combo > 0) {
       const cw = 90;
       const ct = Math.max(0, Math.min(1, c.comboTimer / 5));
       g.roundRect(w / 2 - cw / 2, 72, cw * ct, 3, 1).fill(COLOR.coralBright);
     }
-    // dash pip (bottom-center)
     const ready = dashFrac <= 0;
-    const pipX = w / 2;
-    const pipY = h - 30;
-    g.circle(pipX, pipY, 9).fill({ color: COLOR.deepNavy, alpha: 0.9 }).stroke({ width: 1, color: COLOR.navy });
-    g.circle(pipX, pipY, 6).fill({ color: ready ? COLOR.aquaBright : COLOR.navy, alpha: ready ? 1 : 0.6 });
+    g.circle(w / 2, h - 30, 9).fill({ color: COLOR.deepNavy, alpha: 0.9 }).stroke({ width: 1, color: COLOR.navy });
+    g.circle(w / 2, h - 30, 6).fill({ color: ready ? COLOR.aquaBright : COLOR.navy, alpha: ready ? 1 : 0.6 });
   }
 }
