@@ -48,6 +48,8 @@ export function makeSpitter(pos: Vec2, opts: SpitterOpts = {}): Enemy {
     elite,
     bulletCount: opts.bulletCount ?? (elite ? 18 : 14),
     speed: opts.speed ?? (elite ? 66 : 78),
+    lungeTimer: 0,
+    contactDamage: 0,
   };
 }
 

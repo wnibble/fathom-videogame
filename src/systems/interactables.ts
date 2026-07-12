@@ -3,7 +3,7 @@
 // hidden relics, vents push you, and relics grant a guaranteed level-up. Shootable
 // ones expose a Damageable face to the projectile system.
 
-import { Container, Sprite } from "pixi.js";
+import { Container, Graphics, Sprite } from "pixi.js";
 import type { Vec2 } from "../core/types";
 import type { Damageable } from "./projectiles";
 import type { AssetStore } from "../engine/assets";
@@ -50,6 +50,7 @@ export interface Interactable extends Damageable {
   revealed: boolean;
   view: Container;
   glow?: Sprite;
+  ring: Graphics; // affordance: marks the object as INTERACTIVE (vs decoration)
 }
 
 export interface InteractableSink {
@@ -67,6 +68,11 @@ export class Interactables {
 
   constructor(data: InteractableData[], private world: Container, private light: Container, private assets: AssetStore) {
     for (const d of data) this.add(d);
+  }
+
+  /** Add an interactable at runtime (depth resupply). */
+  spawnOne(kind: InteractableKind, pos: Vec2): void {
+    this.add({ kind, pos });
   }
 
   private add(d: InteractableData): void {
@@ -94,6 +100,17 @@ export class Interactables {
 
     const hidden = d.kind === "relic";
     view.alpha = hidden ? 0.12 : 1;
+
+    // Affordance ring — a clean outline that reads "you can act on this" so
+    // interactables are never mistaken for the (glowy) decoration.
+    const ringColor = def.hp > 0 ? COLOR.amberBright : d.kind === "relic" ? COLOR.sample : COLOR.aquaBright;
+    const ring = new Graphics();
+    ring.circle(0, 0, def.radius + 9).stroke({ width: 1.5, color: ringColor, alpha: 0.7 });
+    ring.circle(0, 0, def.radius + 4).stroke({ width: 1, color: ringColor, alpha: 0.3 });
+    ring.position.set(d.pos.x, d.pos.y);
+    ring.visible = !hidden;
+    this.world.addChild(ring);
+
     this.items.push({
       kind: d.kind,
       pos: { x: d.pos.x, y: d.pos.y },
@@ -107,6 +124,7 @@ export class Interactables {
       revealed: !hidden,
       view,
       glow,
+      ring,
     });
   }
 
@@ -137,6 +155,7 @@ export class Interactables {
     }
     sink.fx(it.kind === "mineral_crystal" ? "sample_burst" : "pickup_sparkle", pos.x, pos.y);
     if (it.glow) it.glow.alpha = 0;
+    it.ring.visible = false;
   }
 
   revealNearestRelic(x: number, y: number): void {
@@ -153,6 +172,7 @@ export class Interactables {
     if (best) {
       best.revealed = true;
       best.view.alpha = 1;
+      best.ring.visible = true;
       if (best.glow) best.glow.alpha = 0.7;
     }
   }
@@ -161,6 +181,7 @@ export class Interactables {
     const pulse = 0.5 + 0.5 * Math.sin(elapsed * 5);
     for (const it of this.items) {
       if (it.state === "spent") continue;
+      if (it.ring.visible) it.ring.alpha = 0.5 + 0.3 * pulse;
       if (it.glow && (it.kind === "loot_pod" || it.kind === "mineral_crystal")) it.glow.alpha = 0.3 + 0.2 * pulse;
       const dx = it.pos.x - player.x;
       const dy = it.pos.y - player.y;
@@ -197,6 +218,7 @@ export class Interactables {
           if (!it.revealed && dist < 130) {
             it.revealed = true;
             it.view.alpha = 1;
+            it.ring.visible = true;
             if (it.glow) it.glow.alpha = 0.7;
             sink.scan(it.pos.x, it.pos.y);
           }
@@ -205,6 +227,7 @@ export class Interactables {
             it.state = "spent";
             it.alive = false;
             it.view.alpha = 0;
+            it.ring.visible = false;
             if (it.glow) it.glow.alpha = 0;
             sink.score(it.def.score);
             sink.fx("codex_flash", it.pos.x, it.pos.y);
@@ -221,6 +244,8 @@ export class Interactables {
     for (const it of this.items) {
       it.view.parent?.removeChild(it.view);
       it.view.destroy({ children: true });
+      it.ring.parent?.removeChild(it.ring);
+      it.ring.destroy();
       if (it.glow) {
         it.glow.parent?.removeChild(it.glow);
         it.glow.destroy();

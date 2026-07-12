@@ -44,7 +44,7 @@ export interface Bullet {
   lastHit: Enemy | null; // guard against double-hitting the same enemy while overlapping
 }
 
-export type EnemyKind = "spitter";
+export type EnemyKind = "spitter" | "darter";
 
 export interface Enemy {
   alive: boolean;
@@ -66,6 +66,8 @@ export interface Enemy {
   elite: boolean; // tankier, richer loot, bigger threat glow
   bulletCount: number; // radial burst size (scales with depth tier)
   speed: number; // move speed (scales with depth tier)
+  lungeTimer: number; // darter: >0 while mid-lunge (dashing at the player)
+  contactDamage: number; // melee/lunge contact damage
 }
 
 export interface Player {

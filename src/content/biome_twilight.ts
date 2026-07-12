@@ -116,7 +116,7 @@ export function buildTwilightArena(seed: number, assets: AssetStore): ArenaData 
       return;
     }
   };
-  placeInteractable("loot_pod");
+  placeInteractable("loot_pod", 170); // one within sight of the start — early content
   placeInteractable("loot_pod");
   placeInteractable("salvage_crate");
   placeInteractable("salvage_crate");

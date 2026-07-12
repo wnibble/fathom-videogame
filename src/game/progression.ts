@@ -77,7 +77,10 @@ export function freshStats(): PlayerStats {
 }
 
 export function xpForLevel(level: number): number {
-  return Math.round(40 + 25 * level + 4 * level * level);
+  // Quadratic early (gentle ramp), then flattens so the upgrade decision beat
+  // keeps arriving deep into a run instead of stalling out.
+  if (level <= 6) return Math.round(40 + 25 * level + 4 * level * level);
+  return Math.round(40 + 25 * 6 + 4 * 36 + (level - 6) * 170);
 }
 
 export function deriveWeapon(base: EmitterSpec, s: PlayerStats): EmitterSpec {
@@ -182,6 +185,9 @@ export interface UpgradeChoice {
 
 function available(run: RunState): Upgrade[] {
   return UPGRADES.filter((u) => (run.stacks[u.id] ?? 0) < u.maxStacks);
+}
+export function hasUpgradesAvailable(run: RunState): boolean {
+  return available(run).length > 0;
 }
 
 /** Weighted, distinct 3-card roll (uses Math.random — menu-side, not sim). */

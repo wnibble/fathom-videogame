@@ -14,6 +14,7 @@ import { Cutscene } from "./systems/cutscene";
 import { coldOpen } from "./content/cutscene_coldopen";
 import { DiveScene } from "./game/dive";
 import * as persistence from "./game/persistence";
+import { audio } from "./engine/audio";
 import { COLOR } from "./palette";
 import {
   MenuOverlay,
@@ -56,6 +57,12 @@ async function main(): Promise<void> {
 
   const assets = new AssetStore();
   let save = persistence.load();
+
+  // Audio must be resumed on a user gesture (autoplay policy).
+  audio.setEnabled(save.settings.sound);
+  const resumeAudio = () => audio.resume();
+  window.addEventListener("pointerdown", resumeAudio);
+  window.addEventListener("keydown", resumeAudio);
 
   const loader = new Loader();
   const hud = new Hud();
@@ -132,6 +139,7 @@ async function main(): Promise<void> {
     dive?.destroy();
     dive = null;
     hud.root.visible = false;
+    audio.stopDrone();
   };
 
   const buildMenu = () =>
@@ -143,6 +151,10 @@ async function main(): Promise<void> {
       },
       onToggleShake: () => {
         save = persistence.saveSettings(save, { ...save.settings, screenShake: !save.settings.screenShake });
+      },
+      onToggleSound: () => {
+        save = persistence.saveSettings(save, { ...save.settings, sound: !save.settings.sound });
+        audio.setEnabled(save.settings.sound);
       },
     });
 
@@ -235,6 +247,9 @@ async function main(): Promise<void> {
       },
       update: (dt) => {
         dive!.update(dt, input);
+        // A death during update() may have already switched to gameover — don't
+        // override it with levelup/pause (that stranded the player in a dead dive).
+        if (dive!.ended || fsm.current !== "dive") return;
         hud.update(dive!.runState, dive!.hpRatio, dive!.currentDepth, Math.max(save.bestDepth, dive!.currentDepth), dive!.dashCooldownFrac, dt);
         hud.setThreats(dive!.threatMarkers(engine.width, engine.height));
         if (dive!.consumeLevelUp()) fsm.change("levelup");
@@ -242,7 +257,10 @@ async function main(): Promise<void> {
       },
     })
     .define("levelup", {
-      enter: () => openLevelUp(),
+      enter: () => {
+        audio.levelUp();
+        openLevelUp();
+      },
       update: () => {
         const o = activeOverlay as LevelUpOverlay;
         const idx = input.choiceIndex();
@@ -328,9 +346,11 @@ async function main(): Promise<void> {
       score: dive ? dive.scoreValue : 0,
       level: dive ? dive.level : 1,
       enemies: dive ? dive.enemyCount : 0,
+      darters: dive ? dive.darterCount : 0,
       bullets: dive ? dive.bulletCount : 0,
     };
   });
+  (window as any).__fathomDive = () => dive; // QA hook
 }
 
 void main();

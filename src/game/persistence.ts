@@ -5,6 +5,7 @@
 export interface Settings {
   reducedMotion: boolean;
   screenShake: boolean;
+  sound: boolean;
 }
 export interface SaveData {
   guestId: string;
@@ -25,7 +26,7 @@ function makeGuestId(): string {
 }
 
 function defaultSettings(): Settings {
-  return { reducedMotion: false, screenShake: true };
+  return { reducedMotion: false, screenShake: true, sound: true };
 }
 function fresh(): SaveData {
   return { guestId: makeGuestId(), bestDepth: 0, bestScore: 0, totalSamples: 0, runs: 0, codexSeen: [], settings: defaultSettings() };
@@ -51,7 +52,7 @@ export function load(): SaveData {
       totalSamples: num(parsed.totalSamples, 0),
       runs: num(parsed.runs, 0),
       codexSeen: Array.isArray(parsed.codexSeen) ? parsed.codexSeen.filter((s) => typeof s === "string") : [],
-      settings: { reducedMotion: bool(ps.reducedMotion, false), screenShake: bool(ps.screenShake, true) },
+      settings: { reducedMotion: bool(ps.reducedMotion, false), screenShake: bool(ps.screenShake, true), sound: bool(ps.sound, true) },
     };
   } catch {
     return fresh();

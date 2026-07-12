@@ -67,3 +67,17 @@ export function buildSpitterView(elite = false): SpitterView {
   // warm signal on screen, not blend into set-dressing. Elites glow harder.
   return { root, glow: glow(elite ? 175 : 120, COLOR.coral, elite ? 0.95 : 0.85), body };
 }
+
+// The Darter — a sleek lunging predator (points +x; dive rotates it to face its
+// lunge). Distinct silhouette from the Spitter so the two threats read apart.
+export function buildDarterView(elite = false): SpitterView {
+  const root = new Container();
+  const body = new Graphics();
+  const s = elite ? 1.35 : 1;
+  const outline = elite ? COLOR.amberBright : COLOR.coral;
+  body.poly([15 * s, 0, -8 * s, -8 * s, -3 * s, 0, -8 * s, 8 * s]).fill(COLOR.deepNavy).stroke({ width: 2, color: outline });
+  body.poly([-3 * s, 0, -15 * s, -6 * s, -10 * s, 0, -15 * s, 6 * s]).fill(COLOR.coral);
+  body.circle(6 * s, 0, 2.6 * s).fill(COLOR.amberBright);
+  root.addChild(body);
+  return { root, glow: glow(elite ? 120 : 82, COLOR.coral, elite ? 0.9 : 0.72), body };
+}

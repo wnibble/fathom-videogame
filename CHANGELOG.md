@@ -147,6 +147,36 @@ responsive.
   discrete press-edge (pressCount baseline) after entry is required.
 - HUD overhaul: score/combo top-center, XP bar + level, dash pip, all responsive.
 
+## Pass 4 — depth, variety, audio & the review loop (2026-07-12)
+
+Full re-review of pass 3 by two blind reviewers + the playtester; all findings folded
+in + re-verified (QA PASS: menu→dive→level-up→pause, Darters spawn at depth, 0 errors,
+score 1050, level-up card legible, affordance rings visible).
+
+### Correctness blockers fixed (correctness reviewer)
+- **Exhausted upgrade pool soft-locked the level-up** (`rollChoices`→`[]`→empty card→
+  crash). `consumeLevelUp` now drains un-fillable picks into a fallback (+15 max HP,
+  +500 score) so the overlay is never opened empty.
+- **Dying in the same step as a level-up stranded the player** in a frozen dead dive.
+  Guarded: if the dive `ended`/state already changed, the level-up/pause transition is
+  skipped; the fixed-step loop also stops once `ended`.
+
+### Content depth (playtester)
+- **Enemy #2 — the Darter** (`darter.ts`): doesn't shoot, it LUNGES — stalks, telegraphs
+  a wind-up, dashes at you; contact hurts. A "dodge, don't kite" verb; mixes in with
+  depth, elite variant, distinct silhouette + tell.
+- **Interactable resupply** every 200 m so the loot/explore loop never goes dark.
+- **Procedural audio** (`audio.ts`, WebAudio, no asset files) — SFX for shoot/hit/kill/
+  dash/pickup/level-up/relic/low-HP + a descent drone; a **SOUND** menu toggle.
+- Flatter XP curve past L6 so the upgrade beat keeps arriving deep in a run.
+
+### UX/readability (game-feel reviewer)
+- **Interactable affordance rings** (amber=shoot / aqua=touch / mint=relic) so functional
+  objects are never confused with decoration — the owner's core complaint.
+- **Fixed the invisible upgrade label** (navy-on-navy → teal).
+- Threat arrows kept clear of the score; "warm = danger, cool = you" added to the in-game
+  hint; an early loot pod in the start clearing.
+
 ### Accepted deviations / deferred (documented, not silently skipped)
 
 - **Render interpolation** (contract `core.md`): the slice renders raw fixed-step sim

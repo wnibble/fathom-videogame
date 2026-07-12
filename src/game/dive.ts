@@ -12,12 +12,14 @@ import type { Damageable, HitSink } from "../systems/projectiles";
 import { Projectiles } from "../systems/projectiles";
 import { updatePlayerMovement } from "../systems/movement";
 import { makeSpitter, updateSpitter } from "../systems/spitter";
+import { makeDarter, updateDarter } from "../systems/darter";
 import { buildTwilightArena, type ArenaData } from "../content/biome_twilight";
-import { buildPlayerView, buildSpitterView, type SpitterView } from "../render/actors";
+import { buildPlayerView, buildSpitterView, buildDarterView, type SpitterView } from "../render/actors";
 import { PLAYER_SHOT } from "../content/emitters";
 import { bus } from "../core/events";
 import { COLOR } from "../palette";
 import { Rng } from "../core/rng";
+import { audio } from "../engine/audio";
 import { Pickups, type PickupKind, type PickupSink } from "../systems/pickups";
 import { Interactables, type InteractableSink } from "../systems/interactables";
 import { freshDash, tickDash, tryDash, type DashState, DASH_COOLDOWN } from "../systems/dash";
@@ -32,6 +34,7 @@ import {
   depthTier,
   applyUpgrade as applyRunUpgrade,
   rollChoices,
+  hasUpgradesAvailable,
   BASE_HP,
   type RunState,
   type UpgradeChoice,
@@ -63,6 +66,9 @@ export class DiveScene implements HitSink, PickupSink {
   private depth = 0;
   private shake = 0;
   private spawnTimer = 2;
+  private nextResupply = 200; // depth (m) of next interactable resupply
+  private lowHp = false;
+  private depthAudioT = 0;
   private stepDt = FIXED;
   private shakeEnabled: boolean;
   private lastAim: Vec2 = { x: 1, y: 0 };
@@ -102,6 +108,7 @@ export class DiveScene implements HitSink, PickupSink {
       relicClaimed: () => {
         this.run.relics += 1;
         this.run.xp.pendingLevelUps += 1; // guaranteed level-up
+        audio.relic();
       },
       scan: (x, y) => this.spawnFx("scan_ring", x, y),
       push: (fx, fy) => {
@@ -161,7 +168,7 @@ export class DiveScene implements HitSink, PickupSink {
     if (!this.ended && this.hitstop <= 0) {
       this.acc += dt;
       let steps = 0;
-      while (this.acc >= FIXED && steps < 5) {
+      while (this.acc >= FIXED && steps < 5 && !this.ended) {
         this.step(FIXED, input);
         this.acc -= FIXED;
         steps++;
@@ -195,6 +202,7 @@ export class DiveScene implements HitSink, PickupSink {
       if (tryDash(p, this.dash, input.state.move, this.lastAim, this.run.stats.dashCooldownMult, this.run.stats.postDashHaste)) {
         this.spawnFx("boost", p.pos.x, p.pos.y);
         this.spawnFx("wake_bubbles", p.pos.x, p.pos.y);
+        audio.dash();
       }
     }
 
@@ -204,11 +212,26 @@ export class DiveScene implements HitSink, PickupSink {
     if (input.state.firing && p.fireCooldown <= 0 && p.alive) {
       const ang = Math.atan2(this.lastAim.y, this.lastAim.x);
       this.proj.fireBurst(this.run.weapon, p.pos, ang, "player");
+      audio.shoot();
       const haste = this.dash.postHaste > 0 ? 1 + this.run.stats.postDashHaste : 1;
       p.fireCooldown = this.run.fireInterval / haste;
     }
 
-    for (const e of this.enemies) if (e.alive) updateSpitter(e, dt, p, this.proj, this.arena.bounds);
+    // enemies — dispatch by archetype; darters deal melee contact damage
+    for (const e of this.enemies) {
+      if (!e.alive) continue;
+      if (e.kind === "darter") {
+        updateDarter(e, dt, p, this.arena.bounds);
+        if (p.alive && p.invuln <= 0) {
+          const dx = e.pos.x - p.pos.x;
+          const dy = e.pos.y - p.pos.y;
+          const rr = e.radius + p.radius;
+          if (dx * dx + dy * dy <= rr * rr) this.onPlayerHit(e.contactDamage, { x: p.pos.x, y: p.pos.y });
+        }
+      } else {
+        updateSpitter(e, dt, p, this.proj, this.arena.bounds);
+      }
+    }
 
     this.proj.enemySlow = this.run.stats.enemyBulletSlow;
     this.proj.update(dt, p, this.enemies, this.interactables.destructibles(), this, this.arena.bounds);
@@ -227,9 +250,27 @@ export class DiveScene implements HitSink, PickupSink {
     const interval = Math.max(1.2, 3.2 - tier * 0.28);
     const aliveCount = this.enemies.reduce((n, e) => n + (e.alive ? 1 : 0), 0);
     if (this.spawnTimer <= 0 && aliveCount < maxAlive) {
-      this.spawnSpitter(tier);
+      this.spawnEnemy(tier);
       this.spawnTimer = interval;
     }
+
+    // Resupply: seed a fresh set of interactables every 200 m so the loot/explore
+    // loop never goes permanently dark (the fixed-budget problem).
+    if (this.depth >= this.nextResupply) {
+      this.nextResupply += 200;
+      this.resupplyInteractables();
+    }
+
+    // Ambient drone deepens with depth; low-HP warning.
+    this.depthAudioT += dt;
+    if (this.depthAudioT >= 0.5) {
+      this.depthAudioT = 0;
+      audio.setDepth(this.depth);
+    }
+    const lowNow = p.alive && p.hp / p.maxHp < 0.25;
+    if (lowNow && !this.lowHp) audio.lowHp();
+    this.lowHp = lowNow;
+
     if (this.shake > 0) this.shake = Math.max(0, this.shake - dt * 60);
 
     if (!p.alive && !this.ended) {
@@ -238,7 +279,7 @@ export class DiveScene implements HitSink, PickupSink {
     }
   }
 
-  private spawnSpitter(tier: number): void {
+  private spawnEnemy(tier: number): void {
     let best = this.arena.spawns[0];
     let bestD = -1;
     for (const s of this.arena.spawns) {
@@ -249,15 +290,44 @@ export class DiveScene implements HitSink, PickupSink {
       }
     }
     const elite = this.rng.chance(Math.min(0.35, tier * 0.06));
-    const baseHp = 60 * (1 + tier * 0.18) * (elite ? 3 : 1);
-    const speed = Math.min(78 * 1.5, 78 * (1 + tier * 0.06));
-    const bulletCount = Math.min(22, 14 + Math.floor(tier)) + (elite ? 4 : 0);
-    const e = makeSpitter(best, { elite, hp: Math.round(baseHp), speed, bulletCount });
+    // Darters start mixing in after a little depth, up to ~45% of spawns.
+    const darterChance = Math.min(0.45, Math.max(0, (tier - 0.4) * 0.22));
+    const isDarter = this.rng.chance(darterChance);
+
+    let e: Enemy;
+    let v: SpitterView;
+    if (isDarter) {
+      const hp = Math.round(32 * (1 + tier * 0.16) * (elite ? 2.6 : 1));
+      const speed = Math.min(96 * 1.6, 96 * (1 + tier * 0.05)) * (elite ? 1.2 : 1);
+      e = makeDarter(best, { elite, hp, speed });
+      v = buildDarterView(elite);
+    } else {
+      const baseHp = 60 * (1 + tier * 0.18) * (elite ? 3 : 1);
+      const speed = Math.min(78 * 1.5, 78 * (1 + tier * 0.06));
+      const bulletCount = Math.min(22, 14 + Math.floor(tier)) + (elite ? 4 : 0);
+      e = makeSpitter(best, { elite, hp: Math.round(baseHp), speed, bulletCount });
+      v = buildSpitterView(elite);
+    }
     this.enemies.push(e);
-    const v = buildSpitterView(elite);
     this.enemyViews.set(e, v);
     this.engine.worldLayer.addChild(v.root);
     this.engine.lightLayer.addChild(v.glow);
+  }
+
+  private resupplyInteractables(): void {
+    const b = this.arena.bounds;
+    const kinds: ("loot_pod" | "salvage_crate" | "mineral_crystal")[] = ["loot_pod", "loot_pod", "salvage_crate", "mineral_crystal"];
+    for (const k of kinds) {
+      const pos = { x: this.rng.range(90, b.w - 90), y: this.rng.range(90, b.h - 90) };
+      if (Math.hypot(pos.x - this.player.pos.x, pos.y - this.player.pos.y) < 220) continue;
+      this.interactables.spawnOne(k, pos);
+    }
+    if (this.rng.chance(0.5)) {
+      const edge = this.rng.chance(0.5)
+        ? { x: this.rng.range(80, 160), y: this.rng.range(120, b.h - 120) }
+        : { x: this.rng.range(b.w - 160, b.w - 80), y: this.rng.range(120, b.h - 120) };
+      this.interactables.spawnOne("relic", edge);
+    }
   }
 
   // ---- HitSink ----
@@ -267,6 +337,7 @@ export class DiveScene implements HitSink, PickupSink {
     if (this.shakeEnabled) this.shake = 10;
     if (!this.reducedMotion) this.hitstop = 0.05;
     onPlayerHitScore(this.run);
+    audio.playerHit();
     this.spawnFx("impact_coral", at.x, at.y);
     bus.emit("player:hit", { damage });
     if (this.player.hp <= 0) {
@@ -284,6 +355,7 @@ export class DiveScene implements HitSink, PickupSink {
   }
   onEnemyKilled(enemy: Enemy): void {
     onKill(this.run, enemy.elite);
+    audio.kill();
     if (this.shakeEnabled) this.shake = enemy.elite ? 10 : 6;
     if (!this.reducedMotion) this.hitstop = 0.04;
     this.spawnFx("sample_burst", enemy.pos.x, enemy.pos.y);
@@ -311,16 +383,20 @@ export class DiveScene implements HitSink, PickupSink {
         this.run.samples += 1;
         addScore(this.run, 15, false);
         addXp(this.run, 4);
+        audio.sample();
         break;
       case "hp":
         p.hp = Math.min(p.maxHp, p.hp + 22);
+        audio.pickup();
         break;
       case "xp":
         addXp(this.run, value || 16);
+        audio.pickup();
         break;
       case "upgrade":
         this.run.xp.pendingLevelUps += 1;
         this.spawnFx("codex_flash", p.pos.x, p.pos.y);
+        audio.pickup();
         break;
     }
   }
@@ -378,6 +454,10 @@ export class DiveScene implements HitSink, PickupSink {
       v.root.position.set(e.pos.x, e.pos.y);
       v.glow.position.set(e.pos.x, e.pos.y);
       v.root.scale.set(e.flash > 0 ? 1.15 : 1);
+      if (e.kind === "darter") {
+        if (Math.hypot(e.vel.x, e.vel.y) > 6) v.root.rotation = Math.atan2(e.vel.y, e.vel.x);
+        else v.root.rotation = Math.atan2(this.player.pos.y - e.pos.y, this.player.pos.x - e.pos.x);
+      }
       this.syncTelegraph(e);
     }
     this.enemies = this.enemies.filter((e) => e.alive || this.enemyViews.has(e));
@@ -394,9 +474,25 @@ export class DiveScene implements HitSink, PickupSink {
 
   private syncTelegraph(e: Enemy): void {
     let tg = this.telegraphs.get(e);
-    if (e.telegraphTimer > 0 && e.pendingSpec?.telegraph) {
-      const spec = e.pendingSpec;
-      const name = spec.telegraph!.sprite;
+    // Resolve the tell from the spitter's pending attack OR the darter's lunge wind-up.
+    let name: string | null = null;
+    let total = 0;
+    let aimed = false;
+    let baseScale = 1;
+    if (e.telegraphTimer > 0) {
+      if (e.pendingSpec?.telegraph) {
+        name = e.pendingSpec.telegraph.sprite;
+        total = e.pendingSpec.telegraph.time;
+        aimed = e.pendingSpec.aim === "aimed";
+        baseScale = e.pendingSpec.telegraph.scale ?? 1;
+      } else if (e.kind === "darter") {
+        name = "telegraph_aim_line"; // a growing aim line = "I'm about to lunge here"
+        total = 0.55;
+        aimed = true;
+        baseScale = 1.6;
+      }
+    }
+    if (name) {
       const hasArt = this.assets.has(name);
       if (!tg) {
         tg = hasArt ? this.assets.sprite(name) : new Sprite((this.playerView.lamp as Sprite).texture);
@@ -409,14 +505,12 @@ export class DiveScene implements HitSink, PickupSink {
       } else if (hasArt && tg.texture !== this.assets.texture(name)) {
         tg.texture = this.assets.texture(name);
       }
-      const total = spec.telegraph!.time;
       const t = 1 - e.telegraphTimer / total;
       tg.visible = true;
       tg.position.set(e.pos.x, e.pos.y);
       tg.alpha = 0.35 + 0.55 * t;
-      const base = spec.telegraph!.scale ?? 1;
-      tg.scale.set(base * (0.7 + 0.5 * t));
-      if (spec.aim === "aimed") tg.rotation = Math.atan2(this.player.pos.y - e.pos.y, this.player.pos.x - e.pos.x);
+      tg.scale.set(baseScale * (0.7 + 0.5 * t));
+      if (aimed) tg.rotation = Math.atan2(this.player.pos.y - e.pos.y, this.player.pos.x - e.pos.x);
     } else if (tg) {
       tg.visible = false;
     }
@@ -424,6 +518,14 @@ export class DiveScene implements HitSink, PickupSink {
 
   // ---- level-up API (driven by main.ts) ----
   consumeLevelUp(): boolean {
+    // If the upgrade pool is exhausted (all maxed), a pending pick can't be filled
+    // — drain it into a fallback reward instead of opening an empty (crashing) card.
+    while (this.run.xp.pendingLevelUps > 0 && !hasUpgradesAvailable(this.run)) {
+      this.player.maxHp += 15;
+      this.player.hp = Math.min(this.player.maxHp, this.player.hp + 15);
+      addScore(this.run, 500, false);
+      this.run.xp.pendingLevelUps -= 1;
+    }
     return this.run.xp.pendingLevelUps > 0;
   }
   rollUpgradeChoices(): UpgradeChoice[] {
@@ -507,6 +609,13 @@ export class DiveScene implements HitSink, PickupSink {
   }
   get enemyCount(): number {
     return this.enemies.reduce((n, e) => n + (e.alive ? 1 : 0), 0);
+  }
+  get darterCount(): number {
+    return this.enemies.reduce((n, e) => n + (e.alive && e.kind === "darter" ? 1 : 0), 0);
+  }
+  /** Debug: jump depth (QA only). */
+  debugSetDepth(d: number): void {
+    this.depth = d;
   }
   get bulletCount(): number {
     return this.proj.activeCount;

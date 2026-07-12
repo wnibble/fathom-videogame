@@ -6,6 +6,7 @@ import { Container, Graphics, Text, TextStyle } from "pixi.js";
 import { COLOR } from "../palette";
 import type { UpgradeChoice } from "../game/progression";
 import type { Settings } from "../game/persistence";
+import { audio } from "../engine/audio";
 
 export interface Overlay {
   root: Container;
@@ -37,9 +38,15 @@ class Button {
     this.root.addChild(this.bg, this.label);
     this.root.eventMode = "static";
     this.root.cursor = "pointer";
-    this.root.on("pointerover", () => this.setSelected(true));
+    this.root.on("pointerover", () => {
+      this.setSelected(true);
+      audio.uiMove();
+    });
     this.root.on("pointerout", () => this.setSelected(false));
-    this.root.on("pointerdown", () => this.onClick());
+    this.root.on("pointerdown", () => {
+      audio.uiConfirm();
+      this.onClick();
+    });
     this.redraw();
   }
   setText(s: string): void {
@@ -82,8 +89,10 @@ abstract class ButtonMenu implements Overlay {
     this.buttons[this.sel]?.setSelected(false);
     this.sel = (this.sel + delta + this.buttons.length) % this.buttons.length;
     this.buttons.forEach((b, i) => b.setSelected(i === this.sel));
+    audio.uiMove();
   }
   activate(): void {
+    audio.uiConfirm();
     this.buttons[this.sel]?.onClick();
   }
   abstract layout(w: number, h: number): void;
@@ -101,7 +110,7 @@ export class MenuOverlay extends ButtonMenu {
     best: number,
     bestScore: number,
     private settings: Settings,
-    cbs: { onDive: () => void; onHowTo: () => void; onToggleMotion: () => void; onToggleShake: () => void }
+    cbs: { onDive: () => void; onHowTo: () => void; onToggleMotion: () => void; onToggleShake: () => void; onToggleSound: () => void }
   ) {
     super();
     this.title.style.letterSpacing = 10;
@@ -118,6 +127,10 @@ export class MenuOverlay extends ButtonMenu {
       cbs.onToggleShake();
       this.refreshSettings();
     });
+    this.addButton("", () => {
+      cbs.onToggleSound();
+      this.refreshSettings();
+    });
     this.buttons[0].setSelected(true);
     this.refreshSettings();
     this.stats.text = `BEST  ${Math.floor(best)} m   ·   HIGH SCORE  ${Math.floor(bestScore)}`;
@@ -125,6 +138,7 @@ export class MenuOverlay extends ButtonMenu {
   private refreshSettings(): void {
     this.buttons[2].setText(`REDUCED MOTION: ${this.settings.reducedMotion ? "ON" : "OFF"}`);
     this.buttons[3].setText(`SCREEN SHAKE: ${this.settings.screenShake ? "ON" : "OFF"}`);
+    this.buttons[4].setText(`SOUND: ${this.settings.sound ? "ON" : "OFF"}`);
   }
   layout(w: number, h: number): void {
     scrim(this.bgG, w, h, 0.6);
@@ -255,7 +269,7 @@ export class LevelUpOverlay implements Overlay {
       const bg = new Graphics();
       const name = txt(ch.name, 18, CAT_COLOR[ch.category] ?? COLOR.aquaBright, "bold");
       const desc = txt(ch.desc, 14, COLOR.teal);
-      const cat = txt(ch.category.toUpperCase() + (ch.stacks > 0 ? `  ·  x${ch.stacks}` : ""), 11, COLOR.navy);
+      const cat = txt(ch.category.toUpperCase() + (ch.stacks > 0 ? `  ·  owned x${ch.stacks}` : ""), 12, COLOR.teal);
       const key = txt(`[${i + 1}]`, 13, COLOR.amber);
       name.anchor.set(0.5);
       desc.anchor.set(0.5);
@@ -265,8 +279,14 @@ export class LevelUpOverlay implements Overlay {
       (c as any)._t = { name, desc, cat, key };
       c.eventMode = "static";
       c.cursor = "pointer";
-      c.on("pointerover", () => this.select(i));
-      c.on("pointerdown", () => this.onPick(ch.id));
+      c.on("pointerover", () => {
+        this.select(i);
+        audio.uiMove();
+      });
+      c.on("pointerdown", () => {
+        audio.uiConfirm();
+        this.onPick(ch.id);
+      });
       this.root.addChild(c);
       this.cards.push({ root: c, bg });
     });

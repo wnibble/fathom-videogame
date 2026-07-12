@@ -31,7 +31,7 @@ export class Hud {
     this.bestText = new Text({ text: "BEST 0 m", style: mono(12, COLOR.teal) });
     this.sampleText = new Text({ text: "◈ 0", style: mono(16, COLOR.sample, "bold") });
     this.levelText = new Text({ text: "LV 1", style: mono(13, COLOR.aqua, "bold") });
-    this.hintText = new Text({ text: "WASD move · mouse aim · click fire · Shift dash · Esc pause", style: mono(12, 0x5a7a9a) });
+    this.hintText = new Text({ text: "WASD move · mouse aim · click fire · Shift dash · Esc pause   —   warm = danger, cool = you", style: mono(12, 0x5a7a9a) });
     this.scoreText.anchor.set(0.5, 0);
     this.comboText.anchor.set(0.5, 0);
     this.root.addChild(this.bars, this.threats, this.scoreText, this.comboText, this.depthText, this.bestText, this.sampleText, this.levelText, this.hintText);
@@ -52,6 +52,8 @@ export class Hud {
   setThreats(markers: { x: number; y: number; angle: number }[]): void {
     this.threats.clear();
     for (const m of markers) {
+      // Keep arrows out of the top-center score/combo zone so they never overlap it.
+      if (m.y < 96 && Math.abs(m.x - this.w / 2) < 140) m.y = 100;
       const a = m.angle;
       const s = 9;
       const l = a + 2.5;

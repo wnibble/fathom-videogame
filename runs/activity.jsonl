@@ -41,3 +41,9 @@
 {"ts":"2026-07-12T18:40:00Z","phase":"build","agent":"parent","msg":"pass 3: progression spine + interactables + pickups + dash + overlays + hud + scaling"}
 {"ts":"2026-07-12T18:55:00Z","phase":"qa","agent":"qa","msg":"headless PASS: menu->dive->levelup->pause->gameover, score 550, resize responsive, 0 errors"}
 {"ts":"2026-07-12T18:58:00Z","phase":"ship","agent":"parent","msg":"pass 3 shipped: roguelite depth, progression, functional objects, full nav shell"}
+{"ts":"2026-07-12T19:20:00Z","phase":"review","agent":"reviewer","msg":"correctness: 2 blockers (empty upgrade pool soft-lock; death+levelup strands gameover)"}
+{"ts":"2026-07-12T19:21:00Z","phase":"review","agent":"reviewer","msg":"game-feel: navy-on-navy upgrade label; functional-vs-decoration ambiguity; threat/score overlap"}
+{"ts":"2026-07-12T19:22:00Z","phase":"review","agent":"playtester","msg":"needs-work: 1 enemy type, non-respawning objects, no audio -> dive runs dry"}
+{"ts":"2026-07-12T19:45:00Z","phase":"build","agent":"parent","msg":"pass 4: Darter enemy, resupply, procedural audio, affordance rings, 2 soft-lock fixes, label/hint fixes"}
+{"ts":"2026-07-12T19:55:00Z","phase":"qa","agent":"qa","msg":"PASS: darters spawn (3) at depth 254, level-up legible, rings visible, 0 errors"}
+{"ts":"2026-07-12T19:58:00Z","phase":"ship","agent":"parent","msg":"pass 4 shipped: enemy variety + audio + affordances + soft-lock fixes"}
