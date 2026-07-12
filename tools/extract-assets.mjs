@@ -120,7 +120,23 @@ function removeBackground(img) {
     return;
   }
 
-  // Border flood-fill: mark connected light pixels transparent.
+  // Decide the background TYPE from the border majority, then remove only that
+  // type. Critical: on white-bg prop sheets, a dark sprite pixel touching the
+  // crop border must NOT be treated as background (that ate suspended_coral_chunk
+  // etc.); on black-bg telegraph sheets, bright glow edges must not be eaten.
+  let lightB = 0;
+  let darkB = 0;
+  const tally = (x, y) => {
+    const o = idx(x, y, w);
+    if (isLightBg(data[o], data[o + 1], data[o + 2])) lightB++;
+    else if (isDarkBg(data[o], data[o + 1], data[o + 2])) darkB++;
+  };
+  for (let x = 0; x < w; x++) { tally(x, 0); tally(x, h - 1); }
+  for (let y = 0; y < h; y++) { tally(0, y); tally(w - 1, y); }
+  const bgIsLight = lightB >= darkB;
+  const bgIs = bgIsLight ? isLightBg : isDarkBg;
+
+  // Border flood-fill: mark connected background pixels transparent.
   const visited = new Uint8Array(w * h);
   const stack = [];
   const push = (x, y) => {
@@ -128,7 +144,7 @@ function removeBackground(img) {
     const p = y * w + x;
     if (visited[p]) return;
     const o = p * 4;
-    if (!isBg(data[o], data[o + 1], data[o + 2])) return;
+    if (!bgIs(data[o], data[o + 1], data[o + 2])) return;
     visited[p] = 1;
     stack.push(p);
   };
@@ -145,10 +161,11 @@ function removeBackground(img) {
     push(x + 1, y + 1); push(x - 1, y - 1); push(x + 1, y - 1); push(x - 1, y + 1);
   }
 
-  // Fringe decontamination: a hard alpha cutoff leaves a thin rim of
-  // background-tinted (light, low-sat) pixels at the sprite edge. Strip opaque
-  // pixels that are BOTH light-ish AND touch transparency — removes the halo
-  // without eating solid or dark sprite edges.
+  // Fringe decontamination (light backgrounds only): a hard alpha cutoff leaves
+  // a thin rim of background-tinted (light, low-sat) pixels at the sprite edge.
+  // Strip opaque light-ish pixels that touch transparency — removes the halo
+  // without eating solid/dark edges. Skipped on dark bg so glow rims survive.
+  if (!bgIsLight) return;
   const alpha0 = new Uint8Array(w * h);
   for (let i = 0; i < w * h; i++) alpha0[i] = data[i * 4 + 3];
   for (let y = 0; y < h; y++) {
