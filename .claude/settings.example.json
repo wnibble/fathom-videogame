@@ -1,0 +1,15 @@
+{
+  "_comment": "OPTIONAL auto-logging backstop. The primary learning signal is the structured ledger row written by the parent at /build close-out; this hook only records that a session ended so /retro can notice runs that bypassed /build. To enable: review the command below, then merge this 'hooks' block into your real .claude/settings.json (or run /update-config and approve). It is NOT active until you do this deliberately.",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"$CLAUDE_PROJECT_DIR/scripts/log-run.ps1\""
+          }
+        ]
+      }
+    ]
+  }
+}

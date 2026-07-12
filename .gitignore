@@ -1,0 +1,16 @@
+# Local Claude Code settings (per-machine; never commit)
+.claude/settings.local.json
+.claude/settings.json
+
+# Dependencies
+node_modules/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Live scratch event stream (regenerated at runtime)
+runs/raw-events.jsonl
