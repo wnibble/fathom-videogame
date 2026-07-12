@@ -9,9 +9,12 @@ import type { Enemy, Player, Vec2 } from "../core/types";
 import { SPITTER_RADIAL, SPITTER_AIMED } from "../content/emitters";
 import type { Projectiles } from "./projectiles";
 
-const DESIRED = 230;
-const TOO_CLOSE = 150;
+// Ranges kept inside the ZOOM-2 viewport (~640×360 → ~180px half-height) so the
+// Spitter AND its wind-up telegraph stay on screen — the whole point of Pillar 1.
+const DESIRED = 155;
+const TOO_CLOSE = 95;
 const MOVE_SPEED = 78;
+const ENGAGE = 300; // only telegraph/fire within this range (keeps it on-screen)
 
 function angleTo(from: Vec2, to: Vec2): number {
   return Math.atan2(to.y - from.y, to.x - from.x);
@@ -83,22 +86,29 @@ export function updateSpitter(
   e.pos.x = Math.max(m, Math.min(bounds.w - m, e.pos.x));
   e.pos.y = Math.max(m, Math.min(bounds.h - m, e.pos.y));
 
-  // Attack cycle
+  // Attack cycle — GATED on proximity so a wind-up + shot can never happen while
+  // the Spitter (and its telegraph) are off-screen (Pillar 1: readable danger).
   if (e.telegraphTimer > 0) {
-    e.telegraphTimer -= dt;
-    if (e.telegraphTimer <= 0 && e.pendingSpec) {
-      const spec = e.pendingSpec;
-      const base =
-        spec.aim === "aimed" ? angleTo(e.pos, player.pos) : e.spinSeed;
-      proj.fireBurst(spec, e.pos, base, "enemy");
-      e.spinSeed += 0.6;
+    if (dist > ENGAGE * 1.35) {
+      // Player fled mid-wind-up — abort rather than fire blind off-screen.
+      e.telegraphTimer = 0;
       e.pendingSpec = null;
-      e.attackCount++;
-      e.attackTimer = 1.7;
+      e.attackTimer = 0.8;
+    } else {
+      e.telegraphTimer -= dt;
+      if (e.telegraphTimer <= 0 && e.pendingSpec) {
+        const spec = e.pendingSpec;
+        const base = spec.aim === "aimed" ? angleTo(e.pos, player.pos) : e.spinSeed;
+        proj.fireBurst(spec, e.pos, base, "enemy");
+        e.spinSeed += 0.6;
+        e.pendingSpec = null;
+        e.attackCount++;
+        e.attackTimer = 1.7;
+      }
     }
   } else {
     e.attackTimer -= dt;
-    if (e.attackTimer <= 0) {
+    if (e.attackTimer <= 0 && dist < ENGAGE) {
       // Alternate radial / aimed for variety and readability.
       const spec = e.attackCount % 2 === 0 ? SPITTER_RADIAL : SPITTER_AIMED;
       e.pendingSpec = spec;

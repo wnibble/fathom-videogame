@@ -27,7 +27,10 @@ function makeVignetteTexture(w: number, h: number): Texture {
   return Texture.from(canvas);
 }
 
-export const ZOOM = 3; // integer scale factor
+// Integer scale factor. ZOOM 2 (not 3) so the bullet-hell has room: at 1280×720
+// the visible world is ~640×360, wide enough that the Spitter's engagement range
+// and its telegraph stay ON SCREEN (Pillar 1). Still crisp integer pixel art.
+export const ZOOM = 2;
 
 export class Engine {
   app!: Application;
@@ -122,6 +125,14 @@ export class Engine {
     return {
       x: (sx - this.sceneRoot.position.x) / ZOOM,
       y: (sy - this.sceneRoot.position.y) / ZOOM,
+    };
+  }
+
+  /** Convert a world-space point to screen space (for off-screen threat markers). */
+  worldToScreen(wx: number, wy: number): { x: number; y: number } {
+    return {
+      x: wx * ZOOM + this.sceneRoot.position.x,
+      y: wy * ZOOM + this.sceneRoot.position.y,
     };
   }
 

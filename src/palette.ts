@@ -18,6 +18,7 @@ export const COLOR = {
   surface: 0xfff4d6,
   hpFull: 0x53e0a0,
   hpLow: 0xff5a4a,
+  sample: 0x7fe6d0, // loot/samples — a cool mint, kept OFF the warm danger hues
   white: 0xffffff,
 } as const;
 

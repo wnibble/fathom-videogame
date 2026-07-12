@@ -60,5 +60,7 @@ export function buildSpitterView(): SpitterView {
   body.circle(0, 0, 3).fill(COLOR.amberBright);
   root.addChild(body);
 
-  return { root, glow: glow(80, COLOR.coral, 0.55), body };
+  // Brighter/larger than ambient fauna glows — the threat must be the loudest
+  // warm signal on screen, not blend into set-dressing.
+  return { root, glow: glow(120, COLOR.coral, 0.85), body };
 }

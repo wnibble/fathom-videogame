@@ -31,7 +31,15 @@ export function load(): SaveData {
       return s;
     }
     const parsed = JSON.parse(raw) as Partial<SaveData>;
-    return { ...fresh(), ...parsed, guestId: parsed.guestId ?? makeGuestId() };
+    const num = (v: unknown, d: number) => (typeof v === "number" && Number.isFinite(v) ? v : d);
+    // Coerce every field — stored JSON may be tampered, legacy, or wrong-typed.
+    return {
+      guestId: typeof parsed.guestId === "string" ? parsed.guestId : makeGuestId(),
+      bestDepth: num(parsed.bestDepth, 0),
+      totalSamples: num(parsed.totalSamples, 0),
+      runs: num(parsed.runs, 0),
+      codexSeen: Array.isArray(parsed.codexSeen) ? parsed.codexSeen.filter((s) => typeof s === "string") : [],
+    };
   } catch {
     return fresh();
   }

@@ -63,3 +63,54 @@ artifact — real-GPU frame budget is UNVERIFIED and belongs to the human playte
 - Companion (Bichon), codex/scan, surface station meta-hub, sample pickups as banked
   entities, additional strata, audio — all deferred per slice scope.
 - Atlas packing into a power-of-two sheet (optimizer task).
+
+## Pass 2 — blind panel + playtest loop (2026-07-12)
+
+Three agents attacked the pass-1 slice: two blind reviewers (game-feel & readability
+lens; correctness & robustness lens) and a playtester. All three independently
+triangulated on the same core blocker. Fixes applied and re-verified (QA PASS, build
+clean, blocker confirmed fixed in captured frames).
+
+### Blockers fixed (non-waivable)
+
+- **[Pillar 1] Spitter fought + telegraphed OFF-SCREEN.** At ZOOM 3 the viewport
+  showed only ~427×240 world px, but the Spitter's engagement range was 150–230 —
+  so danger arrived with no readable wind-up. Fixes: **ZOOM 3 → 2** (wider bullet-hell
+  space, ~640×360), Spitter range → 95–155, attack cycle **gated to ENGAGE=300** (no
+  wind-up/fire while off-screen; aborts if the player flees), and **off-screen threat
+  arrows** on the HUD edge. Verified: coral telegraph ring + coral bullets now render
+  on-screen (see `qa-shots2/04-combat-late`).
+- **[Robustness] Asset-load failure soft-locked `loading`.** No `.catch` → `loaded`
+  never set → stuck forever. Fix: `.catch` → new **`error` state** with a retry
+  (press any key), plus a global `unhandledrejection` guard. Every state now exits.
+
+### Majors fixed
+
+- **Always "NEW DEEPEST DIVE":** record compare ran after `recordDive` bumped best.
+  Fix: capture `prevBest` before banking; compare against that.
+- **Permadeath had no stakes (Pillar 3):** death banked samples like a surface. Fix:
+  **death loses unbanked samples**; game-over shows "◈ N samples lost to the deep."
+- **No in-run recovery:** every dive a monotonic countdown. Fix: **HP orbs** drop
+  every 3rd kill (+22 HP), pulsing mint pickups.
+- **Directionless currents:** static faint ribbon. Fix: **animated streaks scrolling
+  along the flow** so push direction is visible.
+- **Amber threat/loot color collision:** samples shared enemy amber. Fix: samples →
+  cool **mint** (`COLOR.sample`), reserving warm for danger. Spitter glow boosted so
+  the threat out-glows ambient fauna.
+
+### Minors fixed
+
+- Re-entrant boot→loading emit (now starts at `loading` directly).
+- Orphaned in-flight FX across restart (FX now tracked + destroyed in `destroy()`).
+- Persistence trusted parsed shape (now per-field type coercion; no `NaN`/throw).
+- Hit-stop (2–3 frame freeze) on hit/kill; **reduced-motion** disables shake + hitstop.
+- Fallback coral-ring telegraph if a telegraph asset is ever missing.
+
+### Accepted deviations / deferred (documented, not silently skipped)
+
+- **Render interpolation** (contract `core.md`): the slice renders raw fixed-step sim
+  positions (no `alpha` interpolation). Fine at 60 Hz; a documented slice deviation,
+  revisit for high-refresh displays.
+- **Animated pixel-art actors** (diver/Spitter are still Graphics placeholders — not
+  in the art pack), **audio**, multi-enemy telegraph legibility, and real-GPU frame
+  pacing → next loop / human playtest (see the playtest script handed to the user).

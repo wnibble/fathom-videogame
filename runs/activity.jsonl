@@ -31,3 +31,9 @@
 {"ts":"2026-07-12T16:27:00Z","phase":"qa","agent":"qa","msg":"headless WebGL smoke PASS, 0 errors; found readability blocker (current bloom wash)"}
 {"ts":"2026-07-12T16:32:00Z","phase":"build","agent":"parent","msg":"REFINE: subtle currents + calm bloom + soft glow texture; re-QA PASS"}
 {"ts":"2026-07-12T16:45:00Z","phase":"review","agent":"parent","msg":"dispatched blind panel (game-feel + correctness lenses) + playtester"}
+{"ts":"2026-07-12T16:52:00Z","phase":"review","agent":"reviewer","msg":"blind game-feel lens: REVISE — 1 blocker (Spitter fights off-screen at ZOOM 3), 3 majors"}
+{"ts":"2026-07-12T16:53:00Z","phase":"review","agent":"reviewer","msg":"blind correctness lens: REVISE — 1 blocker (asset-load soft-lock), major always-record bug"}
+{"ts":"2026-07-12T16:54:00Z","phase":"review","agent":"playtester","msg":"needs-work: off-screen telegraphs, no HP recovery, permadeath no stakes; +human playtest script"}
+{"ts":"2026-07-12T17:05:00Z","phase":"build","agent":"parent","msg":"pass 2: fixed 2 blockers + 5 majors + 6 minors (ZOOM2, error state, stakes, HP orbs, currents, threat arrows)"}
+{"ts":"2026-07-12T17:12:00Z","phase":"qa","agent":"qa","msg":"re-QA PASS: Spitter + coral telegraph now on-screen; 0 errors; build clean"}
+{"ts":"2026-07-12T17:15:00Z","phase":"ship","agent":"parent","msg":"pass 2 shipped to main; render-interp + animated actors + audio deferred to next loop"}

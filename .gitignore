@@ -19,6 +19,6 @@ runs/raw-events.jsonl
 dist/
 
 # Regeneratable QA/dev artifacts
-qa-shots/
+qa-shots*/
 contact-sheet.png
 *.log

@@ -2,8 +2,9 @@
 // Twilight Drift. Fixed-timestep simulation (determinism), telegraphed combat,
 // juice (hit flash, impact VFX, screen shake), rising depth, permadeath.
 
-import { Container, Sprite } from "pixi.js";
+import { AnimatedSprite, Container, Graphics, Sprite } from "pixi.js";
 import type { Engine } from "../engine/app";
+import { getGlowTexture } from "../engine/glow";
 import type { AssetStore } from "../engine/assets";
 import type { Input } from "../engine/input";
 import type { Enemy, Player, Vec2 } from "../core/types";
@@ -31,12 +32,18 @@ export class DiveScene implements HitSink {
   private enemyViews = new Map<Enemy, SpitterView>();
   private telegraphs = new Map<Enemy, Sprite>();
   private staticNodes: Container[] = [];
+  private liveFx: AnimatedSprite[] = [];
+  private pickups: { pos: Vec2; ttl: number; node: Container; glow: Sprite }[] = [];
+  private streams: { s: Sprite; axisStart: number; cross: number; span: number; base: number; dir: number; horiz: boolean }[] = [];
 
   private acc = 0;
+  private elapsed = 0;
+  private hitstop = 0;
   private depth = 0;
   private samples = 0;
   private shake = 0;
   private spawnTimer = 2;
+  private killCount = 0;
   ended = false;
 
   onGameOver: (depth: number, samples: number) => void = () => {};
@@ -44,7 +51,8 @@ export class DiveScene implements HitSink {
   constructor(
     private engine: Engine,
     private assets: AssetStore,
-    seed: number
+    seed: number,
+    private reducedMotion = false
   ) {
     this.arena = buildTwilightArena(seed, assets);
     this.proj = new Projectiles(assets, engine.worldLayer);
@@ -72,23 +80,27 @@ export class DiveScene implements HitSink {
     // the band's long axis, drifting the way the force pushes.
     for (const c of this.arena.currents) {
       if (!this.assets.has(c.sprite)) continue;
-      const horizontal = c.half.x >= c.half.y;
-      const along = horizontal ? c.half.x : c.half.y;
-      const count = Math.max(3, Math.floor((along * 2) / 260));
+      const horiz = c.half.x >= c.half.y;
+      const along = horiz ? c.half.x : c.half.y;
+      const span = along * 2;
+      const dir = Math.sign(horiz ? c.force.x : c.force.y) || 1;
+      const count = Math.max(4, Math.floor(span / 220));
+      const startX = horiz ? c.pos.x - c.half.x : c.pos.x;
+      const startY = horiz ? c.pos.y : c.pos.y - c.half.y;
       for (let i = 0; i < count; i++) {
-        const t = (i + 0.5) / count;
         const s = this.assets.sprite(c.sprite);
-        s.rotation = horizontal ? 0 : Math.PI / 2;
-        s.scale.set(0.8);
-        s.alpha = 0.16;
-        s.tint = COLOR.teal;
-        const jitter = ((i * 53) % 60) - 30;
-        s.position.set(
-          horizontal ? c.pos.x - c.half.x + along * 2 * t : c.pos.x + jitter,
-          horizontal ? c.pos.y + jitter : c.pos.y - c.half.y + along * 2 * t
-        );
+        s.rotation = horiz ? 0 : Math.PI / 2;
+        s.scale.set(0.75);
+        s.alpha = 0.22;
+        s.tint = COLOR.aqua;
+        const jitter = ((i * 53) % 70) - 35;
+        const base = span * ((i + 0.5) / count);
+        const cross = horiz ? startY + jitter : startX + jitter;
+        s.position.set(horiz ? startX + base : cross, horiz ? cross : startY + base);
         this.engine.worldLayer.addChild(s);
         this.staticNodes.push(s as unknown as Container);
+        // stored so renderSync can scroll it along the flow (makes direction visible)
+        this.streams.push({ s, axisStart: horiz ? startX : startY, cross, span, base, dir, horiz });
       }
     }
     for (const p of this.arena.props) {
@@ -105,7 +117,9 @@ export class DiveScene implements HitSink {
 
   // ---- main update: fixed-step sim + render ----
   update(dt: number, input: Input): void {
-    if (!this.ended) {
+    this.elapsed += dt;
+    if (this.hitstop > 0) this.hitstop -= dt;
+    if (!this.ended && this.hitstop <= 0) {
       this.acc += dt;
       let steps = 0;
       while (this.acc >= FIXED && steps < 5) {
@@ -139,6 +153,33 @@ export class DiveScene implements HitSink {
 
     // Bullets + collisions
     this.proj.update(dt, p, this.enemies, this, this.arena.bounds);
+
+    // HP-orb pickups: reward for surviving/killing (counterplay + in-run recovery).
+    if (this.pickups.length) {
+      let collected = false;
+      for (const pk of this.pickups) {
+        pk.ttl -= dt;
+        const dx = pk.pos.x - p.pos.x;
+        const dy = pk.pos.y - p.pos.y;
+        const rr = p.radius + 14;
+        if (p.alive && pk.ttl > 0 && dx * dx + dy * dy <= rr * rr) {
+          p.hp = Math.min(p.maxHp, p.hp + 22);
+          pk.ttl = -1;
+          this.spawnFx("pickup_sparkle", pk.pos.x, pk.pos.y);
+          collected = true;
+        }
+      }
+      if (collected || this.pickups.some((pk) => pk.ttl <= 0)) {
+        for (const pk of this.pickups) {
+          if (pk.ttl > 0) continue;
+          pk.node.parent?.removeChild(pk.node);
+          pk.node.destroy({ children: true });
+          pk.glow.parent?.removeChild(pk.glow);
+          pk.glow.destroy();
+        }
+        this.pickups = this.pickups.filter((pk) => pk.ttl > 0);
+      }
+    }
 
     // Depth drifts down as you survive; killing deepens (banked on surface/death).
     this.depth += dt * 3;
@@ -186,7 +227,10 @@ export class DiveScene implements HitSink {
   onPlayerHit(damage: number, at: Vec2): void {
     this.player.hp -= damage;
     this.player.invuln = 0.85;
-    this.shake = 10;
+    if (!this.reducedMotion) {
+      this.shake = 10;
+      this.hitstop = 0.05; // brief freeze-frame — cheap, high-impact juice
+    }
     this.spawnFx("impact_coral", at.x, at.y);
     bus.emit("player:hit", { damage });
     if (this.player.hp <= 0) {
@@ -202,10 +246,34 @@ export class DiveScene implements HitSink {
   onEnemyKilled(enemy: Enemy): void {
     this.samples += 5;
     this.depth += 10;
-    this.shake = 6;
+    if (!this.reducedMotion) {
+      this.shake = 6;
+      this.hitstop = 0.04;
+    }
     this.spawnFx("sample_burst", enemy.pos.x, enemy.pos.y);
+    // Every 3rd kill drops an HP orb (deterministic — no sim RNG).
+    this.killCount++;
+    if (this.killCount % 3 === 0) this.spawnPickup(enemy.pos.x, enemy.pos.y);
     bus.emit("enemy:killed", { kind: enemy.kind, pos: { ...enemy.pos } });
     bus.emit("sample:collected", { value: 5 });
+  }
+
+  private spawnPickup(x: number, y: number): void {
+    const node = new Container();
+    const g = new Graphics();
+    g.roundRect(-2, -7, 4, 14, 2).fill(COLOR.hpFull);
+    g.roundRect(-7, -2, 14, 4, 2).fill(COLOR.hpFull);
+    node.addChild(g);
+    node.position.set(x, y);
+    this.engine.worldLayer.addChild(node);
+    const glow = new Sprite(getGlowTexture());
+    glow.anchor.set(0.5);
+    glow.scale.set(60 / 128);
+    glow.tint = COLOR.hpFull;
+    glow.alpha = 0.6;
+    glow.position.set(x, y);
+    this.engine.lightLayer.addChild(glow);
+    this.pickups.push({ pos: { x, y }, ttl: 12, node, glow });
   }
 
   private spawnFx(anim: string, x: number, y: number): void {
@@ -214,7 +282,10 @@ export class DiveScene implements HitSink {
     a.loop = false;
     a.position.set(x, y);
     a.gotoAndPlay(0);
+    this.liveFx.push(a);
     a.onComplete = () => {
+      const i = this.liveFx.indexOf(a);
+      if (i >= 0) this.liveFx.splice(i, 1);
       a.parent?.removeChild(a);
       a.destroy();
     };
@@ -224,6 +295,21 @@ export class DiveScene implements HitSink {
   // ---- render ----
   private renderSync(dt: number, _input: Input): void {
     const p = this.player;
+
+    // Animate current streaks scrolling along the flow — makes push direction visible.
+    const flowSpeed = 45;
+    for (const st of this.streams) {
+      const along = (((st.base + this.elapsed * flowSpeed * st.dir) % st.span) + st.span) % st.span;
+      if (st.horiz) st.s.position.set(st.axisStart + along, st.cross);
+      else st.s.position.set(st.cross, st.axisStart + along);
+    }
+    // Pickup glow pulse (reads as "alive / grab me").
+    const pulse = 0.5 + 0.5 * Math.sin(this.elapsed * 6);
+    for (const pk of this.pickups) {
+      pk.glow.alpha = 0.45 + 0.2 * pulse;
+      pk.glow.scale.set((60 / 128) * (1 + 0.08 * pulse));
+    }
+
     // Player
     this.playerView.root.visible = p.alive;
     this.playerView.root.position.set(p.pos.x, p.pos.y);
@@ -275,12 +361,18 @@ export class DiveScene implements HitSink {
     if (e.telegraphTimer > 0 && e.pendingSpec?.telegraph) {
       const spec = e.pendingSpec;
       const name = spec.telegraph!.sprite;
-      if (!this.assets.has(name)) return;
+      const hasArt = this.assets.has(name);
       if (!tg) {
-        tg = this.assets.sprite(name);
+        // Fallback to a coral glow ring if the telegraph art is missing — danger
+        // must NEVER be silent (Pillar 1).
+        tg = hasArt ? this.assets.sprite(name) : new Sprite(getGlowTexture());
+        if (!hasArt) {
+          tg.anchor.set(0.5);
+          tg.tint = COLOR.coral;
+        }
         this.telegraphs.set(e, tg);
         this.engine.lightLayer.addChild(tg);
-      } else if (tg.texture !== this.assets.texture(name)) {
+      } else if (hasArt && tg.texture !== this.assets.texture(name)) {
         tg.texture = this.assets.texture(name);
       }
       const total = spec.telegraph!.time;
@@ -300,6 +392,18 @@ export class DiveScene implements HitSink {
 
   destroy(): void {
     this.proj.destroy();
+    for (const a of this.liveFx) {
+      a.parent?.removeChild(a);
+      a.destroy();
+    }
+    this.liveFx = [];
+    for (const pk of this.pickups) {
+      pk.node.parent?.removeChild(pk.node);
+      pk.node.destroy({ children: true });
+      pk.glow.parent?.removeChild(pk.glow);
+      pk.glow.destroy();
+    }
+    this.pickups = [];
     for (const n of this.staticNodes) {
       n.parent?.removeChild(n);
       n.destroy({ children: true });
@@ -324,6 +428,26 @@ export class DiveScene implements HitSink {
   get bankedSamples(): number {
     return this.samples;
   }
+  /** Screen-edge arrows pointing to alive enemies that are currently off-screen. */
+  threatMarkers(w: number, h: number): { x: number; y: number; angle: number }[] {
+    const out: { x: number; y: number; angle: number }[] = [];
+    const m = 26;
+    const cx = w / 2;
+    const cy = h / 2;
+    for (const e of this.enemies) {
+      if (!e.alive) continue;
+      const s = this.engine.worldToScreen(e.pos.x, e.pos.y);
+      if (s.x >= 0 && s.x <= w && s.y >= 0 && s.y <= h) continue; // on-screen
+      const angle = Math.atan2(s.y - cy, s.x - cx);
+      out.push({
+        x: Math.max(m, Math.min(w - m, s.x)),
+        y: Math.max(m, Math.min(h - m, s.y)),
+        angle,
+      });
+    }
+    return out;
+  }
+
   get enemyCount(): number {
     return this.enemies.reduce((n, e) => n + (e.alive ? 1 : 0), 0);
   }
