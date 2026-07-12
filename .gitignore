@@ -14,3 +14,11 @@ Thumbs.db
 
 # Live scratch event stream (regenerated at runtime)
 runs/raw-events.jsonl
+
+# Build output
+dist/
+
+# Regeneratable QA/dev artifacts
+qa-shots/
+contact-sheet.png
+*.log

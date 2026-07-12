@@ -23,3 +23,11 @@
 {"ts":"2026-06-22T10:05:00Z","phase":"build","agent":"parent","msg":"Auth fixes built: durable webhook subscription fallback + upsert error->500 retry + reconcile subscriptions + signin-password reconcile + email_not_confirmed guards. tsc check next; then blind security review."}
 {"ts":"2026-06-22T10:35:00Z","phase":"build","agent":"parent","msg":"Newsletter opt-in interrupt built: /welcome route (only nags never-offered users) + /api/newsletter-optin (single opt-in for signed-in/confirmed users, dodges the spam-confirm gap). Standalone; hookup documented, not forced. Auth security review still running."}
 {"ts":"2026-06-22T12:00:00Z","phase":"ship","agent":"parent","msg":"Site review: 5 parallel bots (copy/membership/modules-UX/onboarding-prompts/design). Applied safe fixes: design tokens (warm muted, font-mono, tailwind palette), WCAG hero-price contrast, de-AI 9 onboarding pitches + membership tells, 2 onboarding route bugs, hardcoded-42 drift. Big findings documented in SITE-REVIEW.md for operator decision: phantom pricing anchor, fake founding counter in JSON-LD, manual-progress=0%, onboarding NOT wired to generated prompts. tsc+build verified."}
+{"ts":"2026-07-12T16:05:00Z","phase":"plan","agent":"parent","msg":"FATHOM slice: confirmed stack (Pixi v8+Vite+TS), local-save-first, real-art extraction on pass 1"}
+{"ts":"2026-07-12T16:08:00Z","phase":"plan","agent":"architect","msg":"14 module contracts + 7-wave build order written to contracts/"}
+{"ts":"2026-07-12T16:09:00Z","phase":"research","agent":"researcher","msg":"Pixi v8 nearest-scale/additive/bloom + pngjs extraction facts confirmed"}
+{"ts":"2026-07-12T16:15:00Z","phase":"build","agent":"parent","msg":"asset pipeline: 82 sprites + 23 anims extracted from 6 sheets"}
+{"ts":"2026-07-12T16:40:00Z","phase":"build","agent":"parent","msg":"vertical slice built: state/render/input/movement/projectiles/spitter/worldgen/hud/loading/cutscene/save"}
+{"ts":"2026-07-12T16:27:00Z","phase":"qa","agent":"qa","msg":"headless WebGL smoke PASS, 0 errors; found readability blocker (current bloom wash)"}
+{"ts":"2026-07-12T16:32:00Z","phase":"build","agent":"parent","msg":"REFINE: subtle currents + calm bloom + soft glow texture; re-QA PASS"}
+{"ts":"2026-07-12T16:45:00Z","phase":"review","agent":"parent","msg":"dispatched blind panel (game-feel + correctness lenses) + playtester"}

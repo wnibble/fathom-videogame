@@ -1,0 +1,1194 @@
+{
+  "sprites": {
+    "aqua_pearl": {
+      "file": "sprites/aqua_pearl.png",
+      "w": 16,
+      "h": 16,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "projectiles"
+    },
+    "coral_dart": {
+      "file": "sprites/coral_dart.png",
+      "w": 16,
+      "h": 10,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "projectiles"
+    },
+    "amber_seed": {
+      "file": "sprites/amber_seed.png",
+      "w": 13,
+      "h": 16,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "projectiles"
+    },
+    "bubble_orb": {
+      "file": "sprites/bubble_orb.png",
+      "w": 16,
+      "h": 16,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "projectiles"
+    },
+    "spore": {
+      "file": "sprites/spore.png",
+      "w": 15,
+      "h": 16,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "projectiles"
+    },
+    "mechanical_pellet": {
+      "file": "sprites/mechanical_pellet.png",
+      "w": 16,
+      "h": 12,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "projectiles"
+    },
+    "hot_vent_ember": {
+      "file": "sprites/hot_vent_ember.png",
+      "w": 10,
+      "h": 16,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "projectiles"
+    },
+    "abyssal_eye_mote": {
+      "file": "sprites/abyssal_eye_mote.png",
+      "w": 16,
+      "h": 16,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "projectiles"
+    },
+    "pulsing_orb": {
+      "file": "sprites/pulsing_orb.png",
+      "w": 10,
+      "h": 16,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "projectiles"
+    },
+    "spinning_coral_shard": {
+      "file": "sprites/spinning_coral_shard.png",
+      "w": 9,
+      "h": 16,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "projectiles"
+    },
+    "jelly_glob": {
+      "file": "sprites/jelly_glob.png",
+      "w": 9,
+      "h": 16,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "projectiles"
+    },
+    "poison_sack": {
+      "file": "sprites/poison_sack.png",
+      "w": 8,
+      "h": 16,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "projectiles"
+    },
+    "electrical_node": {
+      "file": "sprites/electrical_node.png",
+      "w": 16,
+      "h": 13,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "projectiles"
+    },
+    "homing_larva": {
+      "file": "sprites/homing_larva.png",
+      "w": 16,
+      "h": 15,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "projectiles"
+    },
+    "angler_light": {
+      "file": "sprites/angler_light.png",
+      "w": 15,
+      "h": 16,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "projectiles"
+    },
+    "rotating_mine": {
+      "file": "sprites/rotating_mine.png",
+      "w": 16,
+      "h": 14,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "projectiles"
+    },
+    "telegraph_circle": {
+      "file": "sprites/telegraph_circle.png",
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "impacts_telegraphs"
+    },
+    "telegraph_aim_line": {
+      "file": "sprites/telegraph_aim_line.png",
+      "w": 48,
+      "h": 11,
+      "anchor": [
+        0,
+        0.5
+      ],
+      "sheet": "impacts_telegraphs"
+    },
+    "telegraph_cone": {
+      "file": "sprites/telegraph_cone.png",
+      "w": 48,
+      "h": 44,
+      "anchor": [
+        0,
+        0.5
+      ],
+      "sheet": "impacts_telegraphs"
+    },
+    "telegraph_radial_spokes": {
+      "file": "sprites/telegraph_radial_spokes.png",
+      "w": 47,
+      "h": 48,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "impacts_telegraphs"
+    },
+    "telegraph_delayed_ring": {
+      "file": "sprites/telegraph_delayed_ring.png",
+      "w": 48,
+      "h": 36,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "impacts_telegraphs"
+    },
+    "charge_flash": {
+      "file": "sprites/charge_flash.png",
+      "w": 48,
+      "h": 41,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "impacts_telegraphs"
+    },
+    "sample_burst_dissipate": {
+      "file": "sprites/sample_burst_dissipate.png",
+      "w": 32,
+      "h": 20,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "movement_utility_vfx"
+    },
+    "suspended_coral_chunk": {
+      "file": "sprites/suspended_coral_chunk.png",
+      "w": 64,
+      "h": 52,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "twilight_drift_props"
+    },
+    "floating_rock_large_a": {
+      "file": "sprites/floating_rock_large_a.png",
+      "w": 64,
+      "h": 56,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "twilight_drift_props"
+    },
+    "floating_rock_large_b": {
+      "file": "sprites/floating_rock_large_b.png",
+      "w": 60,
+      "h": 64,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "twilight_drift_props"
+    },
+    "floating_rock_med_a": {
+      "file": "sprites/floating_rock_med_a.png",
+      "w": 64,
+      "h": 47,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "twilight_drift_props"
+    },
+    "floating_rock_med_b": {
+      "file": "sprites/floating_rock_med_b.png",
+      "w": 64,
+      "h": 54,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "twilight_drift_props"
+    },
+    "floating_rock_small_a": {
+      "file": "sprites/floating_rock_small_a.png",
+      "w": 64,
+      "h": 50,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "twilight_drift_props"
+    },
+    "floating_rock_small_b": {
+      "file": "sprites/floating_rock_small_b.png",
+      "w": 64,
+      "h": 62,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "twilight_drift_props"
+    },
+    "floating_rock_tiny_a": {
+      "file": "sprites/floating_rock_tiny_a.png",
+      "w": 49,
+      "h": 64,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "twilight_drift_props"
+    },
+    "floating_rock_tiny_b": {
+      "file": "sprites/floating_rock_tiny_b.png",
+      "w": 52,
+      "h": 52,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "twilight_drift_props"
+    },
+    "current_ribbon": {
+      "file": "sprites/current_ribbon.png",
+      "w": 64,
+      "h": 19,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "twilight_drift_props"
+    },
+    "plankton_sparse": {
+      "file": "sprites/plankton_sparse.png",
+      "w": 64,
+      "h": 55,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "twilight_drift_props"
+    },
+    "plankton_dense": {
+      "file": "sprites/plankton_dense.png",
+      "w": 64,
+      "h": 55,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "twilight_drift_props"
+    },
+    "plankton_ring": {
+      "file": "sprites/plankton_ring.png",
+      "w": 64,
+      "h": 62,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "twilight_drift_props"
+    },
+    "plankton_cluster_large": {
+      "file": "sprites/plankton_cluster_large.png",
+      "w": 64,
+      "h": 54,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "twilight_drift_props"
+    },
+    "plankton_cluster_medium": {
+      "file": "sprites/plankton_cluster_medium.png",
+      "w": 64,
+      "h": 51,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "twilight_drift_props"
+    },
+    "plankton_cluster_small": {
+      "file": "sprites/plankton_cluster_small.png",
+      "w": 64,
+      "h": 25,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "twilight_drift_props"
+    },
+    "debris_coral_branch": {
+      "file": "sprites/debris_coral_branch.png",
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "twilight_drift_props"
+    },
+    "debris_rocks": {
+      "file": "sprites/debris_rocks.png",
+      "w": 54,
+      "h": 64,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "twilight_drift_props"
+    },
+    "debris_vines": {
+      "file": "sprites/debris_vines.png",
+      "w": 64,
+      "h": 62,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "twilight_drift_props"
+    },
+    "debris_leaves": {
+      "file": "sprites/debris_leaves.png",
+      "w": 64,
+      "h": 50,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "twilight_drift_props"
+    },
+    "dead_drifting_creature": {
+      "file": "sprites/dead_drifting_creature.png",
+      "w": 64,
+      "h": 42,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "twilight_drift_props"
+    },
+    "kelp_tall_1": {
+      "file": "sprites/kelp_tall_1.png",
+      "w": 18,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "kelp_tall_2": {
+      "file": "sprites/kelp_tall_2.png",
+      "w": 17,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "kelp_tall_3": {
+      "file": "sprites/kelp_tall_3.png",
+      "w": 19,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "kelp_tall_4": {
+      "file": "sprites/kelp_tall_4.png",
+      "w": 19,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "kelp_tall_5": {
+      "file": "sprites/kelp_tall_5.png",
+      "w": 23,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "kelp_tall_6": {
+      "file": "sprites/kelp_tall_6.png",
+      "w": 22,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "kelp_tall_7": {
+      "file": "sprites/kelp_tall_7.png",
+      "w": 19,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "kelp_tall_8": {
+      "file": "sprites/kelp_tall_8.png",
+      "w": 19,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "kelp_mid_1": {
+      "file": "sprites/kelp_mid_1.png",
+      "w": 34,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "kelp_mid_2": {
+      "file": "sprites/kelp_mid_2.png",
+      "w": 36,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "kelp_mid_3": {
+      "file": "sprites/kelp_mid_3.png",
+      "w": 45,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "kelp_mid_4": {
+      "file": "sprites/kelp_mid_4.png",
+      "w": 41,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "sprout_aqua_1": {
+      "file": "sprites/sprout_aqua_1.png",
+      "w": 39,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "sprout_aqua_2": {
+      "file": "sprites/sprout_aqua_2.png",
+      "w": 27,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "sprout_aqua_3": {
+      "file": "sprites/sprout_aqua_3.png",
+      "w": 33,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "sprout_amber_1": {
+      "file": "sprites/sprout_amber_1.png",
+      "w": 31,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "sprout_amber_2": {
+      "file": "sprites/sprout_amber_2.png",
+      "w": 35,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "tangle_large_a": {
+      "file": "sprites/tangle_large_a.png",
+      "w": 64,
+      "h": 43,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "tangle_large_b": {
+      "file": "sprites/tangle_large_b.png",
+      "w": 64,
+      "h": 47,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "root_bundle_small": {
+      "file": "sprites/root_bundle_small.png",
+      "w": 44,
+      "h": 64,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "tangle_long": {
+      "file": "sprites/tangle_long.png",
+      "w": 64,
+      "h": 40,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "tangle_glowing": {
+      "file": "sprites/tangle_glowing.png",
+      "w": 64,
+      "h": 52,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "tangle_small": {
+      "file": "sprites/tangle_small.png",
+      "w": 64,
+      "h": 58,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "root_cluster_a": {
+      "file": "sprites/root_cluster_a.png",
+      "w": 64,
+      "h": 53,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "root_cluster_b": {
+      "file": "sprites/root_cluster_b.png",
+      "w": 64,
+      "h": 56,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "fish_skeleton": {
+      "file": "sprites/fish_skeleton.png",
+      "w": 64,
+      "h": 32,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "loot_pod_closed": {
+      "file": "sprites/loot_pod_closed.png",
+      "w": 58,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "loot_pod_wake": {
+      "file": "sprites/loot_pod_wake.png",
+      "w": 57,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "loot_pod_open": {
+      "file": "sprites/loot_pod_open.png",
+      "w": 43,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "loot_pod_empty": {
+      "file": "sprites/loot_pod_empty.png",
+      "w": 43,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "kelp_forest_props"
+    },
+    "salvage_crate": {
+      "file": "sprites/salvage_crate.png",
+      "w": 64,
+      "h": 55,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "wreck_thermal_props"
+    },
+    "pipe_cluster": {
+      "file": "sprites/pipe_cluster.png",
+      "w": 64,
+      "h": 43,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "wreck_thermal_props"
+    },
+    "valve_wheel": {
+      "file": "sprites/valve_wheel.png",
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "wreck_thermal_props"
+    },
+    "vent_chimney": {
+      "file": "sprites/vent_chimney.png",
+      "w": 40,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "wreck_thermal_props"
+    },
+    "vent_warning": {
+      "file": "sprites/vent_warning.png",
+      "w": 36,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "wreck_thermal_props"
+    },
+    "mineral_crystal": {
+      "file": "sprites/mineral_crystal.png",
+      "w": 60,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "wreck_thermal_props"
+    },
+    "gas_pocket": {
+      "file": "sprites/gas_pocket.png",
+      "w": 64,
+      "h": 59,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "wreck_thermal_props"
+    },
+    "tube_worm_colony": {
+      "file": "sprites/tube_worm_colony.png",
+      "w": 55,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "wreck_thermal_props"
+    }
+  },
+  "animations": {
+    "impact_aqua": {
+      "frames": [
+        "sprites/impact_aqua_f1.png",
+        "sprites/impact_aqua_f2.png",
+        "sprites/impact_aqua_f3.png",
+        "sprites/impact_aqua_f4.png"
+      ],
+      "w": 48,
+      "h": 32,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 14,
+      "sheet": "impacts_telegraphs"
+    },
+    "impact_coral": {
+      "frames": [
+        "sprites/impact_coral_f1.png",
+        "sprites/impact_coral_f2.png",
+        "sprites/impact_coral_f3.png",
+        "sprites/impact_coral_f4.png"
+      ],
+      "w": 48,
+      "h": 36,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 14,
+      "sheet": "impacts_telegraphs"
+    },
+    "impact_amber": {
+      "frames": [
+        "sprites/impact_amber_f1.png",
+        "sprites/impact_amber_f2.png",
+        "sprites/impact_amber_f3.png",
+        "sprites/impact_amber_f4.png"
+      ],
+      "w": 48,
+      "h": 37,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 14,
+      "sheet": "impacts_telegraphs"
+    },
+    "wake_bubbles": {
+      "frames": [
+        "sprites/wake_bubbles_f1.png",
+        "sprites/wake_bubbles_f2.png",
+        "sprites/wake_bubbles_f3.png",
+        "sprites/wake_bubbles_f4.png",
+        "sprites/wake_bubbles_f5.png",
+        "sprites/wake_bubbles_f6.png",
+        "sprites/wake_bubbles_f7.png"
+      ],
+      "w": 23,
+      "h": 32,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 12,
+      "sheet": "movement_utility_vfx"
+    },
+    "boost": {
+      "frames": [
+        "sprites/boost_f1.png",
+        "sprites/boost_f2.png",
+        "sprites/boost_f3.png",
+        "sprites/boost_f4.png",
+        "sprites/boost_f5.png"
+      ],
+      "w": 32,
+      "h": 20,
+      "anchor": [
+        0,
+        0.5
+      ],
+      "fps": 12,
+      "sheet": "movement_utility_vfx"
+    },
+    "scan_ring": {
+      "frames": [
+        "sprites/scan_ring_f1.png",
+        "sprites/scan_ring_f2.png",
+        "sprites/scan_ring_f3.png",
+        "sprites/scan_ring_f4.png",
+        "sprites/scan_ring_f5.png",
+        "sprites/scan_ring_f6.png"
+      ],
+      "w": 32,
+      "h": 30,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 12,
+      "sheet": "movement_utility_vfx"
+    },
+    "current_streak": {
+      "frames": [
+        "sprites/current_streak_f1.png",
+        "sprites/current_streak_f2.png",
+        "sprites/current_streak_f3.png",
+        "sprites/current_streak_f4.png"
+      ],
+      "w": 32,
+      "h": 13,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 12,
+      "sheet": "movement_utility_vfx"
+    },
+    "pressure_ripple": {
+      "frames": [
+        "sprites/pressure_ripple_f1.png",
+        "sprites/pressure_ripple_f2.png",
+        "sprites/pressure_ripple_f3.png",
+        "sprites/pressure_ripple_f4.png",
+        "sprites/pressure_ripple_f5.png"
+      ],
+      "w": 32,
+      "h": 21,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 12,
+      "sheet": "movement_utility_vfx"
+    },
+    "pickup_sparkle": {
+      "frames": [
+        "sprites/pickup_sparkle_f1.png",
+        "sprites/pickup_sparkle_f2.png",
+        "sprites/pickup_sparkle_f3.png",
+        "sprites/pickup_sparkle_f4.png",
+        "sprites/pickup_sparkle_f5.png",
+        "sprites/pickup_sparkle_f6.png"
+      ],
+      "w": 32,
+      "h": 24,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 12,
+      "sheet": "movement_utility_vfx"
+    },
+    "collection_spiral": {
+      "frames": [
+        "sprites/collection_spiral_f1.png",
+        "sprites/collection_spiral_f2.png",
+        "sprites/collection_spiral_f3.png",
+        "sprites/collection_spiral_f4.png",
+        "sprites/collection_spiral_f5.png"
+      ],
+      "w": 32,
+      "h": 31,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 12,
+      "sheet": "movement_utility_vfx"
+    },
+    "glow_orb": {
+      "frames": [
+        "sprites/glow_orb_f1.png",
+        "sprites/glow_orb_f2.png",
+        "sprites/glow_orb_f3.png",
+        "sprites/glow_orb_f4.png",
+        "sprites/glow_orb_f5.png",
+        "sprites/glow_orb_f6.png"
+      ],
+      "w": 31,
+      "h": 32,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 12,
+      "sheet": "movement_utility_vfx"
+    },
+    "sample_burst": {
+      "frames": [
+        "sprites/sample_burst_f1.png",
+        "sprites/sample_burst_f2.png",
+        "sprites/sample_burst_f3.png",
+        "sprites/sample_burst_f4.png"
+      ],
+      "w": 32,
+      "h": 30,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 12,
+      "sheet": "movement_utility_vfx"
+    },
+    "codex_flash": {
+      "frames": [
+        "sprites/codex_flash_f1.png",
+        "sprites/codex_flash_f2.png",
+        "sprites/codex_flash_f3.png",
+        "sprites/codex_flash_f4.png"
+      ],
+      "w": 32,
+      "h": 23,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 12,
+      "sheet": "movement_utility_vfx"
+    },
+    "jelly_colony": {
+      "frames": [
+        "sprites/jelly_colony_f1.png",
+        "sprites/jelly_colony_f2.png",
+        "sprites/jelly_colony_f3.png"
+      ],
+      "w": 51,
+      "h": 64,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 6,
+      "sheet": "twilight_drift_props"
+    },
+    "egg_cluster": {
+      "frames": [
+        "sprites/egg_cluster_f1.png",
+        "sprites/egg_cluster_f2.png",
+        "sprites/egg_cluster_f3.png"
+      ],
+      "w": 57,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 6,
+      "sheet": "twilight_drift_props"
+    },
+    "research_probe": {
+      "frames": [
+        "sprites/research_probe_f1.png",
+        "sprites/research_probe_f2.png",
+        "sprites/research_probe_f3.png"
+      ],
+      "w": 39,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 6,
+      "sheet": "twilight_drift_props"
+    },
+    "ambush_burrow": {
+      "frames": [
+        "sprites/ambush_burrow_f1.png",
+        "sprites/ambush_burrow_f2.png",
+        "sprites/ambush_burrow_f3.png",
+        "sprites/ambush_burrow_f4.png"
+      ],
+      "w": 64,
+      "h": 52,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 6,
+      "sheet": "kelp_forest_props"
+    },
+    "bubble_vent": {
+      "frames": [
+        "sprites/bubble_vent_f1.png",
+        "sprites/bubble_vent_f2.png",
+        "sprites/bubble_vent_f3.png",
+        "sprites/bubble_vent_f4.png"
+      ],
+      "w": 43,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 6,
+      "sheet": "kelp_forest_props"
+    },
+    "emergency_lamp": {
+      "frames": [
+        "sprites/emergency_lamp_f1.png",
+        "sprites/emergency_lamp_f2.png",
+        "sprites/emergency_lamp_f3.png"
+      ],
+      "w": 36,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 10,
+      "sheet": "wreck_thermal_props"
+    },
+    "leaking_pipe_bubbles": {
+      "frames": [
+        "sprites/leaking_pipe_bubbles_f1.png",
+        "sprites/leaking_pipe_bubbles_f2.png"
+      ],
+      "w": 22,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 10,
+      "sheet": "wreck_thermal_props"
+    },
+    "sparking_cable": {
+      "frames": [
+        "sprites/sparking_cable_f1.png",
+        "sprites/sparking_cable_f2.png"
+      ],
+      "w": 64,
+      "h": 41,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 10,
+      "sheet": "wreck_thermal_props"
+    },
+    "vent_bubble": {
+      "frames": [
+        "sprites/vent_bubble_f1.png",
+        "sprites/vent_bubble_f2.png"
+      ],
+      "w": 56,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 10,
+      "sheet": "wreck_thermal_props"
+    },
+    "vent_eruption": {
+      "frames": [
+        "sprites/vent_eruption_f1.png",
+        "sprites/vent_eruption_f2.png"
+      ],
+      "w": 51,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 10,
+      "sheet": "wreck_thermal_props"
+    }
+  }
+}
