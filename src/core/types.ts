@@ -26,6 +26,7 @@ export interface EmitterSpec {
   spin?: number; // rad added to arcOffset each burst (spiral)
   tint?: number; // glow tint
   damage?: number; // per-bullet damage (default 10)
+  pierce?: number; // extra enemies a player bullet passes through (default 0)
   telegraph?: { sprite: string; time: number; scale?: number }; // wind-up shown before firing
 }
 
@@ -39,6 +40,8 @@ export interface Bullet {
   sprite: string;
   tint: number;
   damage: number;
+  pierce: number; // remaining enemies this bullet can pass through
+  lastHit: Enemy | null; // guard against double-hitting the same enemy while overlapping
 }
 
 export type EnemyKind = "spitter";
@@ -60,6 +63,9 @@ export interface Enemy {
   attackCount: number; // # attacks fired (drives deterministic attack choice)
   spinSeed: number; // rotates radial-burst offset deterministically
   flash: number; // hit-flash timer
+  elite: boolean; // tankier, richer loot, bigger threat glow
+  bulletCount: number; // radial burst size (scales with depth tier)
+  speed: number; // move speed (scales with depth tier)
 }
 
 export interface Player {

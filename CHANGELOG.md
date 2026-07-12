@@ -106,6 +106,47 @@ clean, blocker confirmed fixed in captured frames).
 - Hit-stop (2–3 frame freeze) on hit/kill; **reduced-motion** disables shake + hitstop.
 - Fallback coral-ring telegraph if a telegraph asset is ever missing.
 
+## Pass 3 — roguelite depth, progression & UX overhaul (2026-07-12)
+
+Owner feedback: *"a lot going on without really a lot to do"* — props were inert, no
+scoring, no progression, no menus; sprites had extraction damage; two UX bugs. The
+architect wrote `contracts/pass3-revamp.md`; this pass builds it. QA PASS (headless
+WebGL): menu→dive→level-up→pause→game-over all reached, 0 errors, score climbs, resize
+responsive.
+
+### Sprites
+- **Fixed dark-sprite extraction** — the dark-bg flood-fill ate dark pixels touching
+  the crop border on the white prop sheets (`suspended_coral_chunk` etc.). Now the bg
+  TYPE is chosen per-crop; fringe cleanup only on light bg. 92 sprites re-extracted.
+
+### New systems (the "reason to engage")
+- **`progression.ts`** — run-owned `RunState`: score + combo/multiplier, XP + levels,
+  `PlayerStats`, a 14-entry **upgrade catalog**, `deriveWeapon` (upgrades actually
+  change your gun), `depthTier` scaling.
+- **Score / combo** — kills, samples, destructibles, depth milestones, no-hit survival,
+  relics; a hit **breaks your combo**. Persisted `bestScore`.
+- **XP → level-up** — earning XP freezes the dive into a **1-of-3 upgrade pick**
+  (mouse or 1/2/3); queued picks drain one at a time.
+- **Functional interactables** (`interactables.ts`) — loot pods (shoot/touch→loot),
+  salvage crates & mineral crystals (destructible→loot), research probes (dwell→scan:
+  XP + reveal relics), bubble vents (push), and **hidden relics** near arena edges
+  that grant a guaranteed level-up. Decoration cut ~50% ("purposeful density").
+- **Magnetized pickups** (`pickups.ts`) — sample/xp/hp/upgrade orbs that pull to you.
+- **Dash** (`dash.ts`) — Shift; impulse + i-frames + cooldown, HUD pip, upgrade-tuned.
+- **Difficulty + reward scaling** — enemy count/HP/speed/bullet-count scale with depth
+  AND build power; **Elite Spitters** (tankier, richer loot) appear deeper.
+- **Projectile pierce / lifesteal / enemy-slow** wired to upgrades.
+
+### UI/UX + navigation
+- **Main menu** (Dive / How to play / Reduced-motion & Screen-shake toggles + best
+  stats), **pause menu** (Esc), **How-to** card, **level-up** picker, and a **game-over
+  run-summary** — all new overlays with a responsive `layout(w,h)` base.
+- **Fixed: mis-sized overlay on resize** — overlays + HUD now relayout via the
+  renderer's own resize event (correct dims), no absolute geometry baked at build time.
+- **Fixed: game-over auto-dismissed instantly** — it accepted *held* fire; now a
+  discrete press-edge (pressCount baseline) after entry is required.
+- HUD overhaul: score/combo top-center, XP bar + level, dash pip, all responsive.
+
 ### Accepted deviations / deferred (documented, not silently skipped)
 
 - **Render interpolation** (contract `core.md`): the slice renders raw fixed-step sim

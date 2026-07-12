@@ -44,6 +44,7 @@ export class Engine {
   cam = { x: 0, y: 0, tx: 0, ty: 0 };
   bloom!: AdvancedBloomFilter;
   private vignette?: Sprite;
+  private resizeHandlers: (() => void)[] = [];
 
   async init(mount: HTMLElement): Promise<void> {
     // Must run before any texture is created so pixel art stays crisp.
@@ -82,6 +83,19 @@ export class Engine {
     this.sceneRoot.scale.set(ZOOM);
     this.sceneRoot.addChild(this.worldLayer, this.lightLayer);
     this.app.stage.addChild(this.bgRoot, this.sceneRoot, this.fxRoot, this.uiRoot);
+
+    // UI needs pointer events (menu/pause/level-up buttons).
+    this.app.stage.eventMode = "static";
+    // The renderer's own resize fires with CORRECT dims (window-resize handlers
+    // can run before Pixi updates size — the cause of the mis-sized overlay bug).
+    this.app.renderer.on("resize", () => {
+      this.refreshOverlays();
+      for (const h of this.resizeHandlers) h();
+    });
+  }
+
+  addResizeHandler(fn: () => void): void {
+    this.resizeHandlers.push(fn);
   }
 
   /** (Re)draw the screen-space background fill + vignette. Call on init + resize. */

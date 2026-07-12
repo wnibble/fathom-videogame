@@ -4,6 +4,7 @@
 
 import type { AssetStore } from "../engine/assets";
 import type { Current, Prop, Vec2 } from "../core/types";
+import type { InteractableData, InteractableKind } from "../systems/interactables";
 import { Rng } from "../core/rng";
 
 export interface ArenaData {
@@ -12,10 +13,12 @@ export interface ArenaData {
   props: Prop[];
   currents: Current[];
   spawns: Vec2[];
+  interactables: InteractableData[];
 }
 
 // Prefer these if present in the atlas; filtered against what actually extracted.
-const GLOW_ANIMS = ["jelly_colony", "glow_orb", "research_probe"];
+// research_probe is now FUNCTIONAL (an interactable), not decoration.
+const GLOW_ANIMS = ["jelly_colony", "glow_orb"];
 const GLOW_SPRITES = ["plankton_dense", "plankton_ring", "plankton_cluster_large", "plankton_cluster_medium", "plankton_sparse"];
 const STRUCT_SPRITES = [
   "suspended_coral_chunk", "floating_rock_large_a", "floating_rock_large_b",
@@ -69,10 +72,11 @@ export function buildTwilightArena(seed: number, assets: AssetStore): ArenaData 
     }
   };
 
-  // Structural set-dressing (world layer), then glowing bioluminescence (light layer).
-  scatter(structSprites, 22, false, false, [1, 1.6], 90);
-  scatter(glowSprites, 16, true, false, [1, 1.5], 70);
-  scatter(glowAnims, 10, true, true, [1, 1.4], 120);
+  // Declutter ("purposeful density"): far fewer inert props — the survivors are
+  // thin atmosphere, and functional interactables replace what was cut.
+  scatter(structSprites, 10, false, false, [1, 1.5], 120);
+  scatter(glowSprites, 8, true, false, [1, 1.4], 100);
+  scatter(glowAnims, 5, true, true, [1, 1.3], 140);
 
   // Currents — steady, legible bands (pillar: intentional, not random).
   const currents: Current[] = [];
@@ -99,5 +103,35 @@ export function buildTwilightArena(seed: number, assets: AssetStore): ArenaData 
     { x: bounds.w * 0.78, y: bounds.h * 0.78 },
   ];
 
-  return { bounds, playerStart, props, currents, spawns };
+  // Functional interactables (loot pods, crates, crystals, a probe, vents) +
+  // one guaranteed hidden relic near an arena edge (rewards exploration).
+  const interactables: InteractableData[] = [];
+  const placeInteractable = (kind: InteractableKind, minStartGap = 220) => {
+    for (let t = 0; t < 40; t++) {
+      const pos = { x: rng.range(90, bounds.w - 90), y: rng.range(90, bounds.h - 90) };
+      if (Math.hypot(pos.x - playerStart.x, pos.y - playerStart.y) < minStartGap) continue;
+      if (!farFrom(pos, placed, 120)) continue;
+      interactables.push({ kind, pos });
+      placed.push(pos);
+      return;
+    }
+  };
+  placeInteractable("loot_pod");
+  placeInteractable("loot_pod");
+  placeInteractable("salvage_crate");
+  placeInteractable("salvage_crate");
+  placeInteractable("mineral_crystal");
+  placeInteractable("research_probe");
+  placeInteractable("bubble_vent");
+  placeInteractable("bubble_vent");
+  // Relic: pinned near an edge so leaving the center pays off.
+  const edge = rng.pick([
+    { x: rng.range(80, 160), y: rng.range(120, bounds.h - 120) },
+    { x: rng.range(bounds.w - 160, bounds.w - 80), y: rng.range(120, bounds.h - 120) },
+    { x: rng.range(120, bounds.w - 120), y: rng.range(80, 160) },
+    { x: rng.range(120, bounds.w - 120), y: rng.range(bounds.h - 160, bounds.h - 80) },
+  ]);
+  interactables.push({ kind: "relic", pos: edge });
+
+  return { bounds, playerStart, props, currents, spawns, interactables };
 }

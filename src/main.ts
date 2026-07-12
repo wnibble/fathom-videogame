@@ -1,12 +1,12 @@
-// FATHOM — entry point. Wires the state machine:
-//   loading → cutscene(cold open) → dive → gameover → (dive again)
-//   loading → error → (retry)   [asset-load failure has an exit — no soft-lock]
-// Keeps the vertical slice runnable at all times.
+// FATHOM — entry point. State flow:
+//   loading → menu → (cutscene first dive) → dive → { levelup | pause } → gameover → menu
+//   loading → error → retry
+// Overlays are responsive (relayout on resize); game-over waits for a fresh press.
 
 import { Container, Graphics, Text, TextStyle } from "pixi.js";
 import { Engine } from "./engine/app";
 import { AssetStore } from "./engine/assets";
-import { Input } from "./engine/input";
+import { Input, KEYS } from "./engine/input";
 import { StateMachine } from "./core/state";
 import { Loader } from "./ui/loading";
 import { Hud } from "./ui/hud";
@@ -15,47 +15,33 @@ import { coldOpen } from "./content/cutscene_coldopen";
 import { DiveScene } from "./game/dive";
 import * as persistence from "./game/persistence";
 import { COLOR } from "./palette";
-
-const style = (size: number, color: number, weight: "normal" | "bold" = "normal") =>
-  new TextStyle({ fontFamily: "Consolas, monospace", fontSize: size, fill: color, fontWeight: weight, align: "center" });
-
-function centeredText(c: Container, w: number, h: number, text: string, size: number, color: number, y: number, weight: "normal" | "bold" = "normal") {
-  const t = new Text({ text, style: style(size, color, weight) });
-  t.anchor.set(0.5);
-  t.position.set(w / 2, h / 2 + y);
-  c.addChild(t);
-}
-
-function buildGameOver(engine: Engine, depth: number, samplesLost: number, prevBest: number): Container {
-  const c = new Container();
-  const w = engine.width;
-  const h = engine.height;
-  const panel = new Graphics();
-  panel.rect(0, 0, w, h).fill({ color: COLOR.abyss, alpha: 0.55 });
-  panel.roundRect(w / 2 - 230, h / 2 - 140, 460, 280, 12).fill({ color: COLOR.deepNavy, alpha: 0.95 }).stroke({ width: 2, color: COLOR.navy });
-  c.addChild(panel);
-
-  const isRecord = depth > prevBest;
-  centeredText(c, w, h, "YOU SURFACED", 28, COLOR.aquaBright, -98, "bold");
-  centeredText(c, w, h, isRecord ? "you carried this back" : "the deep kept the rest", 13, COLOR.teal, -68);
-  centeredText(c, w, h, `DEPTH REACHED   ${Math.floor(depth)} m`, 18, COLOR.amberBright, -18);
-  centeredText(c, w, h, `◈ ${samplesLost} samples lost to the deep`, 15, COLOR.coralBright, 14);
-  centeredText(c, w, h, isRecord ? "★ NEW DEEPEST DIVE ★" : `BEST   ${Math.floor(prevBest)} m`, 14, isRecord ? COLOR.aquaBright : COLOR.teal, 46);
-  centeredText(c, w, h, "press any key to dive again", 13, 0x5a7a9a, 96);
-  return c;
-}
+import {
+  MenuOverlay,
+  PauseOverlay,
+  HowToOverlay,
+  GameOverOverlay,
+  LevelUpOverlay,
+  type Overlay,
+} from "./ui/overlays";
 
 function buildError(engine: Engine, msg: string): Container {
   const c = new Container();
   const w = engine.width;
   const h = engine.height;
-  const panel = new Graphics();
-  panel.rect(0, 0, w, h).fill({ color: COLOR.abyss, alpha: 0.8 });
-  c.addChild(panel);
-  centeredText(c, w, h, "COULDN'T DESCEND", 26, COLOR.coralBright, -40, "bold");
-  centeredText(c, w, h, "the assets failed to load", 14, COLOR.teal, -8);
-  centeredText(c, w, h, msg.slice(0, 80), 12, 0x5a7a9a, 18);
-  centeredText(c, w, h, "press any key to retry", 13, COLOR.amber, 56);
+  const st = (size: number, color: number, weight: "normal" | "bold" = "normal") =>
+    new TextStyle({ fontFamily: "Consolas, monospace", fontSize: size, fill: color, fontWeight: weight, align: "center" });
+  const g = new Graphics();
+  g.rect(0, 0, w, h).fill({ color: COLOR.abyss, alpha: 0.85 });
+  c.addChild(g);
+  const add = (s: string, size: number, color: number, y: number, weight: "normal" | "bold" = "normal") => {
+    const t = new Text({ text: s, style: st(size, color, weight) });
+    t.anchor.set(0.5);
+    t.position.set(w / 2, h / 2 + y);
+    c.addChild(t);
+  };
+  add("COULDN'T DESCEND", 26, COLOR.coralBright, -30, "bold");
+  add(msg.slice(0, 80), 12, 0x5a7a9a, 6);
+  add("press any key to retry", 13, COLOR.amber, 44);
   return c;
 }
 
@@ -68,29 +54,46 @@ async function main(): Promise<void> {
   const input = new Input();
   input.attach(engine.app.canvas);
 
-  const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-
   const assets = new AssetStore();
   let save = persistence.load();
 
   const loader = new Loader();
   const hud = new Hud();
   engine.uiRoot.addChild(loader.root);
+  hud.layout(engine.width, engine.height);
 
   const fsm = new StateMachine();
-  let cutscene: Cutscene | null = null;
   let dive: DiveScene | null = null;
-  let gameover: Container | null = null;
+  let activeOverlay: Overlay | null = null;
+  let cutscene: Cutscene | null = null;
   let errorOverlay: Container | null = null;
 
   let loadProgress = 0;
   let loadMinTimer = 0;
   let loaded = false;
   let loadError: string | null = null;
-  let goLock = 0;
-  let goPrevBest = 0;
-  let goLostSamples = 0;
+  let playedIntro = false;
   let seed = 20260712;
+
+  let goLock = 0;
+  let goBaseline = 0;
+  let goPrevBestDepth = 0;
+  let goPrevBestScore = 0;
+  let goDepth = 0;
+  let goScore = 0;
+  let goSamples = 0;
+
+  const setOverlay = (o: Overlay | null) => {
+    if (activeOverlay) {
+      engine.uiRoot.removeChild(activeOverlay.root);
+      activeOverlay.destroy();
+    }
+    activeOverlay = o;
+    if (o) {
+      engine.uiRoot.addChild(o.root);
+      o.layout(engine.width, engine.height);
+    }
+  };
 
   const startLoading = () => {
     if (!loader.root.parent) engine.uiRoot.addChild(loader.root);
@@ -98,7 +101,7 @@ async function main(): Promise<void> {
     loaded = false;
     loadProgress = 0;
     loadError = null;
-    loadMinTimer = 1.1;
+    loadMinTimer = 1.0;
     assets
       .load((p) => (loadProgress = p))
       .then(() => (loaded = true))
@@ -110,16 +113,52 @@ async function main(): Promise<void> {
 
   const startDive = () => {
     seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-    dive = new DiveScene(engine, assets, seed, reducedMotion);
-    dive.onGameOver = (depth, samples) => {
-      goPrevBest = save.bestDepth;
-      goLostSamples = samples; // death loses unbanked samples (Pillar 3 stakes)
-      save = persistence.recordDive(save, depth, 0, []);
+    dive = new DiveScene(engine, assets, seed, save.settings.reducedMotion, save.settings.screenShake);
+    dive.onGameOver = (depth, score, samples) => {
+      goPrevBestDepth = save.bestDepth;
+      goPrevBestScore = save.bestScore;
+      goDepth = depth;
+      goScore = score;
+      goSamples = samples;
+      save = persistence.recordDive(save, depth, score, 0, []);
       fsm.change("gameover");
     };
     if (!hud.root.parent) engine.uiRoot.addChild(hud.root);
     hud.root.visible = true;
     hud.layout(engine.width, engine.height);
+  };
+
+  const teardownDive = () => {
+    dive?.destroy();
+    dive = null;
+    hud.root.visible = false;
+  };
+
+  const buildMenu = () =>
+    new MenuOverlay(save.bestDepth, save.bestScore, save.settings, {
+      onDive: () => fsm.change(playedIntro ? "dive" : "cutscene"),
+      onHowTo: () => fsm.change("howto"),
+      onToggleMotion: () => {
+        save = persistence.saveSettings(save, { ...save.settings, reducedMotion: !save.settings.reducedMotion });
+      },
+      onToggleShake: () => {
+        save = persistence.saveSettings(save, { ...save.settings, screenShake: !save.settings.screenShake });
+      },
+    });
+
+  const openLevelUp = () => {
+    const choices = dive!.rollUpgradeChoices();
+    setOverlay(
+      new LevelUpOverlay(dive!.level, choices, (id) => {
+        dive!.applyUpgrade(id);
+        if (dive!.consumeLevelUp()) openLevelUp();
+        else {
+          setOverlay(null);
+          dive!.resume();
+          fsm.change("dive");
+        }
+      })
+    );
   };
 
   fsm
@@ -131,21 +170,19 @@ async function main(): Promise<void> {
         }
         loadMinTimer -= dt;
         loader.update(loadProgress, engine.width, engine.height);
-        if (loaded && loadMinTimer <= 0) fsm.change("cutscene");
+        if (loaded && loadMinTimer <= 0) fsm.change("menu");
       },
-      exit: () => {
-        engine.uiRoot.removeChild(loader.root);
-      },
+      exit: () => engine.uiRoot.removeChild(loader.root),
     })
     .define("error", {
       enter: () => {
         goLock = 0.4;
-        errorOverlay = buildError(engine, loadError ?? "unknown error");
+        errorOverlay = buildError(engine, loadError ?? "unknown");
         engine.uiRoot.addChild(errorOverlay);
       },
       update: (dt) => {
         goLock = Math.max(0, goLock - dt);
-        if (goLock <= 0 && (input.consumeAnyKey() || input.state.firing)) {
+        if (goLock <= 0 && input.anyPress()) {
           startLoading();
           fsm.change("loading");
         }
@@ -158,6 +195,23 @@ async function main(): Promise<void> {
         }
       },
     })
+    .define("menu", {
+      enter: () => setOverlay(buildMenu()),
+      update: () => {
+        const m = activeOverlay as MenuOverlay;
+        if (input.pressed(KEYS.up)) m.move(-1);
+        if (input.pressed(KEYS.down)) m.move(1);
+        if (input.pressed(KEYS.confirm)) m.activate();
+      },
+      exit: () => setOverlay(null),
+    })
+    .define("howto", {
+      enter: () => setOverlay(new HowToOverlay(() => fsm.change("menu"))),
+      update: () => {
+        if (input.pressed(KEYS.confirm) || input.pressed(KEYS.pause)) fsm.change("menu");
+      },
+      exit: () => setOverlay(null),
+    })
     .define("cutscene", {
       enter: () => {
         cutscene = new Cutscene(coldOpen(), { layer: engine.uiRoot, width: engine.width, height: engine.height });
@@ -165,55 +219,102 @@ async function main(): Promise<void> {
       update: (dt) => {
         cutscene?.update(dt);
         if (input.state.skip) cutscene?.skip();
-        if (cutscene?.done) fsm.change("dive");
+        if (cutscene?.done) {
+          playedIntro = true;
+          fsm.change("dive");
+        }
       },
       exit: () => {
         cutscene = null;
       },
     })
     .define("dive", {
-      enter: () => startDive(),
+      enter: () => {
+        if (!dive) startDive();
+        else dive.resume();
+      },
       update: (dt) => {
         dive!.update(dt, input);
-        hud.update(
-          dive!.hpRatio,
-          dive!.currentDepth,
-          Math.max(save.bestDepth, dive!.currentDepth),
-          dive!.bankedSamples,
-          engine.width
-        );
+        hud.update(dive!.runState, dive!.hpRatio, dive!.currentDepth, Math.max(save.bestDepth, dive!.currentDepth), dive!.dashCooldownFrac, dt);
         hud.setThreats(dive!.threatMarkers(engine.width, engine.height));
+        if (dive!.consumeLevelUp()) fsm.change("levelup");
+        else if (input.pressed(KEYS.pause)) fsm.change("pause");
       },
+    })
+    .define("levelup", {
+      enter: () => openLevelUp(),
+      update: () => {
+        const o = activeOverlay as LevelUpOverlay;
+        const idx = input.choiceIndex();
+        if (idx >= 0) o.pickIndex(idx);
+        else if (input.pressed(KEYS.left)) o.move(-1);
+        else if (input.pressed(KEYS.right)) o.move(1);
+        else if (input.pressed(KEYS.confirm)) o.activate();
+      },
+      // exit handled inside openLevelUp's resolve
+    })
+    .define("pause", {
+      enter: () =>
+        setOverlay(
+          new PauseOverlay({
+            onResume: () => fsm.change("dive"),
+            onRestart: () => {
+              teardownDive();
+              fsm.change("dive");
+            },
+            onQuit: () => {
+              teardownDive();
+              fsm.change("menu");
+            },
+          })
+        ),
+      update: () => {
+        const p = activeOverlay as PauseOverlay;
+        if (input.pressed(KEYS.up)) p.move(-1);
+        if (input.pressed(KEYS.down)) p.move(1);
+        if (input.pressed(KEYS.confirm)) p.activate();
+        else if (input.pressed(KEYS.pause)) fsm.change("dive");
+      },
+      exit: () => setOverlay(null),
     })
     .define("gameover", {
       enter: () => {
-        goLock = 0.8;
-        gameover = buildGameOver(engine, dive!.currentDepth, goLostSamples, goPrevBest);
-        engine.uiRoot.addChild(gameover);
+        goLock = 0.6;
+        goBaseline = input.pressCount;
+        setOverlay(
+          new GameOverOverlay({
+            depth: goDepth,
+            score: goScore,
+            samplesLost: goSamples,
+            kills: dive?.kills ?? 0,
+            level: dive?.level ?? 1,
+            relics: dive?.relicsFound ?? 0,
+            prevBestDepth: goPrevBestDepth,
+            prevBestScore: goPrevBestScore,
+          })
+        );
       },
       update: (dt) => {
         goLock = Math.max(0, goLock - dt);
-        if (goLock <= 0 && (input.consumeAnyKey() || input.state.firing)) {
-          if (gameover) {
-            engine.uiRoot.removeChild(gameover);
-            gameover.destroy({ children: true });
-            gameover = null;
-          }
-          dive?.destroy();
-          dive = null;
-          hud.root.visible = false;
-          fsm.change("dive");
+        if (goLock <= 0 && input.pressCount > goBaseline) {
+          teardownDive();
+          fsm.change("menu");
         }
       },
+      exit: () => setOverlay(null),
     });
 
-  // Start at loading directly (no re-entrant boot→loading emit).
   startLoading();
   fsm.change("loading");
 
   const dbg: any = { engine, fsm };
-  (window as any).__fathom = dbg; // exposed for QA/debug
+  (window as any).__fathom = dbg;
   window.addEventListener("unhandledrejection", (e) => console.error("[fathom] unhandled:", e.reason));
+
+  engine.addResizeHandler(() => {
+    hud.layout(engine.width, engine.height);
+    activeOverlay?.layout(engine.width, engine.height);
+  });
 
   engine.app.ticker.add((ticker) => {
     const dt = Math.min(0.05, ticker.deltaMS / 1000);
@@ -224,14 +325,11 @@ async function main(): Promise<void> {
       fps: Math.round(engine.app.ticker.FPS),
       hp: dive ? dive.hpRatio : 1,
       depth: dive ? Math.floor(dive.currentDepth) : 0,
+      score: dive ? dive.scoreValue : 0,
+      level: dive ? dive.level : 1,
       enemies: dive ? dive.enemyCount : 0,
       bullets: dive ? dive.bulletCount : 0,
     };
-  });
-
-  window.addEventListener("resize", () => {
-    engine.refreshOverlays();
-    hud.layout(engine.width, engine.height);
   });
 }
 

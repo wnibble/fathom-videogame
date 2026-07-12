@@ -13,22 +13,30 @@ import type { Projectiles } from "./projectiles";
 // Spitter AND its wind-up telegraph stay on screen — the whole point of Pillar 1.
 const DESIRED = 155;
 const TOO_CLOSE = 95;
-const MOVE_SPEED = 78;
 const ENGAGE = 300; // only telegraph/fire within this range (keeps it on-screen)
+
+export interface SpitterOpts {
+  elite?: boolean;
+  hp?: number;
+  speed?: number;
+  bulletCount?: number;
+}
 
 function angleTo(from: Vec2, to: Vec2): number {
   return Math.atan2(to.y - from.y, to.x - from.x);
 }
 
-export function makeSpitter(pos: Vec2): Enemy {
+export function makeSpitter(pos: Vec2, opts: SpitterOpts = {}): Enemy {
+  const elite = opts.elite ?? false;
+  const hp = opts.hp ?? (elite ? 180 : 60);
   return {
     alive: true,
     kind: "spitter",
     pos: { x: pos.x, y: pos.y },
     vel: { x: 0, y: 0 },
-    radius: 13,
-    hp: 60,
-    maxHp: 60,
+    radius: elite ? 18 : 13,
+    hp,
+    maxHp: hp,
     attackTimer: 1.2,
     telegraphTimer: 0,
     pendingSpec: null,
@@ -37,6 +45,9 @@ export function makeSpitter(pos: Vec2): Enemy {
     attackCount: 0,
     spinSeed: (pos.x * 0.013 + pos.y * 0.017) % (Math.PI * 2),
     flash: 0,
+    elite,
+    bulletCount: opts.bulletCount ?? (elite ? 18 : 14),
+    speed: opts.speed ?? (elite ? 66 : 78),
   };
 }
 
@@ -74,8 +85,8 @@ export function updateSpitter(
   ay += nx * e.strafeDir * 0.7;
 
   const k = Math.min(1, dt * 4);
-  e.vel.x += (ax * MOVE_SPEED - e.vel.x) * k;
-  e.vel.y += (ay * MOVE_SPEED - e.vel.y) * k;
+  e.vel.x += (ax * e.speed - e.vel.x) * k;
+  e.vel.y += (ay * e.speed - e.vel.y) * k;
   // Hold still while telegraphing so the wind-up reads clearly.
   const moveScale = e.telegraphTimer > 0 ? 0.15 : 1;
   e.pos.x += e.vel.x * dt * moveScale;
@@ -99,7 +110,9 @@ export function updateSpitter(
       if (e.telegraphTimer <= 0 && e.pendingSpec) {
         const spec = e.pendingSpec;
         const base = spec.aim === "aimed" ? angleTo(e.pos, player.pos) : e.spinSeed;
-        proj.fireBurst(spec, e.pos, base, "enemy");
+        // radial burst size scales with the enemy (depth tier / elite)
+        const fired = spec.aim === "radial" ? { ...spec, count: e.bulletCount } : spec;
+        proj.fireBurst(fired, e.pos, base, "enemy");
         e.spinSeed += 0.6;
         e.pendingSpec = null;
         e.attackCount++;

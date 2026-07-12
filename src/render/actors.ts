@@ -42,25 +42,28 @@ export interface SpitterView {
   body: Graphics; // for hit feedback
 }
 
-export function buildSpitterView(): SpitterView {
+export function buildSpitterView(elite = false): SpitterView {
   const root = new Container();
   const body = new Graphics();
+  const r = elite ? 17 : 13;
+  const spike = elite ? 26 : 20;
+  const outline = elite ? COLOR.amberBright : COLOR.coral;
   for (let i = 0; i < 8; i++) {
     const a = (i / 8) * Math.PI * 2;
-    const sx = Math.cos(a) * 13;
-    const sy = Math.sin(a) * 13;
-    const tx = Math.cos(a) * 20;
-    const ty = Math.sin(a) * 20;
-    const px = Math.cos(a + 0.32) * 11;
-    const py = Math.sin(a + 0.32) * 11;
+    const sx = Math.cos(a) * r;
+    const sy = Math.sin(a) * r;
+    const tx = Math.cos(a) * spike;
+    const ty = Math.sin(a) * spike;
+    const px = Math.cos(a + 0.32) * (r - 2);
+    const py = Math.sin(a + 0.32) * (r - 2);
     body.poly([sx, sy, tx, ty, px, py]).fill(COLOR.coral);
   }
-  body.circle(0, 0, 13).fill(COLOR.deepNavy).stroke({ width: 2, color: COLOR.coral });
-  body.circle(0, 0, 6).fill(COLOR.navy);
-  body.circle(0, 0, 3).fill(COLOR.amberBright);
+  body.circle(0, 0, r).fill(COLOR.deepNavy).stroke({ width: elite ? 3 : 2, color: outline });
+  body.circle(0, 0, r * 0.46).fill(COLOR.navy);
+  body.circle(0, 0, elite ? 4 : 3).fill(COLOR.amberBright);
   root.addChild(body);
 
   // Brighter/larger than ambient fauna glows — the threat must be the loudest
-  // warm signal on screen, not blend into set-dressing.
-  return { root, glow: glow(120, COLOR.coral, 0.85), body };
+  // warm signal on screen, not blend into set-dressing. Elites glow harder.
+  return { root, glow: glow(elite ? 175 : 120, COLOR.coral, elite ? 0.95 : 0.85), body };
 }

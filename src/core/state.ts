@@ -3,7 +3,11 @@
 
 import { bus } from "./events";
 
-export type StateName = "boot" | "loading" | "cutscene" | "dive" | "gameover" | "error";
+export type StateName =
+  | "boot" | "loading" | "error"
+  | "menu" | "howto"
+  | "cutscene" | "dive"
+  | "levelup" | "pause" | "gameover";
 
 interface StateHooks {
   enter?(from: StateName | null): void;

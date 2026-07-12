@@ -13,11 +13,12 @@ export function updatePlayerMovement(
   moveIntent: Vec2,
   currents: Current[],
   dt: number,
-  bounds: { w: number; h: number }
+  bounds: { w: number; h: number },
+  speedMult = 1
 ): void {
   // Self-propulsion
-  player.vel.x += moveIntent.x * ACCEL * dt;
-  player.vel.y += moveIntent.y * ACCEL * dt;
+  player.vel.x += moveIntent.x * ACCEL * speedMult * dt;
+  player.vel.y += moveIntent.y * ACCEL * speedMult * dt;
 
   // Currents (steady acceleration inside the band's AABB)
   for (const c of currents) {
@@ -35,9 +36,9 @@ export function updatePlayerMovement(
   player.vel.x *= dragK;
   player.vel.y *= dragK;
 
-  // Clamp self-speed (currents may briefly exceed this — intentional)
+  // Clamp self-speed (currents/dashes may briefly exceed this — intentional)
   const sp = Math.hypot(player.vel.x, player.vel.y);
-  const cap = MAX_SPEED * 1.6;
+  const cap = MAX_SPEED * 1.6 * speedMult + 400;
   if (sp > cap) {
     player.vel.x = (player.vel.x / sp) * cap;
     player.vel.y = (player.vel.y / sp) * cap;

@@ -1,28 +1,35 @@
 // Projectile system: one pooled bullet store shared by player + enemies, driven
-// entirely by EmitterSpec data. Bullets render in the WORLD layer with normal
-// blend so their colors stay true and readable (pillar 1) — the light layer is
-// for glows/telegraphs, not the danger itself.
-//
-// Collision is direct circle-circle: one player vs N enemy-bullets, and player-
-// bullets vs a handful of enemies — trivial at slice scale. A spatial hash is a
-// documented pass-2 optimization once enemy density climbs.
+// by EmitterSpec data. Player bullets can PIERCE (with a same-target double-hit
+// guard) and hit destructible interactables; enemy bullets can be SLOWED by an
+// upgrade. Bullets render in the world layer (readable, un-bloomed).
 
 import { Container, Sprite } from "pixi.js";
 import type { Bullet, EmitterSpec, Enemy, Faction, Player, Vec2 } from "../core/types";
 import type { AssetStore } from "../engine/assets";
 
-const CAP = 1200;
+const CAP = 1400;
+
+/** Anything a player bullet can damage (enemies + destructible interactables). */
+export interface Damageable {
+  pos: Vec2;
+  radius: number;
+  hp: number;
+  alive: boolean;
+}
 
 export interface HitSink {
   onPlayerHit(damage: number, at: Vec2): void;
   onEnemyHit(enemy: Enemy, damage: number, at: Vec2): void;
   onEnemyKilled(enemy: Enemy): void;
+  onDestructibleHit(d: Damageable, damage: number, at: Vec2): void;
+  onDestructibleDestroyed(d: Damageable): void;
 }
 
 export class Projectiles {
   readonly bullets: Bullet[] = [];
   private sprites: (Sprite | null)[] = [];
   private free: number[] = [];
+  enemySlow = 0; // fraction; enemy bullet speed ×(1-this)
 
   constructor(private assets: AssetStore, private layer: Container) {
     for (let i = 0; i < CAP; i++) {
@@ -36,6 +43,8 @@ export class Projectiles {
         sprite: "aqua_pearl",
         tint: 0xffffff,
         damage: 10,
+        pierce: 0,
+        lastHit: null,
       });
       this.sprites.push(null);
       this.free.push(i);
@@ -46,11 +55,9 @@ export class Projectiles {
     return CAP - this.free.length;
   }
 
-  /** Fire one burst of `spec` from origin, oriented by baseAngle (radians). */
   fireBurst(spec: EmitterSpec, origin: Vec2, baseAngle: number, faction: Faction): void {
     const n = Math.max(1, spec.count);
     const spread = spec.spread;
-    // Center the fan on baseAngle. For a full radial, distribute evenly around.
     const isFullRadial = spread >= Math.PI * 2 - 1e-3;
     const start = isFullRadial ? baseAngle : baseAngle - spread / 2;
     const step = n > 1 ? (isFullRadial ? spread / n : spread / (n - 1)) : 0;
@@ -62,19 +69,22 @@ export class Projectiles {
 
   private spawn(spec: EmitterSpec, x: number, y: number, angle: number, faction: Faction): void {
     const idx = this.free.pop();
-    if (idx === undefined) return; // pool exhausted — drop (never allocate mid-frame)
+    if (idx === undefined) return;
     const b = this.bullets[idx];
+    const speed = faction === "enemy" ? spec.speed * (1 - this.enemySlow) : spec.speed;
     b.active = true;
     b.pos.x = x;
     b.pos.y = y;
-    b.vel.x = Math.cos(angle) * spec.speed;
-    b.vel.y = Math.sin(angle) * spec.speed;
+    b.vel.x = Math.cos(angle) * speed;
+    b.vel.y = Math.sin(angle) * speed;
     b.radius = spec.bulletRadius;
     b.ttl = spec.ttl;
     b.faction = faction;
     b.sprite = spec.sprite;
     b.tint = spec.tint ?? 0xffffff;
     b.damage = spec.damage ?? 10;
+    b.pierce = faction === "player" ? spec.pierce ?? 0 : 0;
+    b.lastHit = null;
 
     let s = this.sprites[idx];
     if (!s) {
@@ -99,21 +109,22 @@ export class Projectiles {
     this.free.push(idx);
   }
 
-  update(dt: number, player: Player, enemies: Enemy[], sink: HitSink, worldBounds: { w: number; h: number }): void {
-    const pad = 64;
+  update(
+    dt: number,
+    player: Player,
+    enemies: Enemy[],
+    destructibles: Damageable[],
+    sink: HitSink,
+    worldBounds: { w: number; h: number }
+  ): void {
+    const pad = 80;
     for (let i = 0; i < CAP; i++) {
       const b = this.bullets[i];
       if (!b.active) continue;
       b.pos.x += b.vel.x * dt;
       b.pos.y += b.vel.y * dt;
       b.ttl -= dt;
-      if (
-        b.ttl <= 0 ||
-        b.pos.x < -pad ||
-        b.pos.y < -pad ||
-        b.pos.x > worldBounds.w + pad ||
-        b.pos.y > worldBounds.h + pad
-      ) {
+      if (b.ttl <= 0 || b.pos.x < -pad || b.pos.y < -pad || b.pos.x > worldBounds.w + pad || b.pos.y > worldBounds.h + pad) {
         this.kill(i);
         continue;
       }
@@ -130,8 +141,10 @@ export class Projectiles {
           }
         }
       } else {
+        let consumed = false;
+        // Enemies (pierceable, with same-target guard)
         for (const e of enemies) {
-          if (!e.alive) continue;
+          if (!e.alive || e === b.lastHit) continue;
           const dx = b.pos.x - e.pos.x;
           const dy = b.pos.y - e.pos.y;
           const rr = b.radius + e.radius;
@@ -142,9 +155,37 @@ export class Projectiles {
               e.alive = false;
               sink.onEnemyKilled(e);
             }
-            this.kill(i);
+            b.lastHit = e;
+            if (b.pierce > 0) {
+              b.pierce--;
+            } else {
+              consumed = true;
+            }
             break;
           }
+        }
+        if (!consumed) {
+          // Destructible interactables (no pierce — one bullet, one hit)
+          for (const d of destructibles) {
+            if (!d.alive) continue;
+            const dx = b.pos.x - d.pos.x;
+            const dy = b.pos.y - d.pos.y;
+            const rr = b.radius + d.radius;
+            if (dx * dx + dy * dy <= rr * rr) {
+              d.hp -= b.damage;
+              sink.onDestructibleHit(d, b.damage, { x: b.pos.x, y: b.pos.y });
+              if (d.hp <= 0 && d.alive) {
+                d.alive = false;
+                sink.onDestructibleDestroyed(d);
+              }
+              consumed = true;
+              break;
+            }
+          }
+        }
+        if (consumed) {
+          this.kill(i);
+          continue;
         }
       }
 
@@ -156,8 +197,6 @@ export class Projectiles {
   clear(): void {
     for (let i = 0; i < CAP; i++) this.kill(i);
   }
-
-  /** Remove all bullet sprites from the layer (call on scene teardown). */
   destroy(): void {
     for (let i = 0; i < CAP; i++) {
       const s = this.sprites[i];
