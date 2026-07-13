@@ -49,7 +49,7 @@ export class Hub {
   private root = new Container(); // world-layer scene
   private light = new Container(); // light-layer glows
   private ui = new Container(); // screen-space prompts
-  private view = buildPlayerView();
+  private view!: ReturnType<typeof buildPlayerView>;
   private player: Player;
   private facing = -Math.PI / 2;
   private kiosks: Kiosk[] = [];
@@ -83,6 +83,7 @@ export class Hub {
       shieldRegenT: 0,
     };
 
+    this.view = buildPlayerView(this.assets);
     this.buildScene();
     this.root.addChild(this.view.root);
     this.light.addChild(this.view.lamp);
@@ -224,8 +225,13 @@ export class Hub {
     if (spd > 12) this.facing = approach(this.facing, angleLerpTarget(this.facing, Math.atan2(p.vel.y, p.vel.x)), 10, dt);
 
     this.view.root.position.set(Math.round(p.pos.x), Math.round(p.pos.y));
-    this.view.root.rotation = this.facing;
-    squashStretch(this.view.root, spd, 0.24, 0.02, this.elapsed, 0);
+    if (this.view.update) {
+      this.view.root.rotation = 0;
+      this.view.update(dt, spd > 20, input.state.move.x || Math.cos(this.facing), false);
+    } else {
+      this.view.root.rotation = this.facing;
+      squashStretch(this.view.root, spd, 0.24, 0.02, this.elapsed, 0);
+    }
     this.view.lamp.position.set(p.pos.x, p.pos.y);
 
     this.engine.centerOn(p.pos.x, p.pos.y);

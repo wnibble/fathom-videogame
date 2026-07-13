@@ -819,6 +819,186 @@
         1
       ],
       "sheet": "wreck_thermal_props"
+    },
+    "diver_hurt": {
+      "file": "sprites/diver_hurt.png",
+      "w": 33,
+      "h": 34,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "diver"
+    },
+    "spitter_windup": {
+      "file": "sprites/spitter_windup.png",
+      "w": 44,
+      "h": 46,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "fauna_enemies"
+    },
+    "spitter_fire": {
+      "file": "sprites/spitter_fire.png",
+      "w": 46,
+      "h": 33,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "fauna_enemies"
+    },
+    "darter_idle": {
+      "file": "sprites/darter_idle.png",
+      "w": 46,
+      "h": 32,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "fauna_enemies"
+    },
+    "darter_windup": {
+      "file": "sprites/darter_windup.png",
+      "w": 46,
+      "h": 43,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "fauna_enemies"
+    },
+    "darter_lunge": {
+      "file": "sprites/darter_lunge.png",
+      "w": 46,
+      "h": 18,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "fauna_enemies"
+    },
+    "darter_recover": {
+      "file": "sprites/darter_recover.png",
+      "w": 46,
+      "h": 24,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "fauna_enemies"
+    },
+    "drifter_pulse": {
+      "file": "sprites/drifter_pulse.png",
+      "w": 40,
+      "h": 46,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "fauna_enemies"
+    },
+    "drifter_spawn": {
+      "file": "sprites/drifter_spawn.png",
+      "w": 46,
+      "h": 43,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "fauna_enemies"
+    },
+    "gatekeeper_idle": {
+      "file": "sprites/gatekeeper_idle.png",
+      "w": 112,
+      "h": 105,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "gatekeeper"
+    },
+    "gatekeeper_open": {
+      "file": "sprites/gatekeeper_open.png",
+      "w": 111,
+      "h": 112,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "gatekeeper"
+    },
+    "gatekeeper_attack": {
+      "file": "sprites/gatekeeper_attack.png",
+      "w": 112,
+      "h": 108,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "gatekeeper"
+    },
+    "gatekeeper_hurt": {
+      "file": "sprites/gatekeeper_hurt.png",
+      "w": 112,
+      "h": 108,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "gatekeeper"
+    },
+    "station_floor": {
+      "file": "sprites/station_floor.png",
+      "w": 63,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "surface_station"
+    },
+    "railing_edge": {
+      "file": "sprites/railing_edge.png",
+      "w": 64,
+      "h": 53,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "surface_station"
+    },
+    "dive_vent": {
+      "file": "sprites/dive_vent.png",
+      "w": 64,
+      "h": 54,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "surface_station"
+    },
+    "shop_console": {
+      "file": "sprites/shop_console.png",
+      "w": 45,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "surface_station"
+    },
+    "weather_buoy": {
+      "file": "sprites/weather_buoy.png",
+      "w": 35,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "surface_station"
     }
   },
   "animations": {
@@ -1189,6 +1369,105 @@
       ],
       "fps": 10,
       "sheet": "wreck_thermal_props"
+    },
+    "diver_idle": {
+      "frames": [
+        "sprites/diver_idle_f1.png",
+        "sprites/diver_idle_f2.png"
+      ],
+      "w": 28,
+      "h": 34,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 7,
+      "sheet": "diver"
+    },
+    "diver_swim": {
+      "frames": [
+        "sprites/diver_swim_f1.png",
+        "sprites/diver_swim_f2.png",
+        "sprites/diver_swim_f3.png"
+      ],
+      "w": 34,
+      "h": 32,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 7,
+      "sheet": "diver"
+    },
+    "spitter_idle": {
+      "frames": [
+        "sprites/spitter_idle_f1.png",
+        "sprites/spitter_idle_f2.png"
+      ],
+      "w": 42,
+      "h": 46,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 6,
+      "sheet": "fauna_enemies"
+    },
+    "drifter_idle": {
+      "frames": [
+        "sprites/drifter_idle_f1.png",
+        "sprites/drifter_idle_f2.png"
+      ],
+      "w": 34,
+      "h": 46,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 6,
+      "sheet": "fauna_enemies"
+    },
+    "dog_idle": {
+      "frames": [
+        "sprites/dog_idle_f1.png",
+        "sprites/dog_idle_f2.png"
+      ],
+      "w": 30,
+      "h": 27,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 7,
+      "sheet": "bichon"
+    },
+    "dog_swim": {
+      "frames": [
+        "sprites/dog_swim_f1.png",
+        "sprites/dog_swim_f2.png"
+      ],
+      "w": 30,
+      "h": 23,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 7,
+      "sheet": "bichon"
+    },
+    "keeper_idle": {
+      "frames": [
+        "sprites/keeper_idle_f1.png",
+        "sprites/keeper_idle_f2.png"
+      ],
+      "w": 50,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 5,
+      "sheet": "surface_station"
     }
   }
 }

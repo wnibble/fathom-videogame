@@ -1,0 +1,238 @@
+{
+  "manifest_version": "1.0",
+  "source_dimensions": [
+    1254,
+    1254
+  ],
+  "coordinate_system": "pixels, origin top-left, bbox=[x0,y0,x1,y1], x1/y1 exclusive",
+  "important_warning": "All sheets use a baked flat #ff00ff background. Crop boxes are generous; remove background, trim, then align animation groups.",
+  "recommended_output": {
+    "small_pickups": "16x16 or 24x24",
+    "standard_props": "32x32 or 48x48",
+    "large_props": "64x64+",
+    "hazards": "32x32 to 64x64",
+    "filtering": "nearest-neighbor only",
+    "padding": "8 transparent px around subject; 2px atlas extrusion"
+  },
+  "sheets": {
+    "02_bioluminescent_flora": {
+      "file": "02_bioluminescent_flora.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "entries": [
+        {
+          "name": "kelp_tall_a",
+          "bbox": [
+            35,
+            20,
+            225,
+            380
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "kelp_tall_b",
+          "bbox": [
+            235,
+            20,
+            435,
+            380
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "kelp_branching",
+          "bbox": [
+            450,
+            25,
+            690,
+            385
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "kelp_bush",
+          "bbox": [
+            690,
+            45,
+            935,
+            390
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "lure_grass",
+          "bbox": [
+            945,
+            70,
+            1215,
+            395
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "fan_coral",
+          "bbox": [
+            30,
+            395,
+            250,
+            650
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "tube_coral",
+          "bbox": [
+            245,
+            390,
+            485,
+            650
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "danger_anemone_f1",
+          "bbox": [
+            480,
+            395,
+            730,
+            655
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "danger_anemone_f2",
+          "bbox": [
+            715,
+            395,
+            970,
+            655
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "amber_sponge",
+          "bbox": [
+            950,
+            395,
+            1220,
+            655
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "tube_worm_colony_f1",
+          "bbox": [
+            25,
+            660,
+            250,
+            925
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "tube_worm_colony_f2",
+          "bbox": [
+            235,
+            660,
+            475,
+            930
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "egg_cluster_f1",
+          "bbox": [
+            465,
+            660,
+            705,
+            925
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "egg_cluster_f2",
+          "bbox": [
+            690,
+            660,
+            930,
+            925
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "abyssal_root_mass",
+          "bbox": [
+            915,
+            650,
+            1225,
+            935
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "jelly_mushroom_cluster_f1",
+          "bbox": [
+            25,
+            930,
+            245,
+            1245
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "jelly_mushroom_cluster_f2",
+          "bbox": [
+            230,
+            925,
+            460,
+            1245
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "crystal_coral",
+          "bbox": [
+            440,
+            925,
+            680,
+            1245
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "floating_reef_chunk",
+          "bbox": [
+            655,
+            920,
+            900,
+            1245
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "angler_plant_f1",
+          "bbox": [
+            890,
+            920,
+            1060,
+            1245
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "angler_plant_f2",
+          "bbox": [
+            1040,
+            915,
+            1225,
+            1245
+          ],
+          "pivot": "bottom-center"
+        }
+      ]
+    }
+  }
+}

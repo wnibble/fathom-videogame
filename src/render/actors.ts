@@ -5,6 +5,7 @@
 import { Container, Graphics, Sprite } from "pixi.js";
 import { COLOR } from "../palette";
 import { getGlowTexture, GLOW_SIZE } from "../engine/glow";
+import type { AssetStore } from "../engine/assets";
 
 function glow(diameter: number, color: number, alpha: number): Sprite {
   const s = new Sprite(getGlowTexture());
@@ -18,12 +19,49 @@ function glow(diameter: number, color: number, alpha: number): Sprite {
 export interface PlayerView {
   root: Container; // world layer
   lamp: Sprite; // light layer (headlamp pool)
+  /** Drive the diver's animation state: swim vs idle, left/right facing, hurt flash. */
+  update?(dt: number, moving: boolean, faceX: number, hurt: boolean): void;
 }
 
-export function buildPlayerView(): PlayerView {
+export function buildPlayerView(assets?: AssetStore): PlayerView {
   const root = new Container();
+  // A restrained headlamp pool — enough to read "a small light," not a blinding disc.
+  const lamp = glow(126, COLOR.aqua, 0.22);
+
+  // Prefer the real animated diver sprite. It's drawn side-on, so we FLIP L/R to
+  // face travel (never full-rotate — that would tumble a side view). Aim direction
+  // is already told by the muzzle flash + bullets.
+  if (assets && assets.has("diver_idle") && assets.has("diver_swim")) {
+    const flip = new Container();
+    root.addChild(flip);
+    const idle = assets.anim("diver_idle");
+    const swim = assets.anim("diver_swim");
+    swim.animationSpeed = idle.animationSpeed * 1.6;
+    const hurt = assets.has("diver_hurt") ? assets.sprite("diver_hurt") : null;
+    idle.visible = true;
+    swim.visible = false;
+    flip.addChild(idle, swim);
+    if (hurt) {
+      hurt.visible = false;
+      flip.addChild(hurt);
+    }
+    let hurtT = 0;
+    let face = 1; // sprite art faces LEFT at scale.x=1; flip to face right
+    const update = (dt: number, moving: boolean, faceX: number, isHurt: boolean) => {
+      if (isHurt) hurtT = 0.2;
+      hurtT = Math.max(0, hurtT - dt);
+      const showHurt = hurtT > 0 && !!hurt;
+      idle.visible = !showHurt && !moving;
+      swim.visible = !showHurt && moving;
+      if (hurt) hurt.visible = showHurt;
+      if (Math.abs(faceX) > 0.06) face = faceX > 0 ? -1 : 1;
+      flip.scale.x = face;
+    };
+    return { root, lamp, update };
+  }
+
+  // Procedural fallback (silhouette-first) — kept for missing-asset safety.
   const g = new Graphics();
-  // Diver faces +x.
   g.roundRect(-9, -7, 18, 14, 6).fill(COLOR.teal).stroke({ width: 1.5, color: COLOR.deepNavy });
   g.roundRect(-11, -5, 5, 10, 2).fill(COLOR.navy);
   g.circle(7, 0, 4).fill(COLOR.amber);
@@ -31,9 +69,6 @@ export function buildPlayerView(): PlayerView {
   g.poly([-9, -7, -15, -11, -12, -5]).fill(COLOR.teal);
   g.poly([-9, 7, -15, 11, -12, 5]).fill(COLOR.teal);
   root.addChild(g);
-
-  // A restrained headlamp pool — enough to read "a small light," not a blinding disc.
-  const lamp = glow(126, COLOR.aqua, 0.22);
   return { root, lamp };
 }
 

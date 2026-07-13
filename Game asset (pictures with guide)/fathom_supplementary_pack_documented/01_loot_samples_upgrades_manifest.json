@@ -1,0 +1,368 @@
+{
+  "manifest_version": "1.0",
+  "source_dimensions": [
+    1254,
+    1254
+  ],
+  "coordinate_system": "pixels, origin top-left, bbox=[x0,y0,x1,y1], x1/y1 exclusive",
+  "important_warning": "All sheets use a baked flat #ff00ff background. Crop boxes are generous; remove background, trim, then align animation groups.",
+  "recommended_output": {
+    "small_pickups": "16x16 or 24x24",
+    "standard_props": "32x32 or 48x48",
+    "large_props": "64x64+",
+    "hazards": "32x32 to 64x64",
+    "filtering": "nearest-neighbor only",
+    "padding": "8 transparent px around subject; 2px atlas extrusion"
+  },
+  "sheets": {
+    "01_loot_samples_upgrades": {
+      "file": "01_loot_samples_upgrades.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "entries": [
+        {
+          "name": "sample_vial_small_f1",
+          "bbox": [
+            35,
+            90,
+            125,
+            315
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "sample_vial_small_f2",
+          "bbox": [
+            125,
+            90,
+            215,
+            315
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "sample_vial_small_f3",
+          "bbox": [
+            215,
+            90,
+            310,
+            315
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "specimen_canister_medium_f1",
+          "bbox": [
+            350,
+            80,
+            475,
+            325
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "specimen_canister_medium_f2",
+          "bbox": [
+            465,
+            80,
+            590,
+            325
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "specimen_canister_medium_f3",
+          "bbox": [
+            580,
+            80,
+            710,
+            325
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "living_specimen_tank_f1",
+          "bbox": [
+            735,
+            55,
+            890,
+            330
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "living_specimen_tank_f2",
+          "bbox": [
+            875,
+            55,
+            1035,
+            330
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "living_specimen_tank_f3",
+          "bbox": [
+            1015,
+            55,
+            1200,
+            330
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "meta_pearl",
+          "bbox": [
+            45,
+            350,
+            180,
+            520
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "upgrade_core_f1",
+          "bbox": [
+            240,
+            335,
+            390,
+            535
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "upgrade_core_f2",
+          "bbox": [
+            385,
+            335,
+            545,
+            535
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "upgrade_core_f3",
+          "bbox": [
+            535,
+            335,
+            710,
+            535
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "energy_shard_f1",
+          "bbox": [
+            740,
+            325,
+            885,
+            555
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "energy_shard_f2",
+          "bbox": [
+            865,
+            325,
+            1025,
+            555
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "energy_shard_f3",
+          "bbox": [
+            1000,
+            325,
+            1195,
+            555
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "healing_orb_f1",
+          "bbox": [
+            35,
+            590,
+            180,
+            820
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "healing_orb_f2",
+          "bbox": [
+            155,
+            580,
+            315,
+            820
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "healing_orb_f3",
+          "bbox": [
+            290,
+            580,
+            455,
+            820
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "power_cell_f1",
+          "bbox": [
+            450,
+            565,
+            570,
+            825
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "power_cell_f2",
+          "bbox": [
+            555,
+            560,
+            685,
+            825
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "power_cell_f3",
+          "bbox": [
+            670,
+            555,
+            815,
+            825
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "rune_fragment_f1",
+          "bbox": [
+            800,
+            555,
+            925,
+            835
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "rune_fragment_f2",
+          "bbox": [
+            910,
+            550,
+            1055,
+            835
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "rune_fragment_f3",
+          "bbox": [
+            1035,
+            545,
+            1205,
+            835
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "mineral_cluster_f1",
+          "bbox": [
+            35,
+            890,
+            190,
+            1170
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "mineral_cluster_f2",
+          "bbox": [
+            165,
+            875,
+            330,
+            1175
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "mineral_cluster_f3",
+          "bbox": [
+            300,
+            870,
+            475,
+            1175
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "salvage_crate_f1",
+          "bbox": [
+            430,
+            880,
+            570,
+            1170
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "salvage_crate_f2",
+          "bbox": [
+            555,
+            875,
+            705,
+            1170
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "salvage_crate_f3",
+          "bbox": [
+            690,
+            870,
+            845,
+            1170
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "leviathan_scale_f1",
+          "bbox": [
+            820,
+            850,
+            955,
+            1190
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "leviathan_scale_f2",
+          "bbox": [
+            940,
+            845,
+            1080,
+            1190
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "leviathan_scale_f3",
+          "bbox": [
+            1065,
+            840,
+            1210,
+            1190
+          ],
+          "pivot": "bottom-center"
+        }
+      ]
+    }
+  }
+}

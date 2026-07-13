@@ -24,7 +24,7 @@ import { makeBoss, buildBossView, updateBoss, BOSS_TELEGRAPH, type BossCtx } fro
 import { buildStratum, STRATA, STRATA_DEPTH, type ArenaData } from "../content/strata";
 import { SPECIES_FOR_STRATUM } from "../content/species";
 import { WEATHER, type Weather } from "../content/weather";
-import { buildPlayerView, buildSpitterView, buildDarterView, buildDrifterView, type SpitterView } from "../render/actors";
+import { buildPlayerView, buildSpitterView, buildDarterView, buildDrifterView, type SpitterView, type PlayerView } from "../render/actors";
 import { PLAYER_SHOT, SPITTER_RADIAL } from "../content/emitters";
 import { rollMutation, MUTATION_BY_ID } from "../content/mutations";
 import { bus } from "../core/events";
@@ -93,7 +93,7 @@ export class DiveScene implements HitSink, PickupSink {
   private dash: DashState = freshDash();
   private rng: Rng;
 
-  private playerView = buildPlayerView();
+  private playerView!: PlayerView;
   private enemyViews = new Map<Enemy, SpitterView>();
   private telegraphs = new Map<Enemy, Sprite>();
   private staticNodes: Container[] = [];
@@ -159,6 +159,7 @@ export class DiveScene implements HitSink, PickupSink {
     this.interactables = new Interactables(this.arena.interactables, engine.worldLayer, engine.lightLayer, assets);
     this.hazards = new Hazards(engine.lightLayer);
     this.floaters = new Floaters(engine.sceneRoot); // above world+light, moves with camera
+    this.playerView = buildPlayerView(assets);
     this.run = freshRun(PLAYER_SHOT, meta);
 
     // Weather modifiers (a double-edged climate) + one-run Market boons.
@@ -1225,10 +1226,17 @@ export class DiveScene implements HitSink, PickupSink {
       }
     }
 
+    const pspeed = Math.hypot(p.vel.x, p.vel.y);
     this.playerView.root.visible = p.alive;
     this.playerView.root.position.set(p.pos.x, p.pos.y);
-    this.playerView.root.rotation = Math.atan2(this.lastAim.y, this.lastAim.x);
-    squashStretch(this.playerView.root, Math.hypot(p.vel.x, p.vel.y), 0.28, 0.02, this.elapsed, 0);
+    if (this.playerView.update) {
+      // Sprite diver: stay upright, flip to face aim, swap idle/swim/hurt.
+      this.playerView.root.rotation = 0;
+      this.playerView.update(dt, pspeed > 34, this.lastAim.x, p.invuln > 0.62);
+    } else {
+      this.playerView.root.rotation = Math.atan2(this.lastAim.y, this.lastAim.x);
+      squashStretch(this.playerView.root, pspeed, 0.28, 0.02, this.elapsed, 0);
+    }
     this.playerView.root.alpha = p.invuln > 0 ? (Math.floor(p.invuln * 20) % 2 ? 0.4 : 1) : 1;
     this.playerView.lamp.position.set(p.pos.x, p.pos.y);
     this.playerView.lamp.visible = p.alive;

@@ -9,7 +9,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "extract-assets": "node tools/extract-assets.mjs"
+    "extract-assets": "node tools/extract-assets.mjs",
+    "extract-new-assets": "node tools/extract-new-assets.mjs"
   },
   "dependencies": {
     "pixi-filters": "^6.1.4",
