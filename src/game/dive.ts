@@ -3,19 +3,21 @@
 // interactables + hidden relics, magnetized loot, and depth/level difficulty
 // scaling. Permadeath: dying loses unbanked samples but banks depth + score.
 
-import { Container, Graphics, Sprite } from "pixi.js";
+import { Container, Graphics, Sprite, Text, TextStyle } from "pixi.js";
 import { getGlowTexture } from "../engine/glow";
 import type { Engine } from "../engine/app";
 import type { AssetStore } from "../engine/assets";
 import { Input, KEYS } from "../engine/input";
-import type { Enemy, Player, Vec2 } from "../core/types";
+import type { Enemy, EnemyKind, Player, Vec2 } from "../core/types";
 import type { Damageable, HitSink } from "../systems/projectiles";
 import { Projectiles } from "../systems/projectiles";
+import { Hazards } from "../systems/hazards";
 import { updatePlayerMovement } from "../systems/movement";
 import { makeSpitter, updateSpitter } from "../systems/spitter";
 import { makeDarter, updateDarter } from "../systems/darter";
-import { buildTwilightArena, type ArenaData } from "../content/biome_twilight";
-import { buildPlayerView, buildSpitterView, buildDarterView, type SpitterView } from "../render/actors";
+import { makeDrifter, updateDrifter } from "../systems/drifter";
+import { buildStratum, STRATA, STRATA_DEPTH, type ArenaData } from "../content/strata";
+import { buildPlayerView, buildSpitterView, buildDarterView, buildDrifterView, type SpitterView } from "../render/actors";
 import { PLAYER_SHOT } from "../content/emitters";
 import { bus } from "../core/events";
 import { COLOR } from "../palette";
@@ -53,7 +55,15 @@ export class DiveScene implements HitSink, PickupSink {
   private proj: Projectiles;
   private pickups: Pickups;
   private interactables: Interactables;
+  private hazards!: Hazards;
   private arena: ArenaData;
+  private stratumIndex = 0;
+  private nextStrataDepth = STRATA_DEPTH;
+  private charge = 0; // glow-charge from grazing (0..1)
+  private dread = 0; // dread clock (0..1) — the deep closing in
+  private haulGlow?: Sprite;
+  private cardRoot?: Container; // stratum threshold title card
+  private cardTimer = 0;
   private run: RunState;
   private dash: DashState = freshDash();
   private rng: Rng;
@@ -87,17 +97,19 @@ export class DiveScene implements HitSink, PickupSink {
   constructor(
     private engine: Engine,
     private assets: AssetStore,
-    seed: number,
+    private seed: number,
     private reducedMotion = false,
     screenShake = true,
     private meta: MetaState = freshMeta()
   ) {
     this.shakeEnabled = screenShake && !reducedMotion;
     this.rng = new Rng((seed ^ 0x9e3779b9) >>> 0);
-    this.arena = buildTwilightArena(seed, assets);
+    this.arena = buildStratum(0, seed, assets);
+    engine.setBgTint(this.arena.bg);
     this.proj = new Projectiles(assets, engine.worldLayer);
     this.pickups = new Pickups(engine.worldLayer, engine.lightLayer);
     this.interactables = new Interactables(this.arena.interactables, engine.worldLayer, engine.lightLayer, assets);
+    this.hazards = new Hazards(engine.lightLayer);
     this.run = freshRun(PLAYER_SHOT, meta);
     const maxHp = BASE_HP + meta.bonusMaxHp;
     const shieldMax = meta.shieldCapacity + this.run.stats.shieldCapBonus;
@@ -130,11 +142,19 @@ export class DiveScene implements HitSink, PickupSink {
         this.player.vel.y += fy * this.stepDt;
       },
       fx: (anim, x, y) => this.spawnFx(anim, x, y),
+      surface: () => this.onSurface(),
     };
     this.buildStaticViews();
     engine.worldLayer.addChild(this.playerView.root);
     engine.lightLayer.addChild(this.playerView.lamp);
+    // Haul trail — carried (unbanked) samples glow behind the diver (glow-as-treasure).
+    this.haulGlow = new Sprite(getGlowTexture());
+    this.haulGlow.anchor.set(0.5);
+    this.haulGlow.tint = COLOR.sample;
+    this.haulGlow.alpha = 0;
+    engine.lightLayer.addChild(this.haulGlow);
     engine.centerOn(this.player.pos.x, this.player.pos.y, true);
+    this.showStratumCard();
   }
 
   // ---- static views ----
@@ -232,7 +252,7 @@ export class DiveScene implements HitSink, PickupSink {
       p.fireCooldown = this.run.fireInterval / haste;
     }
 
-    // enemies — dispatch by archetype; darters deal melee contact damage
+    // enemies — dispatch by archetype (each a distinct verb)
     for (const e of this.enemies) {
       if (!e.alive) continue;
       if (e.kind === "darter") {
@@ -243,6 +263,8 @@ export class DiveScene implements HitSink, PickupSink {
           const rr = e.radius + p.radius;
           if (dx * dx + dy * dy <= rr * rr) this.onPlayerHit(e.contactDamage, { x: p.pos.x, y: p.pos.y });
         }
+      } else if (e.kind === "drifter") {
+        updateDrifter(e, dt, p, this.arena.bounds, (x, y) => this.hazards.spawn(x, y, 26, 4.2, 10, COLOR.coralBright));
       } else {
         updateSpitter(e, dt, p, this.proj, this.arena.bounds);
       }
@@ -250,8 +272,25 @@ export class DiveScene implements HitSink, PickupSink {
 
     this.proj.enemySlow = this.run.stats.enemyBulletSlow;
     this.proj.update(dt, p, this.enemies, this.interactables.destructibles(), this, this.arena.bounds);
+    this.hazards.update(dt, p, this);
     this.pickups.update(dt, p, this.run.stats.magnetRadius, this.elapsed, this);
     this.interactables.update(dt, p.pos, p.alive, p.radius, this.elapsed, this.interactSink);
+
+    // Glow double-bind: charge bleeds slowly; dread rises faster the brighter you are
+    // (charge) and the longer you linger. The deep hunts the bright.
+    this.charge = Math.max(0, this.charge - dt * 0.02);
+    this.dread = Math.min(1, this.dread + dt * (0.017 + this.charge * 0.03));
+    if (this.dread >= 1) {
+      const a = this.rng.range(0, Math.PI * 2);
+      this.hazards.spawn(p.pos.x + Math.cos(a) * 95, p.pos.y + Math.sin(a) * 95, 46, 2.4, 16, COLOR.coralBright);
+      this.dread = 0.5;
+    }
+
+    // Descend to the next authored stratum at the depth threshold (resets dread).
+    if (this.stratumIndex < STRATA.length - 1 && this.depth >= this.nextStrataDepth) {
+      this.nextStrataDepth += STRATA_DEPTH;
+      this.transitionStratum(this.stratumIndex + 1);
+    }
 
     // scoring + depth
     tickScore(this.run, dt);
@@ -320,17 +359,20 @@ export class DiveScene implements HitSink, PickupSink {
       }
     }
     const elite = this.rng.chance(Math.min(0.35, tier * 0.06));
-    // Darters start mixing in after a little depth, up to ~45% of spawns.
-    const darterChance = Math.min(0.45, Math.max(0, (tier - 0.4) * 0.22));
-    const isDarter = this.rng.chance(darterChance);
+    const kind = this.pickFauna();
 
     let e: Enemy;
     let v: SpitterView;
-    if (isDarter) {
+    if (kind === "darter") {
       const hp = Math.round(32 * (1 + tier * 0.16) * (elite ? 2.6 : 1));
       const speed = Math.min(96 * 1.6, 96 * (1 + tier * 0.05)) * (elite ? 1.2 : 1);
       e = makeDarter(best, { elite, hp, speed });
       v = buildDarterView(elite);
+    } else if (kind === "drifter") {
+      const hp = Math.round(42 * (1 + tier * 0.16) * (elite ? 2.6 : 1));
+      const speed = 58 * (1 + tier * 0.05) * (elite ? 1.15 : 1);
+      e = makeDrifter(best, { elite, hp, speed });
+      v = buildDrifterView(elite);
     } else {
       const baseHp = 60 * (1 + tier * 0.18) * (elite ? 3 : 1);
       const speed = Math.min(78 * 1.5, 78 * (1 + tier * 0.06));
@@ -342,6 +384,95 @@ export class DiveScene implements HitSink, PickupSink {
     this.enemyViews.set(e, v);
     this.engine.worldLayer.addChild(v.root);
     this.engine.lightLayer.addChild(v.glow);
+  }
+
+  private pickFauna(): EnemyKind {
+    const f = this.arena.fauna;
+    let total = 0;
+    for (const x of f) total += x.weight;
+    let r = this.rng.next() * total;
+    for (const x of f) {
+      r -= x.weight;
+      if (r <= 0) return x.kind;
+    }
+    return f[0].kind;
+  }
+
+  /** Descend to the next authored stratum: tear down the world, rebuild the place,
+   * keep player + run. Reuses the destroy()-style teardown. */
+  private transitionStratum(next: number): void {
+    this.clearWorld();
+    this.stratumIndex = next;
+    this.arena = buildStratum(next, this.seed, this.assets);
+    this.engine.setBgTint(this.arena.bg);
+    this.interactables = new Interactables(this.arena.interactables, this.engine.worldLayer, this.engine.lightLayer, this.assets);
+    this.pickups = new Pickups(this.engine.worldLayer, this.engine.lightLayer);
+    this.buildStaticViews();
+    this.player.pos.x = this.arena.playerStart.x;
+    this.player.pos.y = this.arena.playerStart.y;
+    this.player.vel.x = 0;
+    this.player.vel.y = 0;
+    this.engine.centerOn(this.player.pos.x, this.player.pos.y, true);
+    this.dread = 0;
+    this.spawnTimer = 2;
+    this.showStratumCard();
+    audio.relic();
+  }
+
+  private clearWorld(): void {
+    this.proj.clear();
+    this.hazards.clear();
+    this.pickups.destroy();
+    this.interactables.destroy();
+    for (const fx of this.liveFx) {
+      fx.parent?.removeChild(fx);
+      fx.destroy();
+    }
+    this.liveFx = [];
+    for (const fx of this.hitFx) {
+      fx.ring.parent?.removeChild(fx.ring);
+      fx.ring.destroy();
+      fx.glow.parent?.removeChild(fx.glow);
+      fx.glow.destroy();
+    }
+    this.hitFx = [];
+    for (const n of this.staticNodes) {
+      n.parent?.removeChild(n);
+      n.destroy({ children: true });
+    }
+    this.staticNodes = [];
+    this.streams = [];
+    for (const [, v] of this.enemyViews) {
+      v.root.destroy({ children: true });
+      v.glow.destroy();
+    }
+    this.enemyViews.clear();
+    for (const [, tg] of this.telegraphs) tg.destroy();
+    this.telegraphs.clear();
+    this.enemies = [];
+  }
+
+  private showStratumCard(): void {
+    if (this.cardRoot) {
+      this.cardRoot.parent?.removeChild(this.cardRoot);
+      this.cardRoot.destroy({ children: true });
+    }
+    const c = new Container();
+    const w = this.engine.width;
+    const h = this.engine.height;
+    const style = (size: number, color: number, weight: "normal" | "bold" = "normal") =>
+      new TextStyle({ fontFamily: "Consolas, monospace", fontSize: size, fill: color, fontWeight: weight, letterSpacing: 4, align: "center" });
+    const num = new Text({ text: `STRATUM ${this.stratumIndex + 1}${this.arena.isFloor ? "  ·  THE FLOOR" : ""}`, style: style(13, COLOR.teal) });
+    const name = new Text({ text: this.arena.name.toUpperCase(), style: style(34, COLOR.aquaBright, "bold") });
+    const tag = new Text({ text: this.arena.tagline, style: style(15, COLOR.teal) });
+    for (const t of [num, name, tag]) t.anchor.set(0.5);
+    num.position.set(w / 2, h * 0.34);
+    name.position.set(w / 2, h * 0.34 + 30);
+    tag.position.set(w / 2, h * 0.34 + 66);
+    c.addChild(num, name, tag);
+    this.engine.uiRoot.addChild(c);
+    this.cardRoot = c;
+    this.cardTimer = 2.6;
   }
 
   private resupplyInteractables(): void {
@@ -406,6 +537,40 @@ export class DiveScene implements HitSink, PickupSink {
   }
   onDestructibleDestroyed(d: Damageable): void {
     this.interactables.onDestroyed(d, this.interactSink);
+  }
+  onGraze(): void {
+    this.charge = Math.min(1, this.charge + 0.05);
+    if (this.charge >= 1) this.bioPulse();
+  }
+
+  /** Full glow charge → a bullet-clearing shockwave that also damages nearby enemies. */
+  private bioPulse(): void {
+    const p = this.player;
+    this.charge = 0;
+    this.proj.popRadius(p.pos.x, p.pos.y, 165);
+    this.spawnHitFx(p.pos.x, p.pos.y, COLOR.aquaBright, true);
+    if (this.shakeEnabled) this.shake = 8;
+    const r2 = 165 * 165;
+    for (const e of this.enemies) {
+      if (!e.alive) continue;
+      const dx = e.pos.x - p.pos.x;
+      const dy = e.pos.y - p.pos.y;
+      if (dx * dx + dy * dy <= r2) {
+        e.hp -= 24;
+        e.flash = 0.12;
+        if (e.hp <= 0) {
+          e.alive = false;
+          this.onEnemyKilled(e);
+        }
+      }
+    }
+    audio.pickup();
+  }
+
+  private onSurface(): void {
+    if (this.ended) return;
+    this.ended = true;
+    this.onGameOver(this.buildResult(true));
   }
 
   // ---- PickupSink ----
@@ -515,6 +680,30 @@ export class DiveScene implements HitSink, PickupSink {
     this.playerView.root.alpha = p.invuln > 0 ? (Math.floor(p.invuln * 20) % 2 ? 0.4 : 1) : 1;
     this.playerView.lamp.position.set(p.pos.x, p.pos.y);
     this.playerView.lamp.visible = p.alive;
+    // glow-as-weapon: the core brightens + pulses with graze charge
+    const ch = this.charge;
+    this.playerView.lamp.alpha = (0.3 + ch * 0.5) * (p.alive ? 1 : 0);
+    this.playerView.lamp.scale.set((155 / 128) * (1 + ch * 0.4 + (ch >= 1 ? 0.12 * Math.sin(this.elapsed * 18) : 0)));
+    // glow-as-treasure: unbanked haul glows behind the diver, growing with the haul
+    if (this.haulGlow) {
+      const s = this.run.samples;
+      this.haulGlow.visible = p.alive && s > 0;
+      this.haulGlow.position.set(p.pos.x - this.lastAim.x * 20, p.pos.y - this.lastAim.y * 20);
+      this.haulGlow.scale.set(Math.min(150, 30 + s * 2.5) / 128);
+      this.haulGlow.alpha = Math.min(0.5, 0.14 + s * 0.014);
+    }
+    // glow-as-beacon: dread darkens the screen edges (the deep closing in)
+    this.engine.setDread(this.dread);
+    // threshold title card fade in/out
+    if (this.cardTimer > 0 && this.cardRoot) {
+      this.cardTimer -= dt;
+      this.cardRoot.alpha = this.cardTimer > 1.6 ? (2.6 - this.cardTimer) / 1.0 : Math.min(1, this.cardTimer / 0.8);
+      if (this.cardTimer <= 0) {
+        this.cardRoot.parent?.removeChild(this.cardRoot);
+        this.cardRoot.destroy({ children: true });
+        this.cardRoot = undefined;
+      }
+    }
 
     for (const e of this.enemies) {
       const v = this.enemyViews.get(e);
@@ -645,8 +834,17 @@ export class DiveScene implements HitSink, PickupSink {
 
   destroy(): void {
     this.proj.destroy();
+    this.hazards.destroy();
     this.pickups.destroy();
     this.interactables.destroy();
+    this.haulGlow?.destroy();
+    if (this.cardRoot) {
+      this.cardRoot.parent?.removeChild(this.cardRoot);
+      this.cardRoot.destroy({ children: true });
+      this.cardRoot = undefined;
+    }
+    this.engine.setDread(0);
+    this.engine.setBgTint(COLOR.deepNavy);
     for (const a of this.liveFx) {
       a.parent?.removeChild(a);
       a.destroy();
@@ -719,6 +917,21 @@ export class DiveScene implements HitSink, PickupSink {
   }
   get darterCount(): number {
     return this.enemies.reduce((n, e) => n + (e.alive && e.kind === "darter" ? 1 : 0), 0);
+  }
+  get drifterCount(): number {
+    return this.enemies.reduce((n, e) => n + (e.alive && e.kind === "drifter" ? 1 : 0), 0);
+  }
+  get stratum(): number {
+    return this.stratumIndex;
+  }
+  get chargeVal(): number {
+    return this.charge;
+  }
+  get dreadVal(): number {
+    return this.dread;
+  }
+  get hazardCount(): number {
+    return this.hazards.activeCount;
   }
   /** Debug: jump depth (QA only). */
   debugSetDepth(d: number): void {

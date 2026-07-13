@@ -44,6 +44,8 @@ export class Engine {
   cam = { x: 0, y: 0, tx: 0, ty: 0 };
   bloom!: AdvancedBloomFilter;
   private vignette?: Sprite;
+  private dreadVignette?: Sprite; // extra edge-darkening driven by the dread clock
+  private bgTint: number = COLOR.deepNavy;
   private resizeHandlers: (() => void)[] = [];
 
   async init(mount: HTMLElement): Promise<void> {
@@ -102,15 +104,33 @@ export class Engine {
   refreshOverlays(): void {
     this.bgRoot.removeChildren();
     const bg = new Graphics();
-    bg.rect(0, 0, this.width, this.height).fill(hex(COLOR.deepNavy));
+    bg.rect(0, 0, this.width, this.height).fill(hex(this.bgTint));
     this.bgRoot.addChild(bg);
 
+    const tex = makeVignetteTexture(this.width, this.height);
     if (this.vignette) {
       this.fxRoot.removeChild(this.vignette);
       this.vignette.destroy(true);
     }
-    this.vignette = new Sprite(makeVignetteTexture(this.width, this.height));
+    this.vignette = new Sprite(tex);
     this.fxRoot.addChild(this.vignette);
+    if (this.dreadVignette) {
+      this.fxRoot.removeChild(this.dreadVignette);
+      this.dreadVignette.destroy();
+    }
+    this.dreadVignette = new Sprite(tex);
+    this.dreadVignette.alpha = 0;
+    this.fxRoot.addChild(this.dreadVignette);
+  }
+
+  /** Per-stratum background fog tint. */
+  setBgTint(color: number): void {
+    this.bgTint = color;
+    this.refreshOverlays();
+  }
+  /** Dread clock (0..1) → extra edge darkening (the deep closing in). */
+  setDread(a: number): void {
+    if (this.dreadVignette) this.dreadVignette.alpha = Math.min(0.92, Math.max(0, a));
   }
 
   centerOn(x: number, y: number, snap = false): void {

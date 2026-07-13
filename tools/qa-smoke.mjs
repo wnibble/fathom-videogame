@@ -60,6 +60,7 @@ try {
   await page.mouse.down();
   await page.keyboard.down("KeyD");
   let maxScore = 0, maxLevel = 1, maxEnemies = 0, maxBullets = 0, minHp = 1, fpsSum = 0, fpsN = 0, sawLevelUp = false, maxDarters = 0, sawDarter = false;
+  let maxStratum = 0, maxDrifters = 0, maxHazards = 0, maxCharge = 0, maxDread = 0, sawStratum2 = false;
   for (let k = 0; k < 56; k++) {
     if (k === 12) { await page.keyboard.up("KeyD"); await page.keyboard.down("KeyW"); await page.mouse.move(520, 300); }
     if (k === 24) { await page.keyboard.up("KeyW"); await page.keyboard.down("KeyA"); await page.mouse.move(500, 460); }
@@ -78,9 +79,18 @@ try {
       maxEnemies = Math.max(maxEnemies, i.enemies || 0);
       maxBullets = Math.max(maxBullets, i.bullets || 0);
       maxDarters = Math.max(maxDarters, i.darters || 0);
+      maxDrifters = Math.max(maxDrifters, i.drifters || 0);
+      maxHazards = Math.max(maxHazards, i.hazards || 0);
+      maxCharge = Math.max(maxCharge, i.charge || 0);
+      maxDread = Math.max(maxDread, i.dread || 0);
+      maxStratum = Math.max(maxStratum, i.stratum || 0);
+      if ((i.stratum || 0) >= 1 && !sawStratum2) {
+        sawStratum2 = true;
+        await page.screenshot({ path: `${OUT}/07-stratum2.png` });
+      }
       if ((i.darters || 0) > 0 && !sawDarter) {
         sawDarter = true;
-        await page.screenshot({ path: `${OUT}/07-darter.png` });
+        await page.screenshot({ path: `${OUT}/08-darter.png` });
       }
       if (i.hp < minHp) minHp = i.hp;
       if (i.fps > 0) { fpsSum += i.fps; fpsN++; }
@@ -107,11 +117,11 @@ try {
 
   report.metrics = {
     avgFps: fpsN ? Math.round(fpsSum / fpsN) : 0,
-    maxScore, maxLevel, maxEnemies, maxBullets, maxDarters, minHp: Number(minHp.toFixed(2)), sawLevelUp,
+    maxScore, maxLevel, maxEnemies, maxBullets, maxDarters, maxDrifters, maxStratum, maxHazards, maxCharge, maxDread, minHp: Number(minHp.toFixed(2)), sawLevelUp,
   };
   if (maxScore < 1) report.defects.push("[major] score never increased — combat/scoring may be dead");
   if (maxEnemies < 1) report.defects.push("[major] no enemies spawned");
-  if (maxDarters < 1) report.defects.push("[minor] no Darters spawned at depth 240 (check darter mix)");
+  if (maxStratum < 1) report.defects.push("[major] never transitioned to a new stratum (depth 240 should be stratum 1)");
   if (!paused) report.defects.push("[major] pause (Esc) did not work");
   if (errors.length) { report.verdict = "FAIL"; report.defects.push(`[blocker] ${errors.length} console/page error(s)`); }
 } catch (e) {

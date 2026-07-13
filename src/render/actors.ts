@@ -69,6 +69,26 @@ export function buildSpitterView(elite = false): SpitterView {
   return { root, glow: glow(elite ? 175 : 120, COLOR.coral, elite ? 0.95 : 0.85), body };
 }
 
+// The Drifter — a slow jelly-like mine-layer: a domed bell + drooping tendrils.
+// A distinct silhouette from the spiky Spitter and arrow Darter.
+export function buildDrifterView(elite = false): SpitterView {
+  const root = new Container();
+  const body = new Graphics();
+  const s = elite ? 1.3 : 1;
+  const outline = elite ? COLOR.amberBright : COLOR.coral;
+  // bell dome
+  body.ellipse(0, -2 * s, 13 * s, 10 * s).fill(COLOR.deepNavy).stroke({ width: 2, color: outline });
+  body.ellipse(0, -4 * s, 7 * s, 5 * s).fill(COLOR.navy);
+  // drooping tendrils
+  for (let i = -2; i <= 2; i++) {
+    const x = i * 5 * s;
+    body.moveTo(x, 6 * s).lineTo(x + Math.sign(i) * 2, 16 * s).stroke({ width: 2, color: COLOR.coral, alpha: 0.8 });
+  }
+  body.circle(0, -3 * s, 2.4 * s).fill(COLOR.amberBright); // eye
+  root.addChild(body);
+  return { root, glow: glow(elite ? 130 : 90, COLOR.coral, elite ? 0.85 : 0.6), body };
+}
+
 // The Darter — a sleek lunging predator (points +x; dive rotates it to face its
 // lunge). Distinct silhouette from the Spitter so the two threats read apart.
 export function buildDarterView(elite = false): SpitterView {

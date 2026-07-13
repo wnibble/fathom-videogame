@@ -51,3 +51,6 @@
 {"ts":"2026-07-12T21:10:00Z","phase":"build","agent":"parent","msg":"pass 5: surface station + meta store + shield + badges + banking + UI polish; fixed bubble_vent/decoration/over-glow/howto/gameover-C"}
 {"ts":"2026-07-12T21:20:00Z","phase":"qa","agent":"qa","msg":"PASS: menu->station->dive->pause, store renders, 0 errors, dive cleaner"}
 {"ts":"2026-07-12T21:22:00Z","phase":"ship","agent":"parent","msg":"pass 5 shipped; roadmaps added (strata/real-depth is next P0)"}
+{"ts":"2026-07-12T22:30:00Z","phase":"research","agent":"workflow","msg":"11-agent genre research -> glow-double-bind design (contracts/pass6-expansion.md)"}
+{"ts":"2026-07-12T23:10:00Z","phase":"build","agent":"parent","msg":"pass6 phase1: hazards, 6-stratum descent column, graze/charge bio-pulse, dread clock, ascend vent + haul trail, drifter enemy"}
+{"ts":"2026-07-12T23:20:00Z","phase":"qa","agent":"qa","msg":"PASS: descended to stratum 1 (Kelp Forest), real depth works, 0 errors"}

@@ -23,7 +23,10 @@ export interface HitSink {
   onEnemyKilled(enemy: Enemy): void;
   onDestructibleHit(d: Damageable, damage: number, at: Vec2): void;
   onDestructibleDestroyed(d: Damageable): void;
+  onGraze(): void; // near-miss on an enemy bullet — charges the glow
 }
+
+const GRAZE_BAND = 16; // px beyond the collision radius that counts as a graze
 
 export class Projectiles {
   readonly bullets: Bullet[] = [];
@@ -45,6 +48,7 @@ export class Projectiles {
         damage: 10,
         pierce: 0,
         lastHit: null,
+        grazed: false,
       });
       this.sprites.push(null);
       this.free.push(i);
@@ -85,6 +89,7 @@ export class Projectiles {
     b.damage = spec.damage ?? 10;
     b.pierce = faction === "player" ? spec.pierce ?? 0 : 0;
     b.lastHit = null;
+    b.grazed = false;
 
     let s = this.sprites[idx];
     if (!s) {
@@ -130,14 +135,23 @@ export class Projectiles {
       }
 
       if (b.faction === "enemy") {
-        if (player.alive && player.invuln <= 0) {
+        if (player.alive) {
           const dx = b.pos.x - player.pos.x;
           const dy = b.pos.y - player.pos.y;
+          const d2 = dx * dx + dy * dy;
           const rr = b.radius + player.radius;
-          if (dx * dx + dy * dy <= rr * rr) {
+          if (player.invuln <= 0 && d2 <= rr * rr) {
             sink.onPlayerHit(b.damage, { x: b.pos.x, y: b.pos.y });
             this.kill(i);
             continue;
+          }
+          // Graze: a near-miss (once per bullet) charges the glow — dodging as agency.
+          if (!b.grazed) {
+            const gr = rr + GRAZE_BAND;
+            if (d2 <= gr * gr) {
+              b.grazed = true;
+              sink.onGraze();
+            }
           }
         }
       } else {
@@ -192,6 +206,23 @@ export class Projectiles {
       const s = this.sprites[i];
       if (s) s.position.set(b.pos.x, b.pos.y);
     }
+  }
+
+  /** Bio-pulse: destroy enemy bullets within radius r of (x,y). Returns count. */
+  popRadius(x: number, y: number, r: number): number {
+    const r2 = r * r;
+    let n = 0;
+    for (let i = 0; i < CAP; i++) {
+      const b = this.bullets[i];
+      if (!b.active || b.faction !== "enemy") continue;
+      const dx = b.pos.x - x;
+      const dy = b.pos.y - y;
+      if (dx * dx + dy * dy <= r2) {
+        this.kill(i);
+        n++;
+      }
+    }
+    return n;
   }
 
   clear(): void {

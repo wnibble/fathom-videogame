@@ -217,6 +217,33 @@ renders with tier pips/costs/gating, dive visibly cleaner.
 - `docs/FEATURES-TODO.md` (P0: **strata transitions / real depth**, voluntary surface,
   more enemies, companion, codex…).
 
+## Pass 6 Phase 1 — the "glow double-bind" + real depth (2026-07-12)
+
+An 11-agent research→synthesis→review workflow mined adjacent genres (bullet-hell
+roguelites, dive/exploration, descent games, narrative roguelites) into a new-feel
+design (`contracts/pass6-expansion.md`). Phase 1 builds the core. QA PASS: reached a
+NEW stratum (Kelp Forest), 0 errors.
+
+**New identity — the glow double-bind:** your light is your weapon, your treasure, and
+the beacon the deep hunts you by.
+
+- **Hazards** (`systems/hazards.ts`) — pooled persistent damage zones (foundation).
+- **Descent Column** (`content/strata.ts`) — **6 authored strata** (Twilight Drift → Kelp
+  Forest → The Wreck → Thermal Vents → Abyssal Plain → The Cradle), each a distinct place
+  (palette + props + fauna + resource). `dive.transitionStratum()` tears down + rebuilds
+  the world (reusing the destroy() teardown), keeps run+player, shows a threshold card.
+  Bigger arena (1900×1500). **Depth is now a place, not a number.**
+- **Glow-charge / graze** — grazing enemy bullets (near-miss) charges your core; a full
+  core fires a bullet-clearing **bio-pulse** that also damages nearby enemies. Dodging
+  becomes agency (glow-as-weapon). `projectiles.onGraze` + `popRadius`.
+- **Dread clock** — brightness (charge) + time-in-stratum raise dread → the screen edges
+  darken; at max the deep spawns a telegraphed hazard bloom; **descending resets it**
+  (glow-as-beacon).
+- **Ascend vent + haul trail** — a touch-to-surface vent banks **100%** of your haul (vs
+  40% on death); unbanked samples glow as a **trail** behind the diver (glow-as-treasure).
+- **Drifter enemy** — a slow area-denier that lays fading spore-mine hazards; a third
+  verb (zone control). Fauna is now per-stratum weighted.
+
 ### Accepted deviations / deferred (documented, not silently skipped)
 
 - **Render interpolation** (contract `core.md`): the slice renders raw fixed-step sim

@@ -42,9 +42,10 @@ export interface Bullet {
   damage: number;
   pierce: number; // remaining enemies this bullet can pass through
   lastHit: Enemy | null; // guard against double-hitting the same enemy while overlapping
+  grazed: boolean; // enemy bullet already counted as a graze (charge once per bullet)
 }
 
-export type EnemyKind = "spitter" | "darter";
+export type EnemyKind = "spitter" | "darter" | "drifter";
 
 export interface Enemy {
   alive: boolean;

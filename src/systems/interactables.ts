@@ -12,7 +12,7 @@ import { getGlowTexture } from "../engine/glow";
 import { COLOR } from "../palette";
 
 export type InteractableKind =
-  | "loot_pod" | "salvage_crate" | "mineral_crystal" | "research_probe" | "bubble_vent" | "relic";
+  | "loot_pod" | "salvage_crate" | "mineral_crystal" | "research_probe" | "bubble_vent" | "relic" | "ascend_vent";
 
 export interface InteractableData {
   kind: InteractableKind;
@@ -35,6 +35,7 @@ const DEFS: Record<InteractableKind, Def> = {
   research_probe: { radius: 22, hp: 0, samples: 0, xpOrbs: 0, upgradeChance: 0, score: 60, sprite: "research_probe" },
   bubble_vent: { radius: 44, hp: 0, samples: 0, xpOrbs: 0, upgradeChance: 0, score: 0, sprite: "bubble_vent" },
   relic: { radius: 16, hp: 0, samples: 0, xpOrbs: 0, upgradeChance: 0, score: 500, sprite: "fish_skeleton" },
+  ascend_vent: { radius: 26, hp: 0, samples: 0, xpOrbs: 0, upgradeChance: 0, score: 0, sprite: "" },
 };
 
 export interface Interactable extends Damageable {
@@ -62,6 +63,7 @@ export interface InteractableSink {
   scan(x: number, y: number): void;
   push(fx: number, fy: number): void;
   fx(anim: string, x: number, y: number): void;
+  surface(): void; // ascend vent — bank 100% and return to the station
 }
 
 export class Interactables {
@@ -98,6 +100,22 @@ export class Interactables {
         ventBubbles.push(g);
       }
       node = c;
+    } else if (d.kind === "ascend_vent") {
+      // The extract point — an upward beam of light with rising chevrons.
+      const c = new Container();
+      const beam = new Graphics();
+      beam.roundRect(-6, -34, 12, 44, 6).fill({ color: COLOR.aquaBright, alpha: 0.18 });
+      beam.ellipse(0, 12, 14, 5).fill(COLOR.deepNavy).stroke({ width: 1.5, color: COLOR.aqua });
+      c.addChild(beam);
+      ventBubbles = [];
+      for (let i = 0; i < 3; i++) {
+        const g = new Graphics();
+        g.poly([0, -6, -6, 4, 6, 4]).fill({ color: COLOR.aquaBright, alpha: 0.85 });
+        g.position.set(0, i * -13 - 4);
+        c.addChild(g);
+        ventBubbles.push(g);
+      }
+      node = c;
     } else if (this.assets.sprites[def.sprite]) node = this.assets.sprite(def.sprite);
     else if (this.assets.anims[def.sprite]) node = this.assets.anim(def.sprite);
     else node = new Container();
@@ -106,12 +124,12 @@ export class Interactables {
     view.position.set(d.pos.x, d.pos.y);
 
     let glow: Sprite | undefined;
-    if (d.kind === "loot_pod" || d.kind === "mineral_crystal" || d.kind === "relic" || d.kind === "research_probe") {
+    if (d.kind === "loot_pod" || d.kind === "mineral_crystal" || d.kind === "relic" || d.kind === "research_probe" || d.kind === "ascend_vent") {
       glow = new Sprite(getGlowTexture());
       glow.anchor.set(0.5);
-      glow.scale.set((d.kind === "relic" ? 70 : 48) / 128);
+      glow.scale.set((d.kind === "relic" ? 70 : d.kind === "ascend_vent" ? 90 : 48) / 128);
       glow.tint = d.kind === "relic" ? COLOR.sample : d.kind === "loot_pod" ? COLOR.aqua : COLOR.aquaBright;
-      glow.alpha = d.kind === "relic" ? 0 : 0.4;
+      glow.alpha = d.kind === "relic" ? 0 : d.kind === "ascend_vent" ? 0.5 : 0.4;
       glow.position.set(d.pos.x, d.pos.y);
       this.light.addChild(glow);
     }
@@ -224,6 +242,18 @@ export class Interactables {
             const s = 1 - dist / it.radius;
             sink.push(0, -320 * s); // upward push
           }
+          break;
+        }
+        case "ascend_vent": {
+          if (it.ventBubbles) {
+            for (const g of it.ventBubbles) {
+              g.y -= dt * 34;
+              g.alpha = Math.max(0.1, 0.85 * (1 - -g.y / 40));
+              if (g.y < -40) g.y = 0;
+            }
+          }
+          if (it.glow) it.glow.alpha = 0.4 + 0.25 * pulse;
+          if (playerAlive && dist <= it.radius + playerRadius) sink.surface();
           break;
         }
         case "research_probe":

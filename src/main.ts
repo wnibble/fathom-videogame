@@ -390,6 +390,11 @@ async function main(): Promise<void> {
       level: dive ? dive.level : 1,
       enemies: dive ? dive.enemyCount : 0,
       darters: dive ? dive.darterCount : 0,
+      drifters: dive ? dive.drifterCount : 0,
+      stratum: dive ? dive.stratum : 0,
+      charge: dive ? Number(dive.chargeVal.toFixed(2)) : 0,
+      dread: dive ? Number(dive.dreadVal.toFixed(2)) : 0,
+      hazards: dive ? dive.hazardCount : 0,
       bullets: dive ? dive.bulletCount : 0,
     };
   });
