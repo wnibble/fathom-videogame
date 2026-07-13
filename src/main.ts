@@ -396,6 +396,7 @@ async function main(): Promise<void> {
   engine.app.ticker.add((ticker) => {
     const dt = Math.min(0.05, ticker.deltaMS / 1000);
     input.update();
+    engine.updateAmbient(dt);
     fsm.update(dt);
     dbg.info = {
       state: fsm.current,

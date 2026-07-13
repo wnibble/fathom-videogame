@@ -78,6 +78,12 @@ export class DiveScene implements HitSink, PickupSink {
   private haulGlow?: Sprite;
   private cardRoot?: Container; // stratum threshold title card
   private cardTimer = 0;
+  // Smooth stratum transition (fade out → rebuild hidden → fade in)
+  private transitioning = false;
+  private transitionT = 0;
+  private transitionNext = 0;
+  private transitionDone = false;
+  private fadeG?: Graphics;
   private run: RunState;
   private dash: DashState = freshDash();
   private rng: Rng;
@@ -88,6 +94,9 @@ export class DiveScene implements HitSink, PickupSink {
   private staticNodes: Container[] = [];
   private liveFx: Sprite[] = [];
   private hitFx: { ring: Graphics; glow: Sprite; age: number; life: number; rMax: number; color: number; sparks: number[] }[] = [];
+  private wisps: { s: Sprite; age: number; life: number }[] = [];
+  private wispTimer = 0;
+  private currentBase: Vec2[] = []; // base current forces (for dynamic ebb/flow)
   private streams: { s: Sprite; axisStart: number; cross: number; span: number; base: number; dir: number; horiz: boolean }[] = [];
 
   private acc = 0;
@@ -226,9 +235,9 @@ export class DiveScene implements HitSink, PickupSink {
       for (let i = 0; i < count; i++) {
         const s = this.assets.sprite(c.sprite);
         s.rotation = horiz ? 0 : Math.PI / 2;
-        s.scale.set(0.75);
-        s.alpha = 0.22;
-        s.tint = COLOR.aqua;
+        s.scale.set(0.85);
+        s.alpha = 0.32;
+        s.tint = COLOR.aquaBright;
         const jitter = ((i * 53) % 70) - 35;
         const base = span * ((i + 0.5) / count);
         const cross = horiz ? startY + jitter : startX + jitter;
@@ -253,6 +262,11 @@ export class DiveScene implements HitSink, PickupSink {
   // ---- update ----
   update(dt: number, input: Input): void {
     this.elapsed += dt;
+    if (this.transitioning) {
+      this.tickTransition(dt);
+      this.renderSync(dt, input);
+      return;
+    }
     if (this.hitstop > 0) this.hitstop -= dt;
     if (!this.ended && this.hitstop <= 0) {
       this.acc += dt;
@@ -264,6 +278,34 @@ export class DiveScene implements HitSink, PickupSink {
       }
     }
     this.renderSync(dt, input);
+  }
+
+  private setFade(a: number): void {
+    if (!this.fadeG) {
+      this.fadeG = new Graphics();
+      this.engine.uiRoot.addChild(this.fadeG);
+    }
+    this.fadeG.clear();
+    if (a > 0) this.fadeG.rect(0, 0, this.engine.width, this.engine.height).fill({ color: 0x02040a, alpha: Math.min(1, a) });
+  }
+
+  private tickTransition(dt: number): void {
+    this.transitionT += dt;
+    const half = 0.34;
+    if (this.transitionT < half) {
+      this.setFade(this.transitionT / half); // fade to black
+    } else if (!this.transitionDone) {
+      this.transitionDone = true;
+      this.doStratumRebuild(this.transitionNext); // rebuild hidden behind the curtain
+    } else {
+      const t2 = (this.transitionT - half) / half;
+      this.setFade(1 - t2); // fade back into the new place
+      if (t2 >= 1) {
+        this.transitioning = false;
+        this.transitionDone = false;
+        this.setFade(0);
+      }
+    }
   }
 
   /** Zero the accumulator so a pause/level-up doesn't cause a catch-up burst. */
@@ -296,7 +338,24 @@ export class DiveScene implements HitSink, PickupSink {
       }
     }
 
+    // Dynamic currents — the sea ebbs and flows instead of a constant push.
+    for (let i = 0; i < this.arena.currents.length; i++) {
+      const b = this.currentBase[i];
+      if (!b) continue;
+      const osc = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(this.elapsed * 0.55 + i * 1.7));
+      this.arena.currents[i].force.x = b.x * osc;
+      this.arena.currents[i].force.y = b.y * osc;
+    }
+
     updatePlayerMovement(p, input.state.move, this.arena.currents, dt, this.arena.bounds, this.run.stats.moveSpeedMult);
+
+    // Movement wisps — trailing motes while moving (juice, no new art).
+    const spd = Math.hypot(p.vel.x, p.vel.y);
+    this.wispTimer -= dt;
+    if (spd > 90 && this.wispTimer <= 0 && p.alive) {
+      this.wispTimer = 0.055;
+      this.spawnWisp(p.pos.x - (p.vel.x / spd) * p.radius, p.pos.y - (p.vel.y / spd) * p.radius);
+    }
 
     // firing (run weapon, with post-dash haste)
     if (input.state.firing && p.fireCooldown <= 0 && p.alive) {
@@ -467,6 +526,18 @@ export class DiveScene implements HitSink, PickupSink {
       c.force.x *= this.currentMult;
       c.force.y *= this.currentMult;
     }
+    this.currentBase = this.arena.currents.map((c) => ({ x: c.force.x, y: c.force.y }));
+  }
+
+  private spawnWisp(x: number, y: number): void {
+    const s = new Sprite(getGlowTexture());
+    s.anchor.set(0.5);
+    s.tint = leanHue(this.run);
+    s.position.set(x, y);
+    s.scale.set(26 / 128);
+    s.alpha = 0.38;
+    this.engine.lightLayer.addChild(s);
+    this.wisps.push({ s, age: 0, life: 0.5 });
   }
 
   private pickFauna(): EnemyKind {
@@ -481,9 +552,16 @@ export class DiveScene implements HitSink, PickupSink {
     return f[0].kind;
   }
 
-  /** Descend to the next authored stratum: tear down the world, rebuild the place,
-   * keep player + run. Reuses the destroy()-style teardown. */
+  /** Begin a smooth descent: freeze, fade to black, rebuild hidden, fade in. */
   private transitionStratum(next: number): void {
+    this.transitioning = true;
+    this.transitionT = 0;
+    this.transitionDone = false;
+    this.transitionNext = next;
+  }
+
+  /** The actual teardown + rebuild of the next authored stratum (keeps player + run). */
+  private doStratumRebuild(next: number): void {
     this.clearWorld();
     this.stratumIndex = next;
     this.arena = buildStratum(next, this.seed, this.assets);
@@ -520,6 +598,11 @@ export class DiveScene implements HitSink, PickupSink {
       fx.glow.destroy();
     }
     this.hitFx = [];
+    for (const w of this.wisps) {
+      w.s.parent?.removeChild(w.s);
+      w.s.destroy();
+    }
+    this.wisps = [];
     for (const n of this.staticNodes) {
       n.parent?.removeChild(n);
       n.destroy({ children: true });
@@ -727,7 +810,7 @@ export class DiveScene implements HitSink, PickupSink {
   // ---- render ----
   private renderSync(dt: number, _input: Input): void {
     const p = this.player;
-    const flowSpeed = 45;
+    const flowSpeed = 62;
     for (const st of this.streams) {
       const along = (((st.base + this.elapsed * flowSpeed * st.dir) % st.span) + st.span) % st.span;
       if (st.horiz) st.s.position.set(st.axisStart + along, st.cross);
@@ -765,18 +848,36 @@ export class DiveScene implements HitSink, PickupSink {
       }
     }
 
+    // Movement wisps fade + shrink.
+    if (this.wisps.length) {
+      for (const wf of this.wisps) {
+        wf.age += dt;
+        const t = wf.age / wf.life;
+        wf.s.alpha = 0.38 * (1 - t);
+        wf.s.scale.set((26 / 128) * (1 - 0.5 * t));
+      }
+      if (this.wisps.some((w) => w.age >= w.life)) {
+        for (const w of this.wisps) {
+          if (w.age < w.life) continue;
+          w.s.parent?.removeChild(w.s);
+          w.s.destroy();
+        }
+        this.wisps = this.wisps.filter((w) => w.age < w.life);
+      }
+    }
+
     this.playerView.root.visible = p.alive;
     this.playerView.root.position.set(p.pos.x, p.pos.y);
     this.playerView.root.rotation = Math.atan2(this.lastAim.y, this.lastAim.x);
     this.playerView.root.alpha = p.invuln > 0 ? (Math.floor(p.invuln * 20) % 2 ? 0.4 : 1) : 1;
     this.playerView.lamp.position.set(p.pos.x, p.pos.y);
     this.playerView.lamp.visible = p.alive;
-    // glow-as-weapon: the core brightens + pulses with graze charge
+    // glow-as-weapon: the core brightens gently with graze charge
     // glow-as-identity: the core HUE reflects your build lean
     const ch = this.charge;
     this.playerView.lamp.tint = leanHue(this.run);
-    this.playerView.lamp.alpha = (0.3 + ch * 0.5) * (p.alive ? 1 : 0);
-    this.playerView.lamp.scale.set((155 / 128) * (1 + ch * 0.4 + (ch >= 1 ? 0.12 * Math.sin(this.elapsed * 18) : 0)));
+    this.playerView.lamp.alpha = (0.22 + ch * 0.32) * (p.alive ? 1 : 0);
+    this.playerView.lamp.scale.set((126 / 128) * (1 + ch * 0.22));
     // glow-as-treasure: unbanked haul glows behind the diver, growing with the haul
     if (this.haulGlow) {
       const s = this.run.samples;
@@ -936,6 +1037,11 @@ export class DiveScene implements HitSink, PickupSink {
       this.cardRoot.destroy({ children: true });
       this.cardRoot = undefined;
     }
+    if (this.fadeG) {
+      this.fadeG.parent?.removeChild(this.fadeG);
+      this.fadeG.destroy();
+      this.fadeG = undefined;
+    }
     this.engine.setDread(0);
     this.engine.setBgTint(COLOR.deepNavy);
     for (const a of this.liveFx) {
@@ -950,6 +1056,11 @@ export class DiveScene implements HitSink, PickupSink {
       fx.glow.destroy();
     }
     this.hitFx = [];
+    for (const w of this.wisps) {
+      w.s.parent?.removeChild(w.s);
+      w.s.destroy();
+    }
+    this.wisps = [];
     for (const n of this.staticNodes) {
       n.parent?.removeChild(n);
       n.destroy({ children: true });

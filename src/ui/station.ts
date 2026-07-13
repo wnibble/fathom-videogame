@@ -53,7 +53,7 @@ export class StationOverlay implements Overlay {
   constructor(private save: SaveData, lastBank: { pearlsEarned: number; newBadges: string[] } | null, private weather: Weather, private cbs: StationCallbacks) {
     this.root.addChild(this.bgG, this.panelG, this.title, this.currency, this.resourceLine, this.weatherLine, this.weatherEffect, this.bark, this.hint);
     this.currency.anchor.set(1, 0.5);
-    this.resourceLine.anchor.set(1, 0);
+    this.resourceLine.anchor.set(0.5, 0.5);
     this.weatherLine.anchor.set(0.5, 0.5);
     this.weatherEffect.anchor.set(0.5, 0.5);
     this.bark.anchor.set(0.5, 0.5);
@@ -221,7 +221,7 @@ export class StationOverlay implements Overlay {
   private refresh(): void {
     this.currency.text = `◈ ${this.save.pearls}`;
     const res = Object.entries(this.save.resources).filter(([, n]) => n > 0);
-    this.resourceLine.text = res.length ? res.map(([k, n]) => `${k} ${n}`).join("   ") : "no materials yet";
+    this.resourceLine.text = res.length ? "MATERIALS   " + res.map(([k, n]) => `${k} ${n}`).join("   ·   ") : "MATERIALS   — none gathered yet —";
     for (const r of this.rows) r.redraw();
     this.tabBar.forEach((t, i) => (t.style.fill = i === this.tab ? COLOR.aquaBright : COLOR.navy));
   }
@@ -232,7 +232,7 @@ export class StationOverlay implements Overlay {
     const w = this.lastW;
     const py = this.lastH / 2 - this.panelH() / 2;
     const rowX = w / 2 - 260;
-    let y = py + 128;
+    let y = py + 152;
     const content = this.rows.length - 2;
     for (let i = 0; i < content; i++) {
       this.rows[i].root.position.set(rowX, y);
@@ -245,7 +245,7 @@ export class StationOverlay implements Overlay {
   }
   private panelH(): number {
     const content = Math.max(META_UPGRADES.length, SPECIES.length, BOONS.length);
-    return Math.min(this.lastH * 0.94, 230 + content * 44);
+    return Math.min(this.lastH * 0.96, 262 + content * 44);
   }
 
   layout(w: number, h: number): void {
@@ -259,16 +259,19 @@ export class StationOverlay implements Overlay {
     const py = h / 2 - ph / 2;
     this.panelG.clear();
     panel(this.panelG, px, py, pw, ph, COLOR.aqua);
+    // header
     this.title.position.set(px + 20, py + 24);
-    this.currency.position.set(px + pw - 20, py + 22);
-    this.resourceLine.position.set(px + pw - 20, py + 34);
+    this.currency.position.set(px + pw - 20, py + 24);
     // weather forecast band
-    this.weatherLine.position.set(w / 2, py + 58);
-    this.weatherEffect.position.set(w / 2, py + 76);
+    this.weatherLine.position.set(w / 2, py + 56);
+    this.weatherEffect.position.set(w / 2, py + 74);
+    this.resourceLine.position.set(w / 2, py + 94);
     this.weatherLine.text = `${this.weather.icon}  ${this.weather.name.toUpperCase()}`;
-    this.weatherEffect.text = `+ ${this.weather.bonus}     –  ${this.weather.penalty}`;
+    this.weatherEffect.text = `+ ${this.weather.bonus}      –  ${this.weather.penalty}`;
+    // divider under the header
+    this.panelG.rect(px + 24, py + 108, pw - 48, 1).fill({ color: COLOR.navy, alpha: 0.8 });
     // tab bar
-    this.tabBar.forEach((t, i) => t.position.set(w / 2 - 160 + i * 160, py + 102));
+    this.tabBar.forEach((t, i) => t.position.set(w / 2 - 160 + i * 160, py + 126));
     this.layoutRows();
     this.refresh();
   }

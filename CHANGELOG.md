@@ -250,6 +250,27 @@ the beacon the deep hunts you by.
 - **Hero landmarks** — each stratum has one oversized, cool, low-alpha beacon that gives
   the place a memorable silhouette. Persistence tracks `deepestStratum` + `codexSeen`.
 
+## Pass 7 (polish) — "make it alive" + world-class feel (2026-07-12)
+
+Owner feedback pass, in parallel with a genre-research workflow drafting the full
+living-world plan (`contracts/pass7-living-world.md`). QA PASS, 0 errors.
+
+- **Ambient marine snow** (`engine/ambient.ts`) — drifting particulate with 3 parallax
+  depth tiers, screen-space, runs in every state. Gives the world real **dimension &
+  texture** and makes it feel underwater/alive.
+- **Movement wisps** — trailing motes stream off the diver while moving (juice, no art).
+- **Dynamic currents** — currents now **ebb and flow** (oscillating force) instead of a
+  constant push, with brighter faster flow-streaks so the flow reads.
+- **Toned the glow** — smaller/dimmer headlamp, removed the jittery full-charge pulse,
+  calmer bloom (the glow-double-bind identity preserved, just less annoying).
+- **Smooth stratum transition** — a fade-to-black across the rebuild replaces the janky
+  instant pop.
+- **Overworld UI cleanup** — station header reorganized (currency top-right, weather +
+  materials centered under a divider, more breathing room before the tabs).
+- **`docs/NEXT-SPRITE-PACK-PROMPT.md`** — a paste-ready ChatGPT prompt for the next art
+  pack (animated diver/enemies, boss, Bichon companion, overworld station+NPC) + the
+  manifest/locationing protocol so it drops into `extract-assets.mjs`.
+
 ## Pass 6.5 — Overworld / Underworld + Weather (2026-07-12)
 
 The Surface Station becomes a real **overworld** hub against the **underworld** dive.

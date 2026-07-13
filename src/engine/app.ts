@@ -6,6 +6,7 @@
 import { Application, Container, Graphics, Sprite, Texture, TextureSource } from "pixi.js";
 import { AdvancedBloomFilter } from "pixi-filters";
 import { COLOR } from "../palette";
+import { MarineSnow } from "./ambient";
 
 const hex = (n: number) => "#" + n.toString(16).padStart(6, "0");
 
@@ -40,6 +41,7 @@ export class Engine {
   lightLayer!: Container; // glows/telegraphs — additive + bloom
   fxRoot!: Container; // screen-space vignette
   uiRoot!: Container; // HUD / loader / cutscene
+  snow!: MarineSnow; // ambient drifting particulate (dimension + life)
 
   cam = { x: 0, y: 0, tx: 0, ty: 0 };
   bloom!: AdvancedBloomFilter;
@@ -73,8 +75,8 @@ export class Engine {
     // Calm bloom: only the brightest cores glow, and gently — so bullets stay
     // readable (pillar 1) instead of washing into slabs of light.
     this.bloom = new AdvancedBloomFilter({
-      threshold: 0.55,
-      bloomScale: 0.6,
+      threshold: 0.62,
+      bloomScale: 0.5,
       brightness: 1.0,
       blur: 4,
       quality: 4,
@@ -84,7 +86,10 @@ export class Engine {
 
     this.sceneRoot.scale.set(ZOOM);
     this.sceneRoot.addChild(this.worldLayer, this.lightLayer);
-    this.app.stage.addChild(this.bgRoot, this.sceneRoot, this.fxRoot, this.uiRoot);
+    this.snow = new MarineSnow();
+    this.snow.reseed(this.width, this.height);
+    // ambient particulate sits over the world but under the vignette/UI
+    this.app.stage.addChild(this.bgRoot, this.sceneRoot, this.snow.root, this.fxRoot, this.uiRoot);
 
     // UI needs pointer events (menu/pause/level-up buttons).
     this.app.stage.eventMode = "static";
@@ -98,6 +103,11 @@ export class Engine {
 
   addResizeHandler(fn: () => void): void {
     this.resizeHandlers.push(fn);
+  }
+
+  /** Advance ambient particulate. Call every frame (runs in every state). */
+  updateAmbient(dt: number): void {
+    this.snow.update(dt, this.width, this.height);
   }
 
   /** (Re)draw the screen-space background fill + vignette. Call on init + resize. */
