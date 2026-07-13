@@ -18,8 +18,14 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const ASSET_DIR = path.join(ROOT, "Game asset (pictures with guide)");
-const MANIFEST = path.join(ASSET_DIR, "fathom_asset_slice_manifest(1).json");
+const SUPP_DIR = path.join(ASSET_DIR, "fathom_supplementary_pack_documented");
 const OUT_DIR = path.join(ROOT, "public", "assets", "sprites");
+
+// Each manifest + the folder its sheet files live in.
+const MANIFESTS = [
+  { path: path.join(ASSET_DIR, "fathom_asset_slice_manifest(1).json"), dir: ASSET_DIR },
+  { path: path.join(SUPP_DIR, "fathom_supplementary_master_manifest.json"), dir: SUPP_DIR },
+];
 
 // Logical max-dimension per sheet (integer game scaling applied on top at render).
 const TARGET_MAX = {
@@ -28,6 +34,11 @@ const TARGET_MAX = {
   gatekeeper: 112,
   bichon: 30,
   surface_station: 64,
+  "01_loot_samples_upgrades": 24,
+  "02_bioluminescent_flora": 60,
+  "03_hazards_and_ancient_tech": 52,
+  "04_wreck_industrial_props": 60,
+  "05_surface_station_devices": 64,
 };
 const FPS = {
   diver: 7,
@@ -35,6 +46,11 @@ const FPS = {
   gatekeeper: 6,
   bichon: 7,
   surface_station: 5,
+  "01_loot_samples_upgrades": 8,
+  "02_bioluminescent_flora": 5,
+  "03_hazards_and_ancient_tech": 8,
+  "04_wreck_industrial_props": 6,
+  "05_surface_station_devices": 6,
 };
 
 const PIVOT_TO_ANCHOR = {
@@ -194,18 +210,11 @@ function downscale(img, targetMax) {
 const anchorFor = (pivot) => PIVOT_TO_ANCHOR[pivot] || [0.5, 0.5];
 const animMatch = (name) => name.match(/^(.*)_f(\d+)$/);
 
-function main() {
-  const manifest = JSON.parse(fs.readFileSync(MANIFEST, "utf8"));
-  const atlasPath = path.join(OUT_DIR, "atlas.json");
-  const atlas = fs.existsSync(atlasPath)
-    ? JSON.parse(fs.readFileSync(atlasPath, "utf8"))
-    : { sprites: {}, animations: {} };
-
-  let addedSprites = 0;
-  let addedAnims = 0;
+function processManifest(manifestPath, dir, atlas, counts) {
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 
   for (const [sheetKey, sheet] of Object.entries(manifest.sheets)) {
-    const srcFile = path.join(ASSET_DIR, sheet.file);
+    const srcFile = path.join(dir, sheet.file);
     if (!fs.existsSync(srcFile)) {
       console.warn(`  ! missing ${sheet.file}, skipping ${sheetKey}`);
       continue;
@@ -259,7 +268,7 @@ function main() {
             frameFiles.push(rel);
           });
         atlas.animations[g.key] = { frames: frameFiles, w: fw, h: fh, anchor: anchorFor(g.frames[0].pivot), fps, sheet: sheetKey };
-        addedAnims++;
+        counts.anims++;
       } else {
         for (const f of usable) {
           const cropped = subCrop(f.img, f.bounds.minX, f.bounds.minY, f.bounds.maxX, f.bounds.maxY);
@@ -267,15 +276,27 @@ function main() {
           const rel = `sprites/${f.name}.png`;
           writePNG(path.join(OUT_DIR, `${f.name}.png`), small.w, small.h, small.data);
           atlas.sprites[f.name] = { file: rel, w: small.w, h: small.h, anchor: anchorFor(f.pivot), sheet: sheetKey };
-          addedSprites++;
+          counts.sprites++;
         }
       }
     }
     console.log(`  ${sheetKey}: ${sheet.entries.length} entries from ${sheet.file}`);
   }
+}
 
+function main() {
+  const atlasPath = path.join(OUT_DIR, "atlas.json");
+  const atlas = fs.existsSync(atlasPath)
+    ? JSON.parse(fs.readFileSync(atlasPath, "utf8"))
+    : { sprites: {}, animations: {} };
+  const counts = { sprites: 0, anims: 0 };
+  for (const m of MANIFESTS) {
+    if (!fs.existsSync(m.path)) { console.warn(`  ! manifest missing: ${m.path}`); continue; }
+    console.log(`\n== ${path.basename(m.path)} ==`);
+    processManifest(m.path, m.dir, atlas, counts);
+  }
   fs.writeFileSync(atlasPath, JSON.stringify(atlas, null, 2));
-  console.log(`\nMerged: +${addedSprites} sprites, +${addedAnims} animations -> ${path.relative(ROOT, OUT_DIR)}`);
+  console.log(`\nMerged: +${counts.sprites} sprites, +${counts.anims} animations -> ${path.relative(ROOT, OUT_DIR)}`);
 }
 
 main();

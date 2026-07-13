@@ -752,13 +752,13 @@
     },
     "pipe_cluster": {
       "file": "sprites/pipe_cluster.png",
-      "w": 64,
-      "h": 43,
+      "w": 42,
+      "h": 60,
       "anchor": [
         0.5,
         1
       ],
-      "sheet": "wreck_thermal_props"
+      "sheet": "04_wreck_industrial_props"
     },
     "valve_wheel": {
       "file": "sprites/valve_wheel.png",
@@ -999,6 +999,546 @@
         1
       ],
       "sheet": "surface_station"
+    },
+    "meta_pearl": {
+      "file": "sprites/meta_pearl.png",
+      "w": 24,
+      "h": 12,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "01_loot_samples_upgrades"
+    },
+    "kelp_tall_a": {
+      "file": "sprites/kelp_tall_a.png",
+      "w": 20,
+      "h": 60,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "02_bioluminescent_flora"
+    },
+    "kelp_tall_b": {
+      "file": "sprites/kelp_tall_b.png",
+      "w": 21,
+      "h": 60,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "02_bioluminescent_flora"
+    },
+    "kelp_branching": {
+      "file": "sprites/kelp_branching.png",
+      "w": 30,
+      "h": 60,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "02_bioluminescent_flora"
+    },
+    "kelp_bush": {
+      "file": "sprites/kelp_bush.png",
+      "w": 60,
+      "h": 52,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "02_bioluminescent_flora"
+    },
+    "lure_grass": {
+      "file": "sprites/lure_grass.png",
+      "w": 38,
+      "h": 60,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "02_bioluminescent_flora"
+    },
+    "fan_coral": {
+      "file": "sprites/fan_coral.png",
+      "w": 50,
+      "h": 60,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "02_bioluminescent_flora"
+    },
+    "tube_coral": {
+      "file": "sprites/tube_coral.png",
+      "w": 60,
+      "h": 55,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "02_bioluminescent_flora"
+    },
+    "amber_sponge": {
+      "file": "sprites/amber_sponge.png",
+      "w": 60,
+      "h": 55,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "02_bioluminescent_flora"
+    },
+    "abyssal_root_mass": {
+      "file": "sprites/abyssal_root_mass.png",
+      "w": 52,
+      "h": 60,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "02_bioluminescent_flora"
+    },
+    "crystal_coral": {
+      "file": "sprites/crystal_coral.png",
+      "w": 60,
+      "h": 52,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "02_bioluminescent_flora"
+    },
+    "floating_reef_chunk": {
+      "file": "sprites/floating_reef_chunk.png",
+      "w": 49,
+      "h": 60,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "02_bioluminescent_flora"
+    },
+    "thermal_vent_dormant": {
+      "file": "sprites/thermal_vent_dormant.png",
+      "w": 52,
+      "h": 47,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "03_hazards_and_ancient_tech"
+    },
+    "thermal_vent_warning": {
+      "file": "sprites/thermal_vent_warning.png",
+      "w": 39,
+      "h": 52,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "03_hazards_and_ancient_tech"
+    },
+    "poison_seep": {
+      "file": "sprites/poison_seep.png",
+      "w": 49,
+      "h": 52,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "03_hazards_and_ancient_tech"
+    },
+    "spike_mound_open": {
+      "file": "sprites/spike_mound_open.png",
+      "w": 52,
+      "h": 36,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "03_hazards_and_ancient_tech"
+    },
+    "spike_mound_attack": {
+      "file": "sprites/spike_mound_attack.png",
+      "w": 52,
+      "h": 35,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "03_hazards_and_ancient_tech"
+    },
+    "wreck_generator_off": {
+      "file": "sprites/wreck_generator_off.png",
+      "w": 52,
+      "h": 26,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "03_hazards_and_ancient_tech"
+    },
+    "wreck_generator_active": {
+      "file": "sprites/wreck_generator_active.png",
+      "w": 52,
+      "h": 34,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "03_hazards_and_ancient_tech"
+    },
+    "ancient_eye_closed": {
+      "file": "sprites/ancient_eye_closed.png",
+      "w": 52,
+      "h": 38,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "03_hazards_and_ancient_tech"
+    },
+    "ancient_eye_charge": {
+      "file": "sprites/ancient_eye_charge.png",
+      "w": 51,
+      "h": 52,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "03_hazards_and_ancient_tech"
+    },
+    "turret_idle": {
+      "file": "sprites/turret_idle.png",
+      "w": 39,
+      "h": 52,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "03_hazards_and_ancient_tech"
+    },
+    "turret_windup": {
+      "file": "sprites/turret_windup.png",
+      "w": 40,
+      "h": 52,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "03_hazards_and_ancient_tech"
+    },
+    "turret_fire": {
+      "file": "sprites/turret_fire.png",
+      "w": 36,
+      "h": 52,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "03_hazards_and_ancient_tech"
+    },
+    "cargo_crate_closed": {
+      "file": "sprites/cargo_crate_closed.png",
+      "w": 50,
+      "h": 60,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "04_wreck_industrial_props"
+    },
+    "cargo_crate_broken": {
+      "file": "sprites/cargo_crate_broken.png",
+      "w": 60,
+      "h": 60,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "04_wreck_industrial_props"
+    },
+    "rusted_locker": {
+      "file": "sprites/rusted_locker.png",
+      "w": 45,
+      "h": 60,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "04_wreck_industrial_props"
+    },
+    "large_valve": {
+      "file": "sprites/large_valve.png",
+      "w": 54,
+      "h": 60,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "04_wreck_industrial_props"
+    },
+    "chain_pile": {
+      "file": "sprites/chain_pile.png",
+      "w": 60,
+      "h": 42,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "04_wreck_industrial_props"
+    },
+    "anchor": {
+      "file": "sprites/anchor.png",
+      "w": 60,
+      "h": 46,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "04_wreck_industrial_props"
+    },
+    "floodlight_off": {
+      "file": "sprites/floodlight_off.png",
+      "w": 31,
+      "h": 60,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "04_wreck_industrial_props"
+    },
+    "floodlight_on": {
+      "file": "sprites/floodlight_on.png",
+      "w": 30,
+      "h": 60,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "04_wreck_industrial_props"
+    },
+    "broken_console": {
+      "file": "sprites/broken_console.png",
+      "w": 60,
+      "h": 60,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "04_wreck_industrial_props"
+    },
+    "terminal_a": {
+      "file": "sprites/terminal_a.png",
+      "w": 57,
+      "h": 60,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "04_wreck_industrial_props"
+    },
+    "terminal_b": {
+      "file": "sprites/terminal_b.png",
+      "w": 40,
+      "h": 60,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "04_wreck_industrial_props"
+    },
+    "hanging_hook": {
+      "file": "sprites/hanging_hook.png",
+      "w": 28,
+      "h": 60,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "04_wreck_industrial_props"
+    },
+    "bollard": {
+      "file": "sprites/bollard.png",
+      "w": 40,
+      "h": 60,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "04_wreck_industrial_props"
+    },
+    "rusted_barrel": {
+      "file": "sprites/rusted_barrel.png",
+      "w": 37,
+      "h": 60,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "04_wreck_industrial_props"
+    },
+    "floor_grate": {
+      "file": "sprites/floor_grate.png",
+      "w": 49,
+      "h": 60,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "04_wreck_industrial_props"
+    },
+    "bulkhead_hatch": {
+      "file": "sprites/bulkhead_hatch.png",
+      "w": 59,
+      "h": 60,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "04_wreck_industrial_props"
+    },
+    "upgrade_shrine_off": {
+      "file": "sprites/upgrade_shrine_off.png",
+      "w": 52,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "05_surface_station_devices"
+    },
+    "core_socket_off": {
+      "file": "sprites/core_socket_off.png",
+      "w": 64,
+      "h": 45,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "sheet": "05_surface_station_devices"
+    },
+    "specimen_lab_a": {
+      "file": "sprites/specimen_lab_a.png",
+      "w": 64,
+      "h": 39,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "05_surface_station_devices"
+    },
+    "specimen_lab_b": {
+      "file": "sprites/specimen_lab_b.png",
+      "w": 64,
+      "h": 36,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "05_surface_station_devices"
+    },
+    "moon_pool_closed": {
+      "file": "sprites/moon_pool_closed.png",
+      "w": 64,
+      "h": 61,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "05_surface_station_devices"
+    },
+    "moon_pool_open": {
+      "file": "sprites/moon_pool_open.png",
+      "w": 32,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "05_surface_station_devices"
+    },
+    "communications_dish_idle": {
+      "file": "sprites/communications_dish_idle.png",
+      "w": 64,
+      "h": 52,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "05_surface_station_devices"
+    },
+    "communications_dish_active": {
+      "file": "sprites/communications_dish_active.png",
+      "w": 64,
+      "h": 42,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "05_surface_station_devices"
+    },
+    "bank_lantern_off": {
+      "file": "sprites/bank_lantern_off.png",
+      "w": 64,
+      "h": 50,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "05_surface_station_devices"
+    },
+    "bank_lantern_on": {
+      "file": "sprites/bank_lantern_on.png",
+      "w": 60,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "05_surface_station_devices"
+    },
+    "companion_portal_off": {
+      "file": "sprites/companion_portal_off.png",
+      "w": 64,
+      "h": 49,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "05_surface_station_devices"
+    },
+    "companion_portal_on": {
+      "file": "sprites/companion_portal_on.png",
+      "w": 53,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "05_surface_station_devices"
+    },
+    "vault_door_closed": {
+      "file": "sprites/vault_door_closed.png",
+      "w": 64,
+      "h": 48,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "05_surface_station_devices"
+    },
+    "vault_door_powered": {
+      "file": "sprites/vault_door_powered.png",
+      "w": 60,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sheet": "05_surface_station_devices"
     }
   },
   "animations": {
@@ -1240,17 +1780,16 @@
     "egg_cluster": {
       "frames": [
         "sprites/egg_cluster_f1.png",
-        "sprites/egg_cluster_f2.png",
-        "sprites/egg_cluster_f3.png"
+        "sprites/egg_cluster_f2.png"
       ],
-      "w": 57,
-      "h": 64,
+      "w": 60,
+      "h": 44,
       "anchor": [
         0.5,
         1
       ],
-      "fps": 6,
-      "sheet": "twilight_drift_props"
+      "fps": 5,
+      "sheet": "02_bioluminescent_flora"
     },
     "research_probe": {
       "frames": [
@@ -1468,6 +2007,458 @@
       ],
       "fps": 5,
       "sheet": "surface_station"
+    },
+    "sample_vial_small": {
+      "frames": [
+        "sprites/sample_vial_small_f1.png",
+        "sprites/sample_vial_small_f2.png",
+        "sprites/sample_vial_small_f3.png"
+      ],
+      "w": 8,
+      "h": 24,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 8,
+      "sheet": "01_loot_samples_upgrades"
+    },
+    "specimen_canister_medium": {
+      "frames": [
+        "sprites/specimen_canister_medium_f1.png",
+        "sprites/specimen_canister_medium_f2.png",
+        "sprites/specimen_canister_medium_f3.png"
+      ],
+      "w": 19,
+      "h": 24,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 8,
+      "sheet": "01_loot_samples_upgrades"
+    },
+    "living_specimen_tank": {
+      "frames": [
+        "sprites/living_specimen_tank_f1.png",
+        "sprites/living_specimen_tank_f2.png",
+        "sprites/living_specimen_tank_f3.png"
+      ],
+      "w": 21,
+      "h": 24,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 8,
+      "sheet": "01_loot_samples_upgrades"
+    },
+    "upgrade_core": {
+      "frames": [
+        "sprites/upgrade_core_f1.png",
+        "sprites/upgrade_core_f2.png",
+        "sprites/upgrade_core_f3.png"
+      ],
+      "w": 24,
+      "h": 14,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 8,
+      "sheet": "01_loot_samples_upgrades"
+    },
+    "energy_shard": {
+      "frames": [
+        "sprites/energy_shard_f1.png",
+        "sprites/energy_shard_f2.png",
+        "sprites/energy_shard_f3.png"
+      ],
+      "w": 24,
+      "h": 15,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 8,
+      "sheet": "01_loot_samples_upgrades"
+    },
+    "healing_orb": {
+      "frames": [
+        "sprites/healing_orb_f1.png",
+        "sprites/healing_orb_f2.png",
+        "sprites/healing_orb_f3.png"
+      ],
+      "w": 24,
+      "h": 15,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 8,
+      "sheet": "01_loot_samples_upgrades"
+    },
+    "power_cell": {
+      "frames": [
+        "sprites/power_cell_f1.png",
+        "sprites/power_cell_f2.png",
+        "sprites/power_cell_f3.png"
+      ],
+      "w": 13,
+      "h": 24,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 8,
+      "sheet": "01_loot_samples_upgrades"
+    },
+    "rune_fragment": {
+      "frames": [
+        "sprites/rune_fragment_f1.png",
+        "sprites/rune_fragment_f2.png",
+        "sprites/rune_fragment_f3.png"
+      ],
+      "w": 14,
+      "h": 24,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 8,
+      "sheet": "01_loot_samples_upgrades"
+    },
+    "mineral_cluster": {
+      "frames": [
+        "sprites/mineral_cluster_f1.png",
+        "sprites/mineral_cluster_f2.png",
+        "sprites/mineral_cluster_f3.png"
+      ],
+      "w": 24,
+      "h": 21,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 8,
+      "sheet": "01_loot_samples_upgrades"
+    },
+    "salvage_crate": {
+      "frames": [
+        "sprites/salvage_crate_f1.png",
+        "sprites/salvage_crate_f2.png",
+        "sprites/salvage_crate_f3.png"
+      ],
+      "w": 24,
+      "h": 21,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 8,
+      "sheet": "01_loot_samples_upgrades"
+    },
+    "leviathan_scale": {
+      "frames": [
+        "sprites/leviathan_scale_f1.png",
+        "sprites/leviathan_scale_f2.png",
+        "sprites/leviathan_scale_f3.png"
+      ],
+      "w": 10,
+      "h": 24,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 8,
+      "sheet": "01_loot_samples_upgrades"
+    },
+    "danger_anemone": {
+      "frames": [
+        "sprites/danger_anemone_f1.png",
+        "sprites/danger_anemone_f2.png"
+      ],
+      "w": 60,
+      "h": 44,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 5,
+      "sheet": "02_bioluminescent_flora"
+    },
+    "tube_worm_colony": {
+      "frames": [
+        "sprites/tube_worm_colony_f1.png",
+        "sprites/tube_worm_colony_f2.png"
+      ],
+      "w": 52,
+      "h": 60,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 5,
+      "sheet": "02_bioluminescent_flora"
+    },
+    "jelly_mushroom_cluster": {
+      "frames": [
+        "sprites/jelly_mushroom_cluster_f1.png",
+        "sprites/jelly_mushroom_cluster_f2.png"
+      ],
+      "w": 60,
+      "h": 55,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 5,
+      "sheet": "02_bioluminescent_flora"
+    },
+    "angler_plant": {
+      "frames": [
+        "sprites/angler_plant_f1.png",
+        "sprites/angler_plant_f2.png"
+      ],
+      "w": 43,
+      "h": 60,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 5,
+      "sheet": "02_bioluminescent_flora"
+    },
+    "thermal_vent_erupt": {
+      "frames": [
+        "sprites/thermal_vent_erupt_f1.png",
+        "sprites/thermal_vent_erupt_f2.png"
+      ],
+      "w": 36,
+      "h": 52,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 8,
+      "sheet": "03_hazards_and_ancient_tech"
+    },
+    "electric_anemone": {
+      "frames": [
+        "sprites/electric_anemone_f1.png",
+        "sprites/electric_anemone_f2.png",
+        "sprites/electric_anemone_f3.png"
+      ],
+      "w": 52,
+      "h": 43,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 8,
+      "sheet": "03_hazards_and_ancient_tech"
+    },
+    "proximity_mine": {
+      "frames": [
+        "sprites/proximity_mine_f1.png",
+        "sprites/proximity_mine_f2.png"
+      ],
+      "w": 52,
+      "h": 47,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 8,
+      "sheet": "03_hazards_and_ancient_tech"
+    },
+    "spike_mound_idle": {
+      "frames": [
+        "sprites/spike_mound_idle_f1.png",
+        "sprites/spike_mound_idle_f2.png"
+      ],
+      "w": 52,
+      "h": 38,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 8,
+      "sheet": "03_hazards_and_ancient_tech"
+    },
+    "scan_beacon": {
+      "frames": [
+        "sprites/scan_beacon_f1.png",
+        "sprites/scan_beacon_f2.png",
+        "sprites/scan_beacon_f3.png"
+      ],
+      "w": 37,
+      "h": 52,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 8,
+      "sheet": "03_hazards_and_ancient_tech"
+    },
+    "wreck_generator_charge": {
+      "frames": [
+        "sprites/wreck_generator_charge_f1.png",
+        "sprites/wreck_generator_charge_f2.png"
+      ],
+      "w": 52,
+      "h": 37,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 8,
+      "sheet": "03_hazards_and_ancient_tech"
+    },
+    "spawn_egg": {
+      "frames": [
+        "sprites/spawn_egg_f1.png",
+        "sprites/spawn_egg_f2.png",
+        "sprites/spawn_egg_f3.png"
+      ],
+      "w": 32,
+      "h": 52,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 8,
+      "sheet": "03_hazards_and_ancient_tech"
+    },
+    "ancient_eye_open": {
+      "frames": [
+        "sprites/ancient_eye_open_f1.png",
+        "sprites/ancient_eye_open_f2.png"
+      ],
+      "w": 52,
+      "h": 38,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 8,
+      "sheet": "03_hazards_and_ancient_tech"
+    },
+    "damaged_generator": {
+      "frames": [
+        "sprites/damaged_generator_f1.png",
+        "sprites/damaged_generator_f2.png"
+      ],
+      "w": 58,
+      "h": 60,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 6,
+      "sheet": "04_wreck_industrial_props"
+    },
+    "sample_scanner": {
+      "frames": [
+        "sprites/sample_scanner_f1.png",
+        "sprites/sample_scanner_f2.png",
+        "sprites/sample_scanner_f3.png"
+      ],
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 6,
+      "sheet": "05_surface_station_devices"
+    },
+    "codex_terminal": {
+      "frames": [
+        "sprites/codex_terminal_f1.png",
+        "sprites/codex_terminal_f2.png"
+      ],
+      "w": 64,
+      "h": 54,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 6,
+      "sheet": "05_surface_station_devices"
+    },
+    "upgrade_shrine": {
+      "frames": [
+        "sprites/upgrade_shrine_f1.png",
+        "sprites/upgrade_shrine_f2.png"
+      ],
+      "w": 49,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 6,
+      "sheet": "05_surface_station_devices"
+    },
+    "portal_ring": {
+      "frames": [
+        "sprites/portal_ring_f1.png",
+        "sprites/portal_ring_f2.png",
+        "sprites/portal_ring_f3.png"
+      ],
+      "w": 64,
+      "h": 46,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 6,
+      "sheet": "05_surface_station_devices"
+    },
+    "core_socket": {
+      "frames": [
+        "sprites/core_socket_f1.png",
+        "sprites/core_socket_f2.png"
+      ],
+      "w": 64,
+      "h": 53,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "fps": 6,
+      "sheet": "05_surface_station_devices"
+    },
+    "surface_buoy": {
+      "frames": [
+        "sprites/surface_buoy_f1.png",
+        "sprites/surface_buoy_f2.png",
+        "sprites/surface_buoy_f3.png"
+      ],
+      "w": 47,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 6,
+      "sheet": "05_surface_station_devices"
+    },
+    "depth_monument": {
+      "frames": [
+        "sprites/depth_monument_f1.png",
+        "sprites/depth_monument_f2.png",
+        "sprites/depth_monument_f3.png"
+      ],
+      "w": 62,
+      "h": 64,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "fps": 6,
+      "sheet": "05_surface_station_devices"
     }
   }
 }
