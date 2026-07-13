@@ -54,8 +54,9 @@ export class Hub {
   private facing = -Math.PI / 2;
   private kiosks: Kiosk[] = [];
   private gate!: { pos: Vec2; core: Graphics; ring: Graphics; glow: Sprite; label: Text; prompt: Text };
-  private companion!: { root: Container; glow: Sprite; pos: Vec2; phase: number };
+  private companion!: { root: Container; glow: Sprite; pos: Vec2; phase: number; idle?: Container; swim?: Container; flip?: Container };
   private decor: { node: Container; baseX: number; phase: number; amp: number; speed: number }[] = [];
+  private hasVent = false;
   private t = 0;
   private elapsed = 0;
   private mode: "walk" | "shop" = "walk";
@@ -121,6 +122,28 @@ export class Hub {
     homeGlow.position.set(cx, cy);
     this.light.addChild(homeGlow);
 
+    // The station keeper — a friendly figure tending the surface (idle animation).
+    if (this.assets.has("keeper_idle")) {
+      const keeper = this.assets.anim("keeper_idle");
+      keeper.position.set(cx + 96, cy + 46);
+      keeper.scale.set(1.1);
+      this.root.addChild(keeper);
+    }
+    // A weather buoy off to the side, a lit landmark by the dome.
+    if (this.assets.has("weather_buoy")) {
+      const buoy = this.assets.sprite("weather_buoy");
+      buoy.position.set(cx - 190, cy + 60);
+      buoy.scale.set(1.1);
+      this.root.addChild(buoy);
+      const bglow = new Sprite(getGlowTexture());
+      bglow.anchor.set(0.5);
+      bglow.tint = COLOR.amberBright;
+      bglow.alpha = 0.3;
+      bglow.scale.set(120 / 128);
+      bglow.position.set(cx - 190, cy + 20);
+      this.light.addChild(bglow);
+    }
+
     // Decorative flora (reef around the station) — swaying, from real assets.
     const reef = this.assets.spritesInSheet("kelp_forest_props").filter((n) => /kelp|sprout|tangle|coral|frond/i.test(n));
     if (reef.length) {
@@ -148,11 +171,19 @@ export class Hub {
       { tab: 2, name: "ARCHIVE", color: COLOR.aqua, pos: { x: cx + 340, y: BOUNDS.h * 0.55 } },
     ];
     for (const d of kioskDefs) {
-      const pillar = new Graphics();
-      pillar.roundRect(d.pos.x - 16, d.pos.y - 8, 32, 54, 6).fill({ color: 0x0d2233, alpha: 0.96 }).stroke({ width: 2, color: 0x1d4a66 });
-      this.root.addChild(pillar);
+      // Real console prop (bottom-center anchored) when available, else a pillar.
+      if (this.assets.has("shop_console")) {
+        const con = this.assets.sprite("shop_console");
+        con.position.set(d.pos.x, d.pos.y + 28);
+        con.scale.set(1.1);
+        this.root.addChild(con);
+      } else {
+        const pillar = new Graphics();
+        pillar.roundRect(d.pos.x - 16, d.pos.y - 8, 32, 54, 6).fill({ color: 0x0d2233, alpha: 0.96 }).stroke({ width: 2, color: 0x1d4a66 });
+        this.root.addChild(pillar);
+      }
       const core = new Graphics();
-      core.circle(d.pos.x, d.pos.y - 20, 11).fill({ color: d.color, alpha: 0.95 });
+      core.circle(d.pos.x, d.pos.y - 24, 7).fill({ color: d.color, alpha: 0.95 });
       this.root.addChild(core);
       const beacon = new Sprite(getGlowTexture());
       beacon.anchor.set(0.5);
@@ -167,8 +198,15 @@ export class Hub {
       this.kiosks.push({ pos: d.pos, tab: d.tab, name: d.name, color: d.color, beacon, core, label, prompt });
     }
 
-    // Launch vent — swim in to dive.
+    // Launch vent — swim in to dive. Real dive_vent prop when available.
     const gpos = { x: cx, y: BOUNDS.h * 0.84 };
+    if (this.assets.has("dive_vent")) {
+      const vent = this.assets.sprite("dive_vent");
+      vent.position.set(gpos.x, gpos.y + 40);
+      vent.scale.set(1.6);
+      this.root.addChild(vent);
+      this.hasVent = true;
+    }
     const gring = new Graphics();
     const gcore = new Graphics();
     this.root.addChild(gring, gcore);
@@ -184,14 +222,26 @@ export class Hub {
     gprompt.visible = false;
     this.gate = { pos: gpos, core: gcore, ring: gring, glow: gglow, label: glabel, prompt: gprompt };
 
-    // Companion — a small drifting friend.
+    // Companion — the astronaut bichon, a small drifting friend.
     const c = new Container();
-    const body = new Graphics();
-    body.ellipse(0, 0, 13, 9).fill({ color: 0x2a6a86 });
-    body.ellipse(-2, 2, 9, 5).fill({ color: 0x8fe6ff, alpha: 0.5 });
-    body.moveTo(11, 0).lineTo(20, -7).lineTo(20, 7).closePath().fill({ color: 0x2a6a86 }); // tail
-    body.circle(-6, -2, 2.4).fill({ color: 0x06121a }); // eye
-    c.addChild(body);
+    let idle: Container | undefined;
+    let swim: Container | undefined;
+    let flip: Container | undefined;
+    if (this.assets.has("dog_idle") && this.assets.has("dog_swim")) {
+      flip = new Container();
+      idle = this.assets.anim("dog_idle");
+      swim = this.assets.anim("dog_swim");
+      swim.visible = false;
+      flip.addChild(idle, swim);
+      c.addChild(flip);
+    } else {
+      const body = new Graphics();
+      body.ellipse(0, 0, 13, 9).fill({ color: 0x2a6a86 });
+      body.ellipse(-2, 2, 9, 5).fill({ color: 0x8fe6ff, alpha: 0.5 });
+      body.moveTo(11, 0).lineTo(20, -7).lineTo(20, 7).closePath().fill({ color: 0x2a6a86 });
+      body.circle(-6, -2, 2.4).fill({ color: 0x06121a });
+      c.addChild(body);
+    }
     this.root.addChild(c);
     const cglow = new Sprite(getGlowTexture());
     cglow.anchor.set(0.5);
@@ -199,7 +249,7 @@ export class Hub {
     cglow.alpha = 0.4;
     cglow.scale.set(90 / 128);
     this.light.addChild(cglow);
-    this.companion = { root: c, glow: cglow, pos: { x: this.player.pos.x - 40, y: this.player.pos.y - 30 }, phase: 0 };
+    this.companion = { root: c, glow: cglow, pos: { x: this.player.pos.x - 40, y: this.player.pos.y - 30 }, phase: 0, idle, swim, flip };
   }
 
   private mkLabel(s: string, size: number, color: number, weight: "normal" | "bold" = "normal"): Text {
@@ -270,7 +320,7 @@ export class Hub {
     this.gate.ring.circle(this.gate.pos.x, this.gate.pos.y, 42 + pulse * 6).stroke({ width: 3, color: COLOR.aquaBright, alpha: 0.5 + 0.3 * pulse });
     this.gate.ring.circle(this.gate.pos.x, this.gate.pos.y, 60 + pulse * 10).stroke({ width: 1.5, color: COLOR.aqua, alpha: 0.25 });
     this.gate.core.clear();
-    this.gate.core.circle(this.gate.pos.x, this.gate.pos.y, 20).fill({ color: 0x0a2436, alpha: 0.7 });
+    if (!this.hasVent) this.gate.core.circle(this.gate.pos.x, this.gate.pos.y, 20).fill({ color: 0x0a2436, alpha: 0.7 });
   }
 
   private updateCompanion(dt: number): void {
@@ -279,12 +329,21 @@ export class Hub {
     // Trail behind + to the side of the diver, with lazy easing + a bob.
     const tx = this.player.pos.x - Math.cos(this.facing) * 46 + 10;
     const ty = this.player.pos.y - Math.sin(this.facing) * 46 - 26 + Math.sin(c.phase * 2.1) * 6;
+    const ox = c.pos.x, oy = c.pos.y;
     c.pos.x = approach(c.pos.x, tx, 4, dt);
     c.pos.y = approach(c.pos.y, ty, 4, dt);
     const dx = tx - c.pos.x;
+    const moved = Math.hypot(c.pos.x - ox, c.pos.y - oy) / Math.max(dt, 0.001);
     c.root.position.set(c.pos.x, c.pos.y);
-    c.root.rotation = Math.sin(c.phase * 2.1) * 0.15;
-    c.root.scale.x = dx < -1 ? -1 : 1; // face travel direction
+    c.root.rotation = Math.sin(c.phase * 2.1) * 0.12;
+    if (c.flip) {
+      if (Math.abs(dx) > 1) c.flip.scale.x = dx > 0 ? -1 : 1; // dog art faces left
+      const swimming = moved > 26;
+      if (c.idle) c.idle.visible = !swimming;
+      if (c.swim) c.swim.visible = swimming;
+    } else {
+      c.root.scale.x = dx < -1 ? -1 : 1;
+    }
     c.glow.position.set(c.pos.x, c.pos.y);
     c.glow.alpha = 0.32 + 0.1 * (0.5 + 0.5 * Math.sin(c.phase * 3));
   }
