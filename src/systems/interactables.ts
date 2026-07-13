@@ -12,7 +12,7 @@ import { getGlowTexture } from "../engine/glow";
 import { COLOR } from "../palette";
 
 export type InteractableKind =
-  | "loot_pod" | "salvage_crate" | "mineral_crystal" | "research_probe" | "bubble_vent" | "relic" | "ascend_vent";
+  | "loot_pod" | "salvage_crate" | "mineral_crystal" | "research_probe" | "bubble_vent" | "relic" | "ascend_vent" | "descend_portal";
 
 export interface InteractableData {
   kind: InteractableKind;
@@ -36,6 +36,7 @@ const DEFS: Record<InteractableKind, Def> = {
   bubble_vent: { radius: 44, hp: 0, samples: 0, xpOrbs: 0, upgradeChance: 0, score: 0, sprite: "bubble_vent" },
   relic: { radius: 16, hp: 0, samples: 0, xpOrbs: 0, upgradeChance: 0, score: 500, sprite: "fish_skeleton" },
   ascend_vent: { radius: 26, hp: 0, samples: 0, xpOrbs: 0, upgradeChance: 0, score: 0, sprite: "" },
+  descend_portal: { radius: 34, hp: 0, samples: 0, xpOrbs: 0, upgradeChance: 0, score: 0, sprite: "portal_ring" },
 };
 
 export interface Interactable extends Damageable {
@@ -64,6 +65,7 @@ export interface InteractableSink {
   push(fx: number, fy: number): void;
   fx(anim: string, x: number, y: number): void;
   surface(): void; // ascend vent — bank 100% and return to the station
+  descend(): void; // descent portal — travel to the next stratum
 }
 
 export class Interactables {
@@ -119,17 +121,17 @@ export class Interactables {
     } else if (this.assets.sprites[def.sprite]) node = this.assets.sprite(def.sprite);
     else if (this.assets.anims[def.sprite]) node = this.assets.anim(def.sprite);
     else node = new Container();
-    node.scale.set(d.kind === "relic" ? 0.9 : 1);
+    node.scale.set(d.kind === "relic" ? 0.9 : d.kind === "descend_portal" ? 1.5 : 1);
     view.addChild(node);
     view.position.set(d.pos.x, d.pos.y);
 
     let glow: Sprite | undefined;
-    if (d.kind === "loot_pod" || d.kind === "mineral_crystal" || d.kind === "relic" || d.kind === "research_probe" || d.kind === "ascend_vent") {
+    if (d.kind === "loot_pod" || d.kind === "mineral_crystal" || d.kind === "relic" || d.kind === "research_probe" || d.kind === "ascend_vent" || d.kind === "descend_portal") {
       glow = new Sprite(getGlowTexture());
       glow.anchor.set(0.5);
-      glow.scale.set((d.kind === "relic" ? 70 : d.kind === "ascend_vent" ? 90 : 48) / 128);
-      glow.tint = d.kind === "relic" ? COLOR.sample : d.kind === "loot_pod" ? COLOR.aqua : COLOR.aquaBright;
-      glow.alpha = d.kind === "relic" ? 0 : d.kind === "ascend_vent" ? 0.5 : 0.4;
+      glow.scale.set((d.kind === "relic" ? 70 : d.kind === "ascend_vent" ? 90 : d.kind === "descend_portal" ? 150 : 48) / 128);
+      glow.tint = d.kind === "relic" ? COLOR.sample : d.kind === "loot_pod" ? COLOR.aqua : d.kind === "descend_portal" ? 0x9db8ff : COLOR.aquaBright;
+      glow.alpha = d.kind === "relic" ? 0 : d.kind === "ascend_vent" ? 0.5 : d.kind === "descend_portal" ? 0.55 : 0.4;
       glow.position.set(d.pos.x, d.pos.y);
       this.light.addChild(glow);
     }
@@ -254,6 +256,12 @@ export class Interactables {
           }
           if (it.glow) it.glow.alpha = 0.4 + 0.25 * pulse;
           if (playerAlive && dist <= it.radius + playerRadius) sink.surface();
+          break;
+        }
+        case "descend_portal": {
+          if (it.glow) it.glow.alpha = 0.5 + 0.28 * pulse;
+          it.view.rotation += dt * 0.4; // the ring spins — a live gateway
+          if (playerAlive && dist <= it.radius + playerRadius) sink.descend();
           break;
         }
         case "research_probe":

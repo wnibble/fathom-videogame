@@ -68,7 +68,6 @@ export class DiveScene implements HitSink, PickupSink {
   private hazards!: Hazards;
   private arena: ArenaData;
   private stratumIndex = 0;
-  private nextStrataDepth = STRATA_DEPTH;
   private charge = 0; // glow-charge from grazing (0..1)
   private dread = 0; // dread clock (0..1) — the deep closing in
   private seen = new Set<string>(); // species catalogued this run
@@ -219,6 +218,11 @@ export class DiveScene implements HitSink, PickupSink {
       },
       fx: (anim, x, y) => this.spawnFx(anim, x, y),
       surface: () => this.onSurface(),
+      descend: () => {
+        if (!this.transitioning && !this.ended && this.stratumIndex < STRATA.length - 1) {
+          this.transitionStratum(this.stratumIndex + 1);
+        }
+      },
     };
     this.buildStaticViews();
     engine.worldLayer.addChild(this.playerView.root);
@@ -458,11 +462,9 @@ export class DiveScene implements HitSink, PickupSink {
       this.dread = 0.5;
     }
 
-    // Descend to the next authored stratum at the depth threshold (resets dread).
-    if (this.stratumIndex < STRATA.length - 1 && this.depth >= this.nextStrataDepth) {
-      this.nextStrataDepth += STRATA_DEPTH;
-      this.transitionStratum(this.stratumIndex + 1);
-    }
+    // Strata now change ONLY when you swim into a descent portal (interactSink
+    // .descend) — the terrain never shifts under you. Depth keeps counting for
+    // difficulty + score; the portal is the chosen gateway deeper.
 
     // scoring + depth
     tickScore(this.run, dt);
@@ -1547,6 +1549,12 @@ export class DiveScene implements HitSink, PickupSink {
   debugSetDepth(d: number): void {
     this.depth = d;
   }
+  /** Debug: trigger a portal descent to the next stratum (QA only). */
+  debugDescend(): void {
+    if (!this.transitioning && !this.ended && this.stratumIndex < STRATA.length - 1) {
+      this.transitionStratum(this.stratumIndex + 1);
+    }
+  }
   /** Debug: spawn one of each fauna near the player to inspect the sprites (QA only). */
   debugSpawnFauna(): void {
     const kinds: EnemyKind[] = ["spitter", "darter", "drifter"];
@@ -1564,7 +1572,6 @@ export class DiveScene implements HitSink, PickupSink {
   /** Debug: warp straight to the Cradle floor + summon the guardian (QA only). */
   debugToCradle(): void {
     this.depth = STRATA_DEPTH * (STRATA.length - 1) + 10;
-    this.nextStrataDepth = this.depth + STRATA_DEPTH;
     this.doStratumRebuild(STRATA.length - 1);
   }
   /** Debug: instantly fell the guardian to test the victory flow (QA only). */

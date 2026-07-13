@@ -128,6 +128,10 @@ export function buildStratum(index: number, seed: number, assets: AssetStore): A
   // Ascend vents — the extract decision. Two, so surfacing is always reachable.
   place("ascend_vent", 320);
   place("ascend_vent", 320);
+  // Descent portal — the ONLY way deeper. A physical gateway you swim into, so
+  // the terrain never changes under you: it changes because you chose to travel.
+  // (The floor has no portal — the guardian + the Cradle are the end.)
+  if (si < STRATA.length - 1) place("descend_portal", 360);
   // Hidden relic near an edge (rewards exploration).
   const edge = rng.pick([
     { x: rng.range(90, 170), y: rng.range(140, bounds.h - 140) },
