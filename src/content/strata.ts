@@ -7,6 +7,7 @@ import type { AssetStore } from "../engine/assets";
 import type { Current, EnemyKind, Obstacle, Prop, Vec2 } from "../core/types";
 import type { InteractableData, InteractableKind } from "../systems/interactables";
 import { Rng } from "../core/rng";
+import { generateCavern } from "./cavegen";
 
 export interface ArenaData {
   bounds: { w: number; h: number };
@@ -43,7 +44,7 @@ interface Stratum {
 export const STRATA_DEPTH = 220;
 
 export const STRATA: Stratum[] = [
-  { name: "Twilight Drift", tagline: "eerie open midwater", bg: 0x0a1a2e, structSheet: "twilight_drift_props", glow: ["plankton_dense", "plankton_sparse", "jelly_colony"], fauna: [{ kind: "spitter", weight: 3 }, { kind: "darter", weight: 1 }], resource: "lumen", landmark: "suspended_coral_chunk", caves: ["floating_reef_chunk", "fan_coral"], decor: ["fan_coral", "tube_coral", "amber_sponge", "lure_grass"], ambient: ["jelly_mushroom_cluster", "danger_anemone"] },
+  { name: "Twilight Drift", tagline: "eerie open midwater", bg: 0x0a1a2e, structSheet: "twilight_drift_props", glow: ["plankton_dense", "plankton_sparse", "jelly_colony"], fauna: [{ kind: "spitter", weight: 3 }, { kind: "darter", weight: 1 }], resource: "lumen", landmark: "suspended_coral_chunk", caves: ["floating_reef_chunk", "fan_coral", "tube_coral", "amber_sponge"], decor: ["fan_coral", "tube_coral", "amber_sponge", "lure_grass"], ambient: ["jelly_mushroom_cluster", "danger_anemone"] },
   // FULL LEVEL — a dense, living kelp forest.
   { name: "Kelp Forest", tagline: "occlusion and ambush", bg: 0x0a241e, structSheet: "kelp_forest_props", glow: ["sprout_aqua_1", "sprout_aqua_2", "sprout_amber_1", "tangle_glowing"], fauna: [{ kind: "darter", weight: 3 }, { kind: "spitter", weight: 2 }], resource: "spore", landmark: "tangle_large_a", caves: ["abyssal_root_mass", "floating_reef_chunk", "tube_coral"], decor: ["kelp_tall_a", "kelp_tall_b", "kelp_branching", "kelp_bush", "lure_grass", "fan_coral"], ambient: ["angler_plant", "danger_anemone", "jelly_mushroom_cluster"] },
   // FULL LEVEL — a broken industrial wreck.
@@ -83,6 +84,19 @@ export function buildStratum(index: number, seed: number, assets: AssetStore): A
   const ambAnims = (S.ambient ?? []).filter((n) => assets.anims[n]);
   const richness = decorSprites.length + decorAnims.length; // "full" levels have more
 
+  // ---- procedural cavern FIRST: everything else placed around the terrain ----
+  const caves = S.caves.filter((n) => assets.sprites[n]);
+  const growthPool = S.decor.filter((n) => assets.sprites[n] && /kelp|coral|grass|sponge|sprout|root|frond|anemone/i.test(n));
+  const cavern = generateCavern(seed + si * 7919, {
+    bounds,
+    playerStart,
+    rockiness: 0.22 + si * 0.12, // Twilight airy -> Cradle rocky
+    wallSprites: caves,
+    growthSprites: growthPool.length ? growthPool : decorSprites,
+  });
+  const obstacles = cavern.obstacles;
+  const inRock = (p: Vec2, pad: number): boolean => obstacles.some((o) => Math.hypot(p.x - o.pos.x, p.y - o.pos.y) < o.radius + pad);
+
   const props: Prop[] = [];
   const placed: Vec2[] = [playerStart];
   const scatter = (pool: string[], count: number, glow: boolean, isAnim: boolean, sr: [number, number], gap: number) => {
@@ -94,6 +108,7 @@ export function buildStratum(index: number, seed: number, assets: AssetStore): A
       const pos = { x: rng.range(70, bounds.w - 70), y: rng.range(70, bounds.h - 70) };
       if (!farFrom(pos, placed, gap)) continue;
       if (Math.hypot(pos.x - playerStart.x, pos.y - playerStart.y) < 190) continue;
+      if (inRock(pos, 26)) continue; // free-floating decor stays off the rocks
       const name = rng.pick(pool);
       props.push({ sprite: name, pos, scale: rng.range(sr[0], sr[1]), glow, animation: isAnim ? name : undefined });
       placed.push(pos);
@@ -102,35 +117,17 @@ export function buildStratum(index: number, seed: number, assets: AssetStore): A
   };
   // Fresh curated decor leads; the old struct sheet fills in behind it (less of it
   // when the new pack is rich, so each place reads as its own authored world).
-  scatter(decorSprites, richness >= 6 ? 18 : 11, false, false, [0.85, 1.5], 120);
-  scatter(decorAnims, 5, false, true, [0.9, 1.35], 150);
-  scatter(structPool, richness >= 6 ? 5 : 10, false, false, [1, 1.5], 130);
-  if (kelp.length) scatter(kelp, 8, false, false, [1, 1.4], 110); // kelp forest verticals
+  scatter(decorSprites, richness >= 6 ? 14 : 9, false, false, [0.85, 1.5], 120);
+  scatter(decorAnims, 4, false, true, [0.9, 1.35], 150);
+  scatter(structPool, richness >= 6 ? 4 : 8, false, false, [1, 1.5], 130);
+  if (kelp.length) scatter(kelp, 6, false, false, [1, 1.4], 110); // kelp forest verticals
   scatter(glowSprites, 8, true, false, [1, 1.4], 100);
   scatter(glowAnims, 5, true, true, [1, 1.3], 140);
   // Sparse animated "life" props (anemones, vents, generators, eggs).
   scatter(ambSprites, 4, false, false, [0.9, 1.3], 220);
   scatter(ambAnims, 4, false, true, [0.9, 1.25], 240);
-
-  // Solid rock/cave obstacles — deeper strata are rockier, but always MOSTLY OPEN
-  // (a few big formations to weave around, never a maze). Bodies collide with these.
-  const obstacles: Obstacle[] = [];
-  const caves = S.caves.filter((n) => assets.sprites[n]);
-  if (caves.length) {
-    const count = 3 + si; // Twilight 3 -> Cradle 8
-    let tries = 0;
-    while (obstacles.length < count && tries < count * 20) {
-      tries++;
-      const pos = { x: rng.range(180, bounds.w - 180), y: rng.range(180, bounds.h - 180) };
-      // Keep the spawn area + lanes clear, and rocks well apart (stay open).
-      if (Math.hypot(pos.x - playerStart.x, pos.y - playerStart.y) < 340) continue;
-      if (!farFrom(pos, placed, 300)) continue;
-      const radius = rng.range(46, 82);
-      const sprite = rng.pick(caves);
-      obstacles.push({ pos, radius, sprite, scale: (radius * 2.1) / 60 });
-      placed.push(pos);
-    }
-  }
+  // Growth planted ON the rock surfaces by the generator (upright, terrain-bound).
+  props.push(...cavern.growth);
 
   // Currents (teach flow) — unchanged shape.
   const currents: Current[] = [];
@@ -144,6 +141,16 @@ export function buildStratum(index: number, seed: number, assets: AssetStore): A
     { x: bounds.w * 0.2, y: bounds.h * 0.82 }, { x: bounds.w * 0.8, y: bounds.h * 0.8 },
     { x: bounds.w * 0.5, y: bounds.h * 0.15 }, { x: bounds.w * 0.5, y: bounds.h * 0.85 },
   ];
+  // Nudge any spawn that landed inside cavern wall toward open water.
+  for (const s of spawns) {
+    for (let t = 0; t < 20 && inRock(s, 40); t++) {
+      const dx = playerStart.x - s.x;
+      const dy = playerStart.y - s.y;
+      const l = Math.hypot(dx, dy) || 1;
+      s.x += (dx / l) * 60;
+      s.y += (dy / l) * 60;
+    }
+  }
 
   // Interactables — functional objects + a guaranteed hidden relic + Ascend vents.
   const interactables: InteractableData[] = [];
@@ -152,6 +159,7 @@ export function buildStratum(index: number, seed: number, assets: AssetStore): A
       const pos = { x: rng.range(100, bounds.w - 100), y: rng.range(100, bounds.h - 100) };
       if (Math.hypot(pos.x - playerStart.x, pos.y - playerStart.y) < minStartGap) continue;
       if (!farFrom(pos, placed, 130)) continue;
+      if (inRock(pos, 46)) continue; // never bury a functional object in a wall
       interactables.push({ kind, pos });
       placed.push(pos);
       return;
@@ -172,14 +180,19 @@ export function buildStratum(index: number, seed: number, assets: AssetStore): A
   // the terrain never changes under you: it changes because you chose to travel.
   // (The floor has no portal — the guardian + the Cradle are the end.)
   if (si < STRATA.length - 1) place("descend_portal", 360);
-  // Hidden relic near an edge (rewards exploration).
-  const edge = rng.pick([
-    { x: rng.range(90, 170), y: rng.range(140, bounds.h - 140) },
-    { x: rng.range(bounds.w - 170, bounds.w - 90), y: rng.range(140, bounds.h - 140) },
-    { x: rng.range(140, bounds.w - 140), y: rng.range(90, 170) },
-    { x: rng.range(140, bounds.w - 140), y: rng.range(bounds.h - 170, bounds.h - 90) },
-  ]);
-  interactables.push({ kind: "relic", pos: edge });
+  // Hidden relic near an edge (rewards exploration) — tucked against the cave
+  // wall but never inside it.
+  let relicPos: Vec2 | null = null;
+  for (let t = 0; t < 30 && !relicPos; t++) {
+    const cand = rng.pick([
+      { x: rng.range(120, 260), y: rng.range(160, bounds.h - 160) },
+      { x: rng.range(bounds.w - 260, bounds.w - 120), y: rng.range(160, bounds.h - 160) },
+      { x: rng.range(180, bounds.w - 180), y: rng.range(120, 260) },
+      { x: rng.range(180, bounds.w - 180), y: rng.range(bounds.h - 260, bounds.h - 120) },
+    ]);
+    if (!inRock(cand, 30)) relicPos = cand;
+  }
+  interactables.push({ kind: "relic", pos: relicPos ?? { x: bounds.w * 0.5, y: bounds.h * 0.82 } });
 
   // Hero landmark — an oversized far beacon that gives the stratum character.
   let landmark: ArenaData["landmark"] = null;

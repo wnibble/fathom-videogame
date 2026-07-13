@@ -268,7 +268,7 @@ export class Interactables {
         }
         case "descend_portal": {
           if (it.glow) it.glow.alpha = 0.5 + 0.28 * pulse;
-          it.view.rotation += dt * 0.4; // the ring spins — a live gateway
+          it.view.rotation += dt * 0.1; // barely-turning ring — alive, not dizzying
           if (playerAlive && dist <= it.radius + playerRadius) sink.descend();
           break;
         }

@@ -285,10 +285,11 @@ export class DiveScene implements HitSink, PickupSink {
       node.scale.set(p.scale);
       (p.glow ? this.engine.lightLayer : this.engine.worldLayer).addChild(node);
       this.staticNodes.push(node);
-      // Organic flora sways with the current — the sea breathes (Stardew-style).
+      // Organic flora sways with the current — a whisper, not a wave (large
+      // rotations on big pixel sprites read as too much motion).
       if (/kelp|sprout|tangle|coral|tube_worm|jelly|weed|frond/i.test(p.sprite)) {
         const ph = phaseOf(p.pos.x, p.pos.y);
-        this.sway.push({ node, baseX: p.pos.x, baseRot: node.rotation, phase: ph, amp: 0.05 + (p.scale - 1) * 0.03, speed: 0.7 + (ph % 1) * 0.5 });
+        this.sway.push({ node, baseX: p.pos.x, baseRot: node.rotation, phase: ph, amp: 0.02 + (p.scale - 1) * 0.012, speed: 0.5 + (ph % 1) * 0.3 });
       }
     }
 
@@ -1159,7 +1160,7 @@ export class DiveScene implements HitSink, PickupSink {
     for (const s of this.sway) {
       const w = Math.sin(this.elapsed * s.speed + s.phase);
       s.node.rotation = s.baseRot + s.amp * w;
-      s.node.position.x = s.baseX + s.amp * 22 * w;
+      s.node.position.x = s.baseX + s.amp * 10 * w;
     }
     const flowSpeed = 62;
     for (const st of this.streams) {
@@ -1319,7 +1320,7 @@ export class DiveScene implements HitSink, PickupSink {
       } else {
         // Procedural fallback: idle breathe + hit-flash pop + darter facing.
         const ph = phaseOf(e.pos.x, e.pos.y);
-        const amp = e.kind === "drifter" ? 0.06 : e.kind === "spitter" ? 0.04 : 0.025;
+        const amp = e.kind === "drifter" ? 0.035 : e.kind === "spitter" ? 0.022 : 0.014;
         const spd = e.kind === "drifter" ? 2.2 : 3;
         let sc = 1 + amp * Math.sin(this.elapsed * spd + ph);
         if (e.flash > 0) sc *= 1.12;
@@ -1609,6 +1610,15 @@ export class DiveScene implements HitSink, PickupSink {
   }
   get bossAlive(): boolean {
     return !!this.boss?.alive;
+  }
+  get obstacleCount(): number {
+    return this.arena.obstacles.length;
+  }
+  /** Debug: teleport the player (QA only). */
+  debugTeleport(x: number, y: number): void {
+    this.player.pos.x = x;
+    this.player.pos.y = y;
+    this.engine.centerOn(x, y, true);
   }
   get bulletCount(): number {
     return this.proj.activeCount;

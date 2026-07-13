@@ -88,7 +88,9 @@ async function main(): Promise<void> {
   let loaded = false;
   let loadError: string | null = null;
   let playedIntro = false;
-  let seed = 20260712;
+  // Fresh world every session: the run seed starts random (browser code — the
+  // sim stays deterministic per run via its own seeded Rng).
+  let seed = (Math.random() * 0x7fffffff) | 0;
 
   let goLock = 0;
   let goPrevBestDepth = 0;

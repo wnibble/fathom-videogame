@@ -157,7 +157,7 @@ export class Hub {
         const sc = 1.1 + ((i * 37) % 40) / 100;
         s.scale.set(sc);
         this.root.addChild(s);
-        this.decor.push({ node: s, baseX: p.x, phase: (i * 1.7) % (Math.PI * 2), amp: 0.06, speed: 0.7 + (i % 3) * 0.15 });
+        this.decor.push({ node: s, baseX: p.x, phase: (i * 1.7) % (Math.PI * 2), amp: 0.025, speed: 0.55 + (i % 3) * 0.12 });
       });
     }
 
@@ -375,7 +375,7 @@ export class Hub {
     for (const d of this.decor) {
       const w = Math.sin(this.t * d.speed + d.phase);
       d.node.rotation = d.amp * w;
-      d.node.position.x = d.baseX + d.amp * 20 * w;
+      d.node.position.x = d.baseX + d.amp * 10 * w;
     }
     // Beacons breathe; the launch ring pulses like a held breath.
     for (const k of this.kiosks) {
@@ -395,14 +395,14 @@ export class Hub {
     c.phase += dt;
     // Trail behind + to the side of the diver, with lazy easing + a bob.
     const tx = this.player.pos.x - Math.cos(this.facing) * 46 + 10;
-    const ty = this.player.pos.y - Math.sin(this.facing) * 46 - 26 + Math.sin(c.phase * 2.1) * 6;
+    const ty = this.player.pos.y - Math.sin(this.facing) * 46 - 26 + Math.sin(c.phase * 2.1) * 3.5;
     const ox = c.pos.x, oy = c.pos.y;
     c.pos.x = approach(c.pos.x, tx, 4, dt);
     c.pos.y = approach(c.pos.y, ty, 4, dt);
     const dx = tx - c.pos.x;
     const moved = Math.hypot(c.pos.x - ox, c.pos.y - oy) / Math.max(dt, 0.001);
     c.root.position.set(c.pos.x, c.pos.y);
-    c.root.rotation = Math.sin(c.phase * 2.1) * 0.12;
+    c.root.rotation = Math.sin(c.phase * 2.1) * 0.05;
     if (c.flip) {
       if (Math.abs(dx) > 1) c.flip.scale.x = dx > 0 ? -1 : 1; // dog art faces left
       const swimming = moved > 26;

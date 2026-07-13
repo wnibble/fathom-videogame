@@ -82,10 +82,11 @@ export interface SpitterView {
   update?(e: Enemy, dt: number, elapsed: number): void;
 }
 
-// Shared breathe/flash so procedural + sprite paths feel identical.
+// Shared breathe/flash so procedural + sprite paths feel identical. Gentle —
+// large scale-breathing on pixel sprites reads as wobble, not life.
 function faunaBreathe(e: Enemy, elapsed: number, elite: boolean): number {
   const ph = phaseOf(e.pos.x, e.pos.y);
-  const amp = e.kind === "drifter" ? 0.06 : e.kind === "spitter" ? 0.04 : 0.025;
+  const amp = e.kind === "drifter" ? 0.035 : e.kind === "spitter" ? 0.022 : 0.014;
   const spd = e.kind === "drifter" ? 2.2 : 3;
   let sc = (elite ? 1.28 : 1) * (1 + amp * Math.sin(elapsed * spd + ph));
   if (e.flash > 0) sc *= 1.12;
