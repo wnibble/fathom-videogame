@@ -102,6 +102,7 @@ export class Hub {
 
     // The depth monument — the station's centerpiece, high on the deck.
     const cx = BOUNDS.w / 2;
+    const cy = BOUNDS.h * 0.5;
     this.placeDevice("depth_monument", cx, DECK.y0 + 190, 2.2, 0xffb64a, 0.32);
 
     // Station devices dressing the deck — a real facility.
@@ -122,6 +123,22 @@ export class Hub {
     }
     // The weather buoy — reads the sea you'll dive into.
     this.placeDevice("surface_buoy", DECK.x0 + 220, DECK.y1 - 240, 1.9, 0xffe08a, 0.3);
+
+    // Industrial clutter + lighting — authored positions so the deck reads busy but
+    // never blocks movement (hub props are decoration only).
+    const clutter: [string, number, number, number][] = [
+      ["pipe_cluster", DECK.x0 + 60, DECK.y0 + 320, 1.9], ["pipe_cluster", DECK.x1 - 60, DECK.y0 + 360, 1.9],
+      ["cargo_crate_closed", DECK.x0 + 90, DECK.y1 - 300, 1.7], ["rusted_barrel", DECK.x0 + 170, DECK.y1 - 300, 1.7],
+      ["cargo_crate_closed", DECK.x1 - 100, DECK.y1 - 300, 1.7], ["rusted_barrel", DECK.x1 - 185, DECK.y1 - 290, 1.7],
+      ["floor_grate", cx - 210, cy + 40, 2.0], ["floor_grate", cx + 210, cy + 40, 2.0],
+      ["bollard", cx - 120, DECK.y1 - 90, 1.7], ["bollard", cx + 120, DECK.y1 - 90, 1.7],
+      ["large_valve", DECK.x1 - 250, cy - 20, 1.7],
+    ];
+    for (const [name, x, y, sc] of clutter) this.placeDevice(name, x, y, sc);
+    // Floodlights at the corners cast warm pools across the deck.
+    for (const [x, y] of [[DECK.x0 + 70, DECK.y0 + 70], [DECK.x1 - 70, DECK.y0 + 70], [DECK.x0 + 70, DECK.y1 - 40], [DECK.x1 - 70, DECK.y1 - 40]] as [number, number][]) {
+      this.placeDevice("floodlight_on", x, y, 1.7, 0xffe08a, 0.26);
+    }
 
     // Reef flora in the OPEN WATER fringing the deck (never on the metal).
     const reef = this.assets.spritesInSheet("kelp_forest_props").filter((n) => /kelp|sprout|tangle|coral|frond/i.test(n));
