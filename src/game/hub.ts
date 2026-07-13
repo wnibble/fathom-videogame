@@ -100,48 +100,28 @@ export class Hub {
     // The station DECK — a tiled metal-slab base you move around on.
     this.buildDeck();
 
-    // The station structure — a stylized dome with lit windows, drawn to read as
-    // "home" without needing bespoke art.
+    // The depth monument — the station's centerpiece, high on the deck.
     const cx = BOUNDS.w / 2;
-    const cy = BOUNDS.h * 0.34;
-    const dome = new Graphics();
-    dome.ellipse(cx, cy + 46, 200, 60).fill({ color: 0x0a1a28, alpha: 0.95 });
-    dome.moveTo(cx - 150, cy + 46).arc(cx, cy + 46, 150, Math.PI, 0).fill({ color: 0x123044, alpha: 0.97 });
-    dome.circle(cx, cy - 30, 70).fill({ color: 0x14384f, alpha: 0.95 }).stroke({ width: 3, color: 0x1d5170 });
-    dome.rect(cx - 150, cy + 40, 300, 12).fill({ color: 0x1d5170, alpha: 0.9 });
-    for (let i = -2; i <= 2; i++) {
-      dome.circle(cx + i * 46, cy + 22, 9).fill({ color: COLOR.aquaBright, alpha: 0.85 });
-    }
-    this.root.addChild(dome);
-    const homeGlow = new Sprite(getGlowTexture());
-    homeGlow.anchor.set(0.5);
-    homeGlow.tint = COLOR.aqua;
-    homeGlow.alpha = 0.22;
-    homeGlow.scale.set(560 / 128);
-    homeGlow.position.set(cx, cy);
-    this.light.addChild(homeGlow);
+    this.placeDevice("depth_monument", cx, DECK.y0 + 190, 2.2, 0xffb64a, 0.32);
 
-    // The station keeper — a friendly figure tending the surface (idle animation).
+    // Station devices dressing the deck — a real facility.
+    this.placeDevice("communications_dish_idle", DECK.x0 + 130, DECK.y0 + 150, 1.9);
+    this.placeDevice("specimen_lab_a", DECK.x1 - 150, DECK.y0 + 150, 1.9);
+    this.placeDevice("vault_door_powered", cx - 300, DECK.y0 + 118, 2.0, 0x9db8ff, 0.22);
+    this.placeDevice("core_socket_off", cx + 300, DECK.y0 + 150, 1.9);
+    this.placeDevice("bank_lantern_on", DECK.x0 + 150, DECK.y1 - 120, 2.0, 0xffb64a, 0.34);
+    this.placeDevice("bank_lantern_on", DECK.x1 - 150, DECK.y1 - 120, 2.0, 0xffb64a, 0.34);
+    // The companion portal — where the bichon comes from.
+    this.placeDevice("companion_portal_on", DECK.x1 - 220, DECK.y1 - 240, 1.9, 0x8ff6ff, 0.32);
+    // The station keeper tends the deck.
     if (this.assets.has("keeper_idle")) {
       const keeper = this.assets.anim("keeper_idle");
-      keeper.position.set(cx + 96, cy + 46);
-      keeper.scale.set(1.1);
+      keeper.position.set(cx + 150, DECK.y0 + 210);
+      keeper.scale.set(1.2);
       this.root.addChild(keeper);
     }
-    // A weather buoy off to the side, a lit landmark by the dome.
-    if (this.assets.has("weather_buoy")) {
-      const buoy = this.assets.sprite("weather_buoy");
-      buoy.position.set(cx - 190, cy + 60);
-      buoy.scale.set(1.1);
-      this.root.addChild(buoy);
-      const bglow = new Sprite(getGlowTexture());
-      bglow.anchor.set(0.5);
-      bglow.tint = COLOR.amberBright;
-      bglow.alpha = 0.3;
-      bglow.scale.set(120 / 128);
-      bglow.position.set(cx - 190, cy + 20);
-      this.light.addChild(bglow);
-    }
+    // The weather buoy — reads the sea you'll dive into.
+    this.placeDevice("surface_buoy", DECK.x0 + 220, DECK.y1 - 240, 1.9, 0xffe08a, 0.3);
 
     // Reef flora in the OPEN WATER fringing the deck (never on the metal).
     const reef = this.assets.spritesInSheet("kelp_forest_props").filter((n) => /kelp|sprout|tangle|coral|frond/i.test(n));
@@ -164,32 +144,29 @@ export class Hub {
     }
 
     // Kiosks.
-    const kioskDefs: { tab: number; name: string; color: number; pos: Vec2 }[] = [
-      { tab: 0, name: "OUTFITTER", color: COLOR.amberBright, pos: { x: cx - 340, y: BOUNDS.h * 0.55 } },
-      { tab: 1, name: "MARKET", color: COLOR.hpFull, pos: { x: cx, y: BOUNDS.h * 0.5 } },
-      { tab: 2, name: "ARCHIVE", color: COLOR.aqua, pos: { x: cx + 340, y: BOUNDS.h * 0.55 } },
+    // Each shop is a themed device: OUTFITTER = upgrade shrine, MARKET = sample
+    // scanner, ARCHIVE = codex terminal.
+    const kioskDefs: { tab: number; name: string; color: number; device: string; pos: Vec2 }[] = [
+      { tab: 0, name: "OUTFITTER", color: COLOR.amberBright, device: "upgrade_shrine", pos: { x: cx - 360, y: BOUNDS.h * 0.5 } },
+      { tab: 1, name: "MARKET", color: COLOR.hpFull, device: "sample_scanner", pos: { x: cx, y: BOUNDS.h * 0.5 } },
+      { tab: 2, name: "ARCHIVE", color: COLOR.aqua, device: "codex_terminal", pos: { x: cx + 360, y: BOUNDS.h * 0.5 } },
     ];
     for (const d of kioskDefs) {
-      // Real console prop (bottom-center anchored) when available, else a pillar.
-      if (this.assets.has("shop_console")) {
-        const con = this.assets.sprite("shop_console");
-        con.position.set(d.pos.x, d.pos.y + 28);
-        con.scale.set(1.1);
-        this.root.addChild(con);
-      } else {
+      const placed = this.placeDevice(d.device, d.pos.x, d.pos.y + 30, 2.1) ?? this.placeDevice("shop_console", d.pos.x, d.pos.y + 28, 1.4);
+      if (!placed) {
         const pillar = new Graphics();
         pillar.roundRect(d.pos.x - 16, d.pos.y - 8, 32, 54, 6).fill({ color: 0x0d2233, alpha: 0.96 }).stroke({ width: 2, color: 0x1d4a66 });
         this.root.addChild(pillar);
       }
       const core = new Graphics();
-      core.circle(d.pos.x, d.pos.y - 24, 7).fill({ color: d.color, alpha: 0.95 });
+      core.circle(d.pos.x, d.pos.y - 52, 6).fill({ color: d.color, alpha: 0.95 });
       this.root.addChild(core);
       const beacon = new Sprite(getGlowTexture());
       beacon.anchor.set(0.5);
       beacon.tint = d.color;
       beacon.alpha = 0.5;
-      beacon.scale.set(140 / 128);
-      beacon.position.set(d.pos.x, d.pos.y - 20);
+      beacon.scale.set(150 / 128);
+      beacon.position.set(d.pos.x, d.pos.y - 30);
       this.light.addChild(beacon);
       const label = this.mkLabel(d.name, 15, d.color, "bold");
       const prompt = this.mkLabel("press E", 12, COLOR.aquaBright);
@@ -297,6 +274,27 @@ export class Hub {
         this.root.addChild(rBot);
       }
     }
+  }
+
+  /** Place a station device sprite/anim on the deck, with an optional under-glow. */
+  private placeDevice(name: string, x: number, y: number, scale: number, glowTint?: number, glowAlpha = 0): Container | null {
+    let node: Container | null = null;
+    if (this.assets.anims[name]) node = this.assets.anim(name);
+    else if (this.assets.sprites[name]) node = this.assets.sprite(name);
+    if (!node) return null;
+    node.position.set(x, y);
+    node.scale.set(scale);
+    this.root.addChild(node);
+    if (glowTint !== undefined && glowAlpha > 0) {
+      const g = new Sprite(getGlowTexture());
+      g.anchor.set(0.5);
+      g.tint = glowTint;
+      g.alpha = glowAlpha;
+      g.scale.set(180 / 128);
+      g.position.set(x, y - 30);
+      this.light.addChild(g);
+    }
+    return node;
   }
 
   private mkLabel(s: string, size: number, color: number, weight: "normal" | "bold" = "normal"): Text {
