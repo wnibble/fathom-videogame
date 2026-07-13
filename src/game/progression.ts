@@ -199,18 +199,41 @@ export function maxedAnyUpgrade(run: RunState): boolean {
   return UPGRADES.some((u) => (run.stacks[u.id] ?? 0) >= u.maxStacks);
 }
 
-/** Weighted, distinct 3-card roll (uses Math.random — menu-side, not sim). */
+/** How much the run leans into each upgrade category (drives the draft + glow hue). */
+export function leanCounts(run: RunState): { offense: number; defense: number; utility: number } {
+  const c = { offense: 0, defense: 0, utility: 0 };
+  for (const [id, n] of Object.entries(run.stacks)) {
+    const u = UPGRADE_BY_ID[id];
+    if (u) c[u.category] += n;
+  }
+  return c;
+}
+
+/** The diver's core HUE reflects its build identity (glow-as-identity). Stays cool. */
+export function leanHue(run: RunState): number {
+  const c = leanCounts(run);
+  const max = Math.max(c.offense, c.defense, c.utility);
+  if (max === 0) return 0x39d7e6; // neutral aqua
+  if (c.offense === max) return 0x8ff6ff; // bright cyan — pressure/offense
+  if (c.defense === max) return 0x53e0a0; // mint — resilience
+  return 0x9db8ff; // periwinkle — utility
+}
+
+/** Weighted, distinct 3-card roll, biased toward the run's lean (directable draft). */
 export function rollChoices(run: RunState): UpgradeChoice[] {
   const pool = available(run);
+  const lean = leanCounts(run);
+  const totalLean = lean.offense + lean.defense + lean.utility || 1;
   const picks: Upgrade[] = [];
   const bag = pool.slice();
+  const weightOf = (u: Upgrade) => u.weight * (1 + 0.7 * (lean[u.category] / totalLean));
   while (picks.length < 3 && bag.length) {
     let total = 0;
-    for (const u of bag) total += u.weight;
+    for (const u of bag) total += weightOf(u);
     let r = Math.random() * total;
     let idx = 0;
     for (let i = 0; i < bag.length; i++) {
-      r -= bag[i].weight;
+      r -= weightOf(bag[i]);
       if (r <= 0) {
         idx = i;
         break;

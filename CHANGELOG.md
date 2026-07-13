@@ -250,6 +250,14 @@ the beacon the deep hunts you by.
 - **Hero landmarks** — each stratum has one oversized, cool, low-alpha beacon that gives
   the place a memorable silhouette. Persistence tracks `deepestStratum` + `codexSeen`.
 
+### Phase 2 (started)
+- **Glow-as-identity (#7)** — your build lean (offense/defense/utility) tints the diver's
+  **core HUE** and biases the upgrade draft toward your identity (snowballing a legible
+  build). Completes the double-bind: glow = weapon + treasure + beacon + identity.
+- **Elite mutations (#5)** (`content/mutations.ts`) — elites now roll a depth-scaled
+  mutation with an aura color: **Irradiated** (lays a poison damage-trail), **Bloomed**
+  (bursts a bullet-ring on death), **Voltaic** (faster). N enemies × M mutations.
+
 ### Accepted deviations / deferred (documented, not silently skipped)
 
 - **Render interpolation** (contract `core.md`): the slice renders raw fixed-step sim

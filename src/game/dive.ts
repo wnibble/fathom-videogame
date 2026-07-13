@@ -19,7 +19,8 @@ import { makeDrifter, updateDrifter } from "../systems/drifter";
 import { buildStratum, STRATA, STRATA_DEPTH, type ArenaData } from "../content/strata";
 import { SPECIES_FOR_STRATUM } from "../content/species";
 import { buildPlayerView, buildSpitterView, buildDarterView, buildDrifterView, type SpitterView } from "../render/actors";
-import { PLAYER_SHOT } from "../content/emitters";
+import { PLAYER_SHOT, SPITTER_RADIAL } from "../content/emitters";
+import { rollMutation, MUTATION_BY_ID } from "../content/mutations";
 import { bus } from "../core/events";
 import { COLOR } from "../palette";
 import { Rng } from "../core/rng";
@@ -43,6 +44,7 @@ import {
   rollChoices,
   hasUpgradesAvailable,
   maxedAnyUpgrade,
+  leanHue,
   BASE_HP,
   type RunState,
   type UpgradeChoice,
@@ -287,6 +289,14 @@ export class DiveScene implements HitSink, PickupSink {
       } else {
         updateSpitter(e, dt, p, this.proj, this.arena.bounds);
       }
+      // Irradiated mutation: lay a poison damage-trail in its wake.
+      if (e.mutation === "irradiated") {
+        e.mineTimer = (e.mineTimer ?? 0.6) - dt;
+        if (e.mineTimer <= 0) {
+          e.mineTimer = 0.6;
+          this.hazards.spawn(e.pos.x, e.pos.y, 20, 3, 8, 0x8fe04a);
+        }
+      }
     }
 
     this.proj.enemySlow = this.run.stats.enemyBulletSlow;
@@ -399,6 +409,16 @@ export class DiveScene implements HitSink, PickupSink {
       const bulletCount = Math.min(22, 14 + Math.floor(tier)) + (elite ? 4 : 0);
       e = makeSpitter(best, { elite, hp: Math.round(baseHp), speed, bulletCount });
       v = buildSpitterView(elite);
+    }
+    // Elite mutation — an aura color + a reused behavior seam.
+    const mut = rollMutation(this.rng, tier);
+    if (mut) {
+      e.mutation = mut;
+      v.glow.tint = MUTATION_BY_ID[mut].aura;
+      e.hp = Math.round(e.hp * 1.3);
+      e.maxHp = e.hp;
+      if (mut === "voltaic") e.speed *= 1.3;
+      if (mut === "irradiated") e.mineTimer = 0.5;
     }
     this.enemies.push(e);
     this.enemyViews.set(e, v);
@@ -539,6 +559,10 @@ export class DiveScene implements HitSink, PickupSink {
   onEnemyKilled(enemy: Enemy): void {
     onKill(this.run, enemy.elite);
     if (enemy.elite) this.eliteKills++;
+    // Bloomed mutation: burst a ring of bullets on death.
+    if (enemy.mutation === "bloomed") {
+      this.proj.fireBurst({ ...SPITTER_RADIAL, count: 12, speed: 150, ttl: 2.4, telegraph: undefined }, enemy.pos, 0, "enemy");
+    }
     audio.kill();
     if (this.shakeEnabled) this.shake = enemy.elite ? 10 : 6;
     if (!this.reducedMotion) this.hitstop = 0.04;
@@ -701,7 +725,9 @@ export class DiveScene implements HitSink, PickupSink {
     this.playerView.lamp.position.set(p.pos.x, p.pos.y);
     this.playerView.lamp.visible = p.alive;
     // glow-as-weapon: the core brightens + pulses with graze charge
+    // glow-as-identity: the core HUE reflects your build lean
     const ch = this.charge;
+    this.playerView.lamp.tint = leanHue(this.run);
     this.playerView.lamp.alpha = (0.3 + ch * 0.5) * (p.alive ? 1 : 0);
     this.playerView.lamp.scale.set((155 / 128) * (1 + ch * 0.4 + (ch >= 1 ? 0.12 * Math.sin(this.elapsed * 18) : 0)));
     // glow-as-treasure: unbanked haul glows behind the diver, growing with the haul

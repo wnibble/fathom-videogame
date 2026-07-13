@@ -69,6 +69,8 @@ export interface Enemy {
   speed: number; // move speed (scales with depth tier)
   lungeTimer: number; // darter: >0 while mid-lunge (dashing at the player)
   contactDamage: number; // melee/lunge contact damage
+  mutation?: string; // elite modifier id (irradiated/bloomed/voltaic)
+  mineTimer?: number; // irradiated mutation: cadence for laying a damage trail
 }
 
 export interface Player {
