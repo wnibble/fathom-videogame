@@ -1,0 +1,390 @@
+{
+  "manifest_version": "1.0",
+  "coordinate_system": "pixels, origin top-left, bbox=[x0,y0,x1,y1], x1/y1 exclusive",
+  "important_warning": "These reconstructed sheets use a flat #ff00ff background and are RGB. Remove background before trimming.",
+  "recommended_output": {
+    "player_companion": "24x24",
+    "standard_fauna": "32x32",
+    "boss": "96x96+",
+    "props": "32x32, 48x48, or trimmed",
+    "filtering": "nearest-neighbor only",
+    "padding": "8 transparent px around subject; 2px atlas extrusion"
+  },
+  "sheets": {
+    "diver": {
+      "file": "diver_sheet.png",
+      "size": [
+        732,
+        112
+      ],
+      "entries": [
+        {
+          "name": "diver_idle_f1",
+          "bbox": [
+            0,
+            0,
+            112,
+            112
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "diver_idle_f2",
+          "bbox": [
+            124,
+            0,
+            236,
+            112
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "diver_swim_f1",
+          "bbox": [
+            248,
+            0,
+            360,
+            112
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "diver_swim_f2",
+          "bbox": [
+            372,
+            0,
+            484,
+            112
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "diver_swim_f3",
+          "bbox": [
+            496,
+            0,
+            608,
+            112
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "diver_hurt",
+          "bbox": [
+            620,
+            0,
+            732,
+            112
+          ],
+          "pivot": "center"
+        }
+      ]
+    },
+    "fauna_enemies": {
+      "file": "fauna_enemies_sheet.png",
+      "size": [
+        676,
+        444
+      ],
+      "entries": [
+        {
+          "name": "spitter_idle_f1",
+          "bbox": [
+            0,
+            0,
+            160,
+            140
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "spitter_idle_f2",
+          "bbox": [
+            172,
+            0,
+            332,
+            140
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "spitter_windup",
+          "bbox": [
+            344,
+            0,
+            504,
+            140
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "spitter_fire",
+          "bbox": [
+            516,
+            0,
+            676,
+            140
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "darter_idle",
+          "bbox": [
+            0,
+            152,
+            160,
+            292
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "darter_windup",
+          "bbox": [
+            172,
+            152,
+            332,
+            292
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "darter_lunge",
+          "bbox": [
+            344,
+            152,
+            504,
+            292
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "darter_recover",
+          "bbox": [
+            516,
+            152,
+            676,
+            292
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "drifter_idle_f1",
+          "bbox": [
+            0,
+            304,
+            160,
+            444
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "drifter_idle_f2",
+          "bbox": [
+            172,
+            304,
+            332,
+            444
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "drifter_pulse",
+          "bbox": [
+            344,
+            304,
+            504,
+            444
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "drifter_spawn",
+          "bbox": [
+            516,
+            304,
+            676,
+            444
+          ],
+          "pivot": "center"
+        }
+      ]
+    },
+    "gatekeeper": {
+      "file": "gatekeeper_sheet.png",
+      "size": [
+        796,
+        180
+      ],
+      "entries": [
+        {
+          "name": "gatekeeper_idle",
+          "bbox": [
+            0,
+            0,
+            190,
+            180
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "gatekeeper_open",
+          "bbox": [
+            202,
+            0,
+            392,
+            180
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "gatekeeper_attack",
+          "bbox": [
+            404,
+            0,
+            594,
+            180
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "gatekeeper_hurt",
+          "bbox": [
+            606,
+            0,
+            796,
+            180
+          ],
+          "pivot": "center"
+        }
+      ]
+    },
+    "bichon": {
+      "file": "bichon_sheet.png",
+      "size": [
+        548,
+        104
+      ],
+      "entries": [
+        {
+          "name": "dog_idle_f1",
+          "bbox": [
+            0,
+            0,
+            128,
+            104
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "dog_idle_f2",
+          "bbox": [
+            140,
+            0,
+            268,
+            104
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "dog_swim_f1",
+          "bbox": [
+            280,
+            0,
+            408,
+            104
+          ],
+          "pivot": "center"
+        },
+        {
+          "name": "dog_swim_f2",
+          "bbox": [
+            420,
+            0,
+            548,
+            104
+          ],
+          "pivot": "center"
+        }
+      ]
+    },
+    "surface_station": {
+      "file": "surface_station_sheet.png",
+      "size": [
+        1122,
+        130
+      ],
+      "entries": [
+        {
+          "name": "station_floor",
+          "bbox": [
+            0,
+            0,
+            150,
+            130
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "railing_edge",
+          "bbox": [
+            162,
+            0,
+            312,
+            130
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "dive_vent",
+          "bbox": [
+            324,
+            0,
+            474,
+            130
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "shop_console",
+          "bbox": [
+            486,
+            0,
+            636,
+            130
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "weather_buoy",
+          "bbox": [
+            648,
+            0,
+            798,
+            130
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "keeper_idle_f1",
+          "bbox": [
+            810,
+            0,
+            960,
+            130
+          ],
+          "pivot": "bottom-center"
+        },
+        {
+          "name": "keeper_idle_f2",
+          "bbox": [
+            972,
+            0,
+            1122,
+            130
+          ],
+          "pivot": "bottom-center"
+        }
+      ]
+    }
+  }
+}

@@ -365,6 +365,7 @@ async function main(): Promise<void> {
             relics: r.relics,
             prevBestDepth: goPrevBestDepth,
             prevBestScore: goPrevBestScore,
+            won: r.won ?? false,
           })
         );
       },

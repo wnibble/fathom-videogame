@@ -30,6 +30,7 @@ export interface SaveData {
   resources: Record<string, number>; // stratum materials (Market currency)
   weatherIndex: number; // current forecast (applies to the next dive)
   pendingBoons: string[]; // Market boons queued for the next dive
+  cradleClears: number; // times the Cradle guardian has been defeated (win count)
 }
 
 export interface DiveResult {
@@ -42,6 +43,7 @@ export interface DiveResult {
   level: number;
   stratum: number; // deepest stratum reached this run
   surfaced: boolean; // false = death (partial bank), true = voluntary surface (full)
+  won?: boolean; // true = defeated the Cradle guardian (a victory, full bank + bonus)
   maxedUpgrade: boolean;
   seen: string[];
   resources: Record<string, number>; // materials gathered this run
@@ -80,6 +82,7 @@ function fresh(): SaveData {
     resources: {},
     weatherIndex: 0,
     pendingBoons: [],
+    cradleClears: 0,
   };
 }
 
@@ -115,6 +118,7 @@ export function load(): SaveData {
       resources: coerceTiers(parsed.resources),
       weatherIndex: num(parsed.weatherIndex, 0),
       pendingBoons: Array.isArray(parsed.pendingBoons) ? parsed.pendingBoons.filter((s) => typeof s === "string") : [],
+      cradleClears: num(parsed.cradleClears, 0),
     };
   } catch {
     return fresh();
@@ -162,6 +166,7 @@ export function bankDive(
     codexSeen: Array.from(new Set([...data.codexSeen, ...r.seen])),
     resources: mergeResources(data.resources, r.resources),
     weatherIndex: data.weatherIndex + 1, // the sea turns after every dive
+    cradleClears: data.cradleClears + (r.won ? 1 : 0),
   };
   const satisfied = evaluateBadges({
     bestDepth: next.bestDepth,
@@ -172,6 +177,7 @@ export function bankDive(
     runMaxedUpgrade: r.maxedUpgrade,
     runs: next.runs,
     totalPearlsEarned: next.totalPearlsEarned,
+    cradleCleared: next.cradleClears >= 1,
   });
   const newBadges = satisfied.filter((id) => !next.badges.includes(id));
   if (newBadges.length) next = { ...next, badges: Array.from(new Set([...next.badges, ...newBadges])) };

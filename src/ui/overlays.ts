@@ -258,6 +258,7 @@ export interface GameOverData {
   relics: number;
   prevBestDepth: number;
   prevBestScore: number;
+  won?: boolean; // defeated the Cradle guardian
 }
 export class GameOverOverlay implements Overlay {
   readonly root = new Container();
@@ -274,8 +275,8 @@ export class GameOverOverlay implements Overlay {
       this.root.addChild(t);
       return t;
     };
-    add("YOU SURFACED", 30, COLOR.aquaBright, "bold");
-    add(recScore ? "★ NEW HIGH SCORE ★" : recDepth ? "★ NEW DEEPEST DIVE ★" : "you carried this back", 15, recScore || recDepth ? COLOR.amberBright : COLOR.teal);
+    add(d.won ? "❂  THE CRADLE — YOU MADE IT" : "YOU SURFACED", 30, d.won ? COLOR.amberBright : COLOR.aquaBright, "bold");
+    add(d.won ? "you slew the guardian and rose from the floor" : recScore ? "★ NEW HIGH SCORE ★" : recDepth ? "★ NEW DEEPEST DIVE ★" : "you carried this back", 15, d.won || recScore || recDepth ? COLOR.amberBright : COLOR.teal);
     add(`SCORE   ${Math.floor(d.score)}`, 22, COLOR.amberBright, "bold");
     add(`DEPTH ${Math.floor(d.depth)} m   ·   LV ${d.level}   ·   ${d.kills} kills   ·   ${d.relics} relics`, 14, COLOR.teal);
     add(`◈ +${d.pearlsEarned} pearls banked   (lost ${d.samplesLost} unbanked)`, 15, COLOR.sample, "bold");

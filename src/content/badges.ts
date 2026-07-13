@@ -9,6 +9,7 @@ export interface BadgeCtx {
   runMaxedUpgrade: boolean;
   runs: number;
   totalPearlsEarned: number;
+  cradleCleared: boolean;
 }
 export interface Badge {
   id: string;
@@ -32,6 +33,7 @@ export const BADGES: Badge[] = [
   { id: "veteran", name: "Veteran Diver", icon: "⚓", desc: "Complete 25 dives", test: (c) => c.runs >= 25 },
   { id: "maxed-build", name: "Perfected", icon: "⬢", desc: "Max any upgrade in a run", test: (c) => c.runMaxedUpgrade },
   { id: "pearl-hoard", name: "Pearl Diver", icon: "⬤", desc: "Earn 500 lifetime pearls", test: (c) => c.totalPearlsEarned >= 500 },
+  { id: "the-cradle", name: "Cradle-Breaker", icon: "❂", desc: "Defeat the guardian of the Cradle", test: (c) => c.cradleCleared },
 ];
 export const BADGE_BY_ID: Record<string, Badge> = Object.fromEntries(BADGES.map((b) => [b.id, b]));
 

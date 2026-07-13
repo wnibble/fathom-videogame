@@ -19,6 +19,7 @@ import { FlowField, FlowParticles } from "../systems/flow";
 import { makeSpitter, updateSpitter } from "../systems/spitter";
 import { makeDarter, updateDarter } from "../systems/darter";
 import { makeDrifter, updateDrifter } from "../systems/drifter";
+import { makeBoss, buildBossView, updateBoss, BOSS_TELEGRAPH, type BossCtx } from "../systems/boss";
 import { buildStratum, STRATA, STRATA_DEPTH, type ArenaData } from "../content/strata";
 import { SPECIES_FOR_STRATUM } from "../content/species";
 import { WEATHER, type Weather } from "../content/weather";
@@ -105,6 +106,15 @@ export class DiveScene implements HitSink, PickupSink {
   private flow!: FlowField; // ambient sea drift over the whole arena
   private flowFx: FlowParticles | null = null;
   private flowVec: Vec2 = { x: 0, y: 0 };
+  // The Cradle guardian (boss) — only present on the floor.
+  private boss: Enemy | null = null;
+  private bossView: SpitterView | null = null;
+  private bossHpG: Graphics | null = null;
+  private bossHpText: Text | null = null;
+  private bossRing: Graphics | null = null;
+  private bossCtx: BossCtx | null = null;
+  private winSeqT = -1; // >=0 while the victory sequence plays
+  private winCard: Container | null = null;
 
   private acc = 0;
   private elapsed = 0;
@@ -282,6 +292,12 @@ export class DiveScene implements HitSink, PickupSink {
       this.renderSync(dt, input);
       return;
     }
+    if (this.winSeqT >= 0) {
+      // Combat is over — play out the victory beat, then bank the win.
+      this.tickWinSequence(dt);
+      this.renderSync(dt, input);
+      return;
+    }
     if (this.hitstop > 0) this.hitstop -= dt;
     if (!this.ended && this.hitstop <= 0) {
       this.acc += dt;
@@ -395,7 +411,10 @@ export class DiveScene implements HitSink, PickupSink {
     // enemies — dispatch by archetype (each a distinct verb)
     for (const e of this.enemies) {
       if (!e.alive) continue;
-      if (e.kind === "darter") {
+      if (e === this.boss) {
+        const phase = e.hp / e.maxHp < 0.5 ? 2 : 1;
+        updateBoss(e, dt, p, this.bossCtx!, phase);
+      } else if (e.kind === "darter") {
         updateDarter(e, dt, p, this.arena.bounds);
         if (p.alive && p.invuln <= 0) {
           const dx = e.pos.x - p.pos.x;
@@ -451,7 +470,8 @@ export class DiveScene implements HitSink, PickupSink {
     const maxAlive = Math.min(6, 2 + Math.floor(tier));
     const interval = Math.max(1.0, 3.2 - tier * 0.28) * this.spawnIntervalMult;
     const aliveCount = this.enemies.reduce((n, e) => n + (e.alive ? 1 : 0), 0);
-    if (this.spawnTimer <= 0 && aliveCount < maxAlive) {
+    // While the guardian lives, the normal wave stops — it summons its own adds.
+    if (!this.boss?.alive && this.spawnTimer <= 0 && aliveCount < maxAlive) {
       this.spawnEnemy(tier);
       this.spawnTimer = interval;
     }
@@ -481,7 +501,7 @@ export class DiveScene implements HitSink, PickupSink {
     }
   }
 
-  private buildResult(surfaced: boolean): DiveResult {
+  private buildResult(surfaced: boolean, won = false): DiveResult {
     return {
       depth: this.depth,
       score: this.run.score.score,
@@ -492,6 +512,7 @@ export class DiveScene implements HitSink, PickupSink {
       level: this.run.xp.level,
       stratum: this.stratumIndex,
       surfaced,
+      won,
       maxedUpgrade: maxedAnyUpgrade(this.run),
       seen: [...this.seen],
       resources: { ...this.runResources },
@@ -545,6 +566,179 @@ export class DiveScene implements HitSink, PickupSink {
     this.enemyViews.set(e, v);
     this.engine.worldLayer.addChild(v.root);
     this.engine.lightLayer.addChild(v.glow);
+  }
+
+  /** Summon the Cradle guardian — the climax fight. Scales with the run's power. */
+  private spawnBoss(): void {
+    if (this.boss) return;
+    const hp = Math.round(2000 + this.run.xp.level * 90 + this.run.stats.maxHpBonus * 4);
+    const boss = makeBoss({ x: this.arena.bounds.w / 2, y: this.arena.bounds.h * 0.2 }, hp);
+    const view = buildBossView();
+    this.boss = boss;
+    this.bossView = view;
+    this.enemies.push(boss);
+    this.engine.worldLayer.addChild(view.root);
+    this.engine.lightLayer.addChild(view.glow);
+    // Telegraph ring (bespoke — the boss isn't in the normal enemyViews path).
+    this.bossRing = new Graphics();
+    this.engine.lightLayer.addChild(this.bossRing);
+    // Boss HP bar (screen-space).
+    this.bossHpG = new Graphics();
+    this.bossHpText = new Text({ text: "THE CRADLE GUARDIAN", style: new TextStyle({ fontFamily: "Consolas, monospace", fontSize: 13, fill: COLOR.coralBright, fontWeight: "bold", letterSpacing: 3 }) });
+    this.bossHpText.anchor.set(0.5, 1);
+    this.engine.uiRoot.addChild(this.bossHpG, this.bossHpText);
+    this.bossCtx = {
+      fire: (spec, pos, base) => this.proj.fireBurst(spec, pos, base, "enemy"),
+      hazard: (x, y) => this.hazards.spawn(x, y, 34, 3.0, 14, COLOR.coralBright),
+      spawnAdd: (pos) => this.spawnBossAdd(pos),
+      hitPlayer: (dmg, at) => {
+        if (this.player.alive && this.player.invuln <= 0) this.onPlayerHit(dmg, at);
+      },
+      bounds: this.arena.bounds,
+    };
+    audio.relic();
+    if (this.shakeEnabled) this.shake = 0.7;
+  }
+
+  /** A darter add summoned by the guardian in phase 2 (renders + dies normally). */
+  private spawnBossAdd(pos: Vec2): void {
+    if (this.enemies.reduce((n, e) => n + (e.alive ? 1 : 0), 0) > 8) return;
+    const e = makeDarter(pos, { elite: false, hp: 40, speed: 130 });
+    const v = buildDarterView(false);
+    this.enemies.push(e);
+    this.enemyViews.set(e, v);
+    this.engine.worldLayer.addChild(v.root);
+    this.engine.lightLayer.addChild(v.glow);
+  }
+
+  /** Victory: the guardian is slain. Freeze, flash, then bank the run as a WIN. */
+  private onCradleCleared(): void {
+    if (this.winSeqT >= 0 || this.ended) return;
+    this.winSeqT = 0;
+    addScore(this.run, 5000, false); // the climax bonus
+    if (this.shakeEnabled) this.shake = 1;
+    if (!this.reducedMotion) this.hitstop = 0.25;
+    audio.levelUp();
+    this.proj.clear(); // sweep the guardian's last volley off the board
+    // Keep boss + bossView so renderBoss can play the death fade (winSeqT drives it).
+    this.clearBossUi();
+    this.showWinCard();
+  }
+
+  private showWinCard(): void {
+    const c = new Container();
+    const w = this.engine.width;
+    const h = this.engine.height;
+    const style = (size: number, color: number, weight: "normal" | "bold" = "normal") =>
+      new TextStyle({ fontFamily: "Consolas, monospace", fontSize: size, fill: color, fontWeight: weight, letterSpacing: 4, align: "center" });
+    const a = new Text({ text: "THE CRADLE OPENS", style: style(36, COLOR.aquaBright, "bold") });
+    const b = new Text({ text: "the guardian is still. the deep has let you pass.", style: style(15, COLOR.teal) });
+    const cc = new Text({ text: "you may rise now, and carry this back", style: style(13, 0x7f9fb5) });
+    for (const t of [a, b, cc]) t.anchor.set(0.5);
+    a.position.set(w / 2, h * 0.4);
+    b.position.set(w / 2, h * 0.4 + 44);
+    cc.position.set(w / 2, h * 0.4 + 74);
+    c.addChild(a, b, cc);
+    this.engine.uiRoot.addChild(c);
+    this.winCard = c;
+  }
+
+  private tickWinSequence(dt: number): void {
+    this.winSeqT += dt;
+    if (this.shake > 0) this.shake = Math.max(0, this.shake - dt * 1.2);
+    if (this.winSeqT >= 4.2 && !this.ended) {
+      this.ended = true;
+      this.onGameOver(this.buildResult(true, true));
+    }
+  }
+
+  private clearBossUi(): void {
+    this.bossHpG?.destroy();
+    this.bossHpText?.destroy();
+    this.bossRing?.parent?.removeChild(this.bossRing);
+    this.bossRing?.destroy();
+    this.bossHpG = null;
+    this.bossHpText = null;
+    this.bossRing = null;
+  }
+
+  /** Remove the boss + all its UI/view (win path already nulls bossView first). */
+  private teardownBoss(): void {
+    if (this.boss) {
+      const i = this.enemies.indexOf(this.boss);
+      if (i >= 0) this.enemies.splice(i, 1);
+      this.boss = null;
+    }
+    if (this.bossView) {
+      this.bossView.root.parent?.removeChild(this.bossView.root);
+      this.bossView.root.destroy({ children: true });
+      this.bossView.glow.parent?.removeChild(this.bossView.glow);
+      this.bossView.glow.destroy();
+      this.bossView = null;
+    }
+    this.clearBossUi();
+    this.bossCtx = null;
+    if (this.winCard) {
+      this.winCard.parent?.removeChild(this.winCard);
+      this.winCard.destroy({ children: true });
+      this.winCard = null;
+    }
+    this.winSeqT = -1;
+  }
+
+  private renderBoss(): void {
+    const b = this.boss;
+    const v = this.bossView;
+    if (!b || !v) return;
+    // Death fade — squash + brighten + vanish over the first beat of the win.
+    if (!b.alive) {
+      const t = Math.min(1, this.winSeqT / 0.7);
+      v.root.scale.set(1 + 0.4 * t, Math.max(0.02, 1 - t));
+      v.root.alpha = 1 - t;
+      v.glow.alpha = (1 - t) * 0.9;
+      v.glow.tint = 0xffe6c0;
+      if (t >= 1) {
+        v.root.parent?.removeChild(v.root);
+        v.root.destroy({ children: true });
+        v.glow.parent?.removeChild(v.glow);
+        v.glow.destroy();
+        this.boss = null;
+        this.bossView = null;
+      }
+      return;
+    }
+    v.root.position.set(b.pos.x, b.pos.y);
+    v.glow.position.set(b.pos.x, b.pos.y);
+    const pulse = 0.5 + 0.5 * Math.sin(this.elapsed * 2.2);
+    const tele = b.telegraphTimer > 0;
+    v.glow.alpha = (tele ? 0.72 : 0.46) + 0.14 * pulse;
+    v.glow.tint = tele ? 0xff5c7a : 0xb85cff;
+    let sc = 1 + 0.03 * Math.sin(this.elapsed * 1.6);
+    if (b.flash > 0) sc *= 1.06;
+    v.root.scale.set(sc);
+    v.root.rotation = Math.sin(this.elapsed * 0.4) * 0.06;
+
+    if (this.bossRing) {
+      this.bossRing.clear();
+      if (tele) {
+        const frac = 1 - b.telegraphTimer / BOSS_TELEGRAPH;
+        this.bossRing.circle(b.pos.x, b.pos.y, b.radius + 14).stroke({ width: 3, color: 0xff5c7a, alpha: 0.3 });
+        this.bossRing.arc(b.pos.x, b.pos.y, b.radius + 14, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2).stroke({ width: 5, color: COLOR.coralBright, alpha: 0.9 });
+      }
+    }
+
+    if (this.bossHpG && this.bossHpText) {
+      const w = this.engine.width;
+      const bw = Math.min(560, w * 0.5);
+      const bx = w / 2 - bw / 2;
+      const by = 68; // below the score readout so the label doesn't collide
+      const ratio = Math.max(0, b.hp / b.maxHp);
+      this.bossHpG.clear();
+      this.bossHpG.roundRect(bx - 2, by - 2, bw + 4, 12, 4).fill({ color: COLOR.abyss, alpha: 0.8 });
+      this.bossHpG.roundRect(bx, by, bw, 8, 3).fill({ color: COLOR.deepNavy, alpha: 0.9 });
+      this.bossHpG.roundRect(bx, by, bw * ratio, 8, 3).fill({ color: COLOR.coralBright, alpha: 0.95 });
+      this.bossHpText.position.set(w / 2, by - 4);
+    }
   }
 
   private applyWeatherCurrents(): void {
@@ -640,6 +834,8 @@ export class DiveScene implements HitSink, PickupSink {
     this.spawnTimer = 2;
     this.showStratumCard();
     audio.relic();
+    // The floor is a boss arena — the guardian rises to meet you.
+    if (this.arena.isFloor) this.spawnBoss();
   }
 
   private clearWorld(): void {
@@ -683,6 +879,7 @@ export class DiveScene implements HitSink, PickupSink {
     this.staticNodes = [];
     this.streams = [];
     this.sway = [];
+    this.teardownBoss();
     if (this.flowFx) {
       this.flowFx.destroy();
       this.flowFx = null;
@@ -769,6 +966,17 @@ export class DiveScene implements HitSink, PickupSink {
     this.spawnHitFx(at.x, at.y, COLOR.aquaBright, false);
   }
   onEnemyKilled(enemy: Enemy): void {
+    if (enemy === this.boss) {
+      onKill(this.run, true);
+      this.eliteKills++;
+      this.spawnFx("sample_burst", enemy.pos.x, enemy.pos.y);
+      // A shower of loot from the fallen guardian.
+      for (let i = 0; i < 14; i++) this.pickups.spawn("sample", enemy.pos.x + this.rng.range(-40, 40), enemy.pos.y + this.rng.range(-40, 40), 1);
+      const res = this.arena.resource;
+      this.runResources[res] = (this.runResources[res] ?? 0) + 12;
+      this.onCradleCleared();
+      return;
+    }
     onKill(this.run, enemy.elite);
     if (enemy.elite) this.eliteKills++;
     // Bloomed mutation: burst a ring of bullets on death.
@@ -897,6 +1105,7 @@ export class DiveScene implements HitSink, PickupSink {
   private renderSync(dt: number, _input: Input): void {
     const p = this.player;
     this.flowFx?.update(dt, this.elapsed); // drifting streaks reveal the living current
+    this.renderBoss();
     // Flora sway — organic props lean with the current so the field feels alive.
     for (const s of this.sway) {
       const w = Math.sin(this.elapsed * s.speed + s.phase);
@@ -1216,6 +1425,7 @@ export class DiveScene implements HitSink, PickupSink {
       d.glow.destroy();
     }
     this.dyingViews = [];
+    this.teardownBoss();
     if (this.flowFx) {
       this.flowFx.destroy();
       this.flowFx = null;
@@ -1299,6 +1509,23 @@ export class DiveScene implements HitSink, PickupSink {
   /** Debug: jump depth (QA only). */
   debugSetDepth(d: number): void {
     this.depth = d;
+  }
+  /** Debug: warp straight to the Cradle floor + summon the guardian (QA only). */
+  debugToCradle(): void {
+    this.depth = STRATA_DEPTH * (STRATA.length - 1) + 10;
+    this.nextStrataDepth = this.depth + STRATA_DEPTH;
+    this.doStratumRebuild(STRATA.length - 1);
+  }
+  /** Debug: instantly fell the guardian to test the victory flow (QA only). */
+  debugKillBoss(): void {
+    if (this.boss && this.boss.alive) {
+      this.boss.hp = 0;
+      this.boss.alive = false;
+      this.onEnemyKilled(this.boss);
+    }
+  }
+  get bossAlive(): boolean {
+    return !!this.boss?.alive;
   }
   get bulletCount(): number {
     return this.proj.activeCount;
