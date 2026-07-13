@@ -36,15 +36,16 @@ try {
     report.verdict = "FAIL";
   }
 
-  // Menu → Surface Station
+  // Menu → Surface Station (now a walkable hub)
   await page.keyboard.press("Enter");
   report.phases.stationReached = await waitState("station", 5000);
   await page.screenshot({ path: `${OUT}/01b-station.png` });
-  // LAUNCH DIVE is the 2nd-to-last row; reach it by wrapping UP twice (robust vs
-  // dropped inputs at low fps — two ArrowUp always lands on LAUNCH).
-  await page.keyboard.press("ArrowUp"); await sleep(160);
-  await page.keyboard.press("ArrowUp"); await sleep(160);
-  await page.keyboard.press("Enter");
+  // Swim DOWN into the launch vent, then press E to dive. Hold Down long enough
+  // to close the ~230px gap, then interact a couple times (robust vs low fps).
+  await page.keyboard.down("KeyS"); await sleep(1600); await page.keyboard.up("KeyS");
+  await sleep(120);
+  await page.keyboard.press("KeyE"); await sleep(200);
+  await page.keyboard.press("KeyE");
   report.phases.diveReached = await waitState("dive", 16000); // through cold-open cutscene
   await page.screenshot({ path: `${OUT}/02-dive.png` });
   if (!report.phases.diveReached) {

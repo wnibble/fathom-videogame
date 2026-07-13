@@ -19,7 +19,7 @@ import { deriveMeta } from "./game/meta";
 import { weatherAt } from "./content/weather";
 import { BOON_BY_ID } from "./content/boons";
 import { audio } from "./engine/audio";
-import { StationOverlay } from "./ui/station";
+import { Hub } from "./game/hub";
 import { COLOR } from "./palette";
 import {
   MenuOverlay,
@@ -78,6 +78,7 @@ async function main(): Promise<void> {
   let dive: DiveScene | null = null;
   let activeOverlay: Overlay | null = null;
   let cutscene: Cutscene | null = null;
+  let hub: Hub | null = null;
   let errorOverlay: Container | null = null;
 
   let loadProgress = 0;
@@ -141,29 +142,6 @@ async function main(): Promise<void> {
     hud.root.visible = true;
     hud.layout(engine.width, engine.height);
   };
-
-  const buildStation = () =>
-    new StationOverlay(save, lastBank, weatherAt(save.weatherIndex), {
-      onLaunch: () => fsm.change(playedIntro ? "dive" : "cutscene"),
-      onBack: () => fsm.change("menu"),
-      onBuy: (id) => {
-        const r = persistence.purchaseMeta(save, id);
-        if (r.ok) {
-          save = r.save;
-          audio.uiConfirm();
-        } else audio.uiMove();
-        return save;
-      },
-      onBuyBoon: (id) => {
-        const boon = BOON_BY_ID[id];
-        const r = boon ? persistence.purchaseBoon(save, boon) : { save, ok: false };
-        if (r.ok) {
-          save = r.save;
-          audio.uiConfirm();
-        } else audio.uiMove();
-        return save;
-      },
-    });
 
   const teardownDive = () => {
     dive?.destroy();
@@ -263,19 +241,39 @@ async function main(): Promise<void> {
     .define("station", {
       enter: () => {
         input.clearEdges();
-        setOverlay(buildStation());
+        hub = new Hub(engine, assets, {
+          getSave: () => save,
+          getWeather: () => weatherAt(save.weatherIndex),
+          getLastBank: () => lastBank,
+          onLaunch: () => fsm.change(playedIntro ? "dive" : "cutscene"),
+          onExit: () => fsm.change("menu"),
+          onBuy: (id) => {
+            const r = persistence.purchaseMeta(save, id);
+            if (r.ok) {
+              save = r.save;
+              audio.uiConfirm();
+            } else audio.uiMove();
+            return save;
+          },
+          onBuyBoon: (id) => {
+            const boon = BOON_BY_ID[id];
+            const r = boon ? persistence.purchaseBoon(save, boon) : { save, ok: false };
+            if (r.ok) {
+              save = r.save;
+              audio.uiConfirm();
+            } else audio.uiMove();
+            return save;
+          },
+        });
+      },
+      update: (dt) => {
+        hub?.update(dt, input);
+      },
+      exit: () => {
+        hub?.destroy();
+        hub = null;
         lastBank = null;
       },
-      update: () => {
-        const s = activeOverlay as StationOverlay;
-        if (input.pressed(KEYS.up)) s.move(-1);
-        if (input.pressed(KEYS.down)) s.move(1);
-        if (input.pressed(KEYS.left)) s.switchTab(-1);
-        if (input.pressed(KEYS.right)) s.switchTab(1);
-        if (input.pressed(KEYS.confirm)) s.activate();
-        if (input.pressed(KEYS.pause)) fsm.change("menu");
-      },
-      exit: () => setOverlay(null),
     })
     .define("cutscene", {
       enter: () => {
@@ -391,6 +389,7 @@ async function main(): Promise<void> {
   engine.addResizeHandler(() => {
     hud.layout(engine.width, engine.height);
     activeOverlay?.layout(engine.width, engine.height);
+    hub?.layout();
   });
 
   engine.app.ticker.add((ticker) => {

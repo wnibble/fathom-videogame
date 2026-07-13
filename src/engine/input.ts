@@ -23,6 +23,7 @@ export const KEYS = {
   pause: ["Escape", "KeyP"],
   skip: ["Enter", "Escape", "Space", "Mouse0"],
   confirm: ["Enter", "Space", "Mouse0"],
+  interact: ["KeyE", "Enter"],
   choose: ["Digit1", "Digit2", "Digit3"],
 };
 
