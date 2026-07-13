@@ -6,6 +6,8 @@ import { COLOR } from "../palette";
 import type { SaveData } from "../game/persistence";
 import { META_UPGRADES, META_BY_ID, metaCost } from "../content/meta_upgrades";
 import { BADGES } from "../content/badges";
+import { SPECIES } from "../content/species";
+import { pickBark } from "../content/story";
 import { audio } from "../engine/audio";
 import { type Overlay, panel } from "./overlays";
 
@@ -30,13 +32,17 @@ export class StationOverlay implements Overlay {
   private panelG = new Graphics();
   private title = mk("SURFACE STATION", 26, COLOR.aquaBright, "bold");
   private pearlsText = mk("", 18, COLOR.sample, "bold");
+  private bark = mk("", 13, COLOR.teal, "normal");
   private hint = mk("↑↓ select · Enter buy/launch · Esc menu", 12, 0x5a7a9a);
   private rows: Row[] = [];
   private badgeText: Text;
   private sel = 0;
 
   constructor(private save: SaveData, lastBank: { pearlsEarned: number; newBadges: string[] } | null, private cbs: StationCallbacks) {
-    this.root.addChild(this.bgG, this.panelG, this.title, this.pearlsText, this.hint);
+    this.root.addChild(this.bgG, this.panelG, this.title, this.pearlsText, this.bark, this.hint);
+    this.bark.text = pickBark(save.deepestStratum, save.codexSeen.length);
+    this.bark.style.fontStyle = "italic";
+    this.bark.anchor.set(0.5, 0.5);
     if (lastBank && (lastBank.pearlsEarned > 0 || lastBank.newBadges.length)) {
       this.title.text = `SURFACE STATION   —   banked ◈ +${lastBank.pearlsEarned}${lastBank.newBadges.length ? "  ★ new badge!" : ""}`;
     }
@@ -145,7 +151,9 @@ export class StationOverlay implements Overlay {
   }
   private drawBadges(): void {
     const owned = new Set(this.save.badges);
-    this.badgeText.text = "BADGES   " + BADGES.map((b) => (owned.has(b.id) ? b.icon : "·")).join(" ") + `   (${owned.size}/${BADGES.length})`;
+    this.badgeText.text =
+      "BADGES  " + BADGES.map((b) => (owned.has(b.id) ? b.icon : "·")).join(" ") +
+      `  (${owned.size}/${BADGES.length})   ·   CODEX ${this.save.codexSeen.length}/${SPECIES.length}`;
   }
 
   layout(w: number, h: number): void {
@@ -169,9 +177,10 @@ export class StationOverlay implements Overlay {
     // action rows centered
     this.rows[META_UPGRADES.length].root.position.set(w / 2 - 140, y + 8);
     this.rows[META_UPGRADES.length + 1].root.position.set(w / 2 + 150, y + 8);
+    this.bark.position.set(w / 2, y + 42);
     this.badgeText.anchor.set(0.5, 0.5);
-    this.badgeText.position.set(w / 2, y + 46);
-    this.hint.position.set(w / 2, py + ph - 16);
+    this.badgeText.position.set(w / 2, y + 66);
+    this.hint.position.set(w / 2, py + ph - 14);
     this.refresh();
   }
   destroy(): void {

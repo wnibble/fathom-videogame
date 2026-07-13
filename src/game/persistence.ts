@@ -26,6 +26,7 @@ export interface SaveData {
   totalElites: number;
   totalRelics: number;
   totalPearlsEarned: number;
+  deepestStratum: number;
 }
 
 export interface DiveResult {
@@ -36,6 +37,7 @@ export interface DiveResult {
   elites: number;
   relics: number;
   level: number;
+  stratum: number; // deepest stratum reached this run
   surfaced: boolean; // false = death (partial bank), true = voluntary surface (full)
   maxedUpgrade: boolean;
   seen: string[];
@@ -70,6 +72,7 @@ function fresh(): SaveData {
     totalElites: 0,
     totalRelics: 0,
     totalPearlsEarned: 0,
+    deepestStratum: 0,
   };
 }
 
@@ -101,6 +104,7 @@ export function load(): SaveData {
       totalElites: num(parsed.totalElites, 0),
       totalRelics: num(parsed.totalRelics, 0),
       totalPearlsEarned: num(parsed.totalPearlsEarned, 0),
+      deepestStratum: num(parsed.deepestStratum, 0),
     };
   } catch {
     return fresh();
@@ -144,6 +148,7 @@ export function bankDive(
     totalKills: data.totalKills + r.kills,
     totalElites: data.totalElites + r.elites,
     totalRelics: data.totalRelics + r.relics,
+    deepestStratum: Math.max(data.deepestStratum, r.stratum),
     codexSeen: Array.from(new Set([...data.codexSeen, ...r.seen])),
   };
   const satisfied = evaluateBadges({

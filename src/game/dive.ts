@@ -17,6 +17,7 @@ import { makeSpitter, updateSpitter } from "../systems/spitter";
 import { makeDarter, updateDarter } from "../systems/darter";
 import { makeDrifter, updateDrifter } from "../systems/drifter";
 import { buildStratum, STRATA, STRATA_DEPTH, type ArenaData } from "../content/strata";
+import { SPECIES_FOR_STRATUM } from "../content/species";
 import { buildPlayerView, buildSpitterView, buildDarterView, buildDrifterView, type SpitterView } from "../render/actors";
 import { PLAYER_SHOT } from "../content/emitters";
 import { bus } from "../core/events";
@@ -61,6 +62,7 @@ export class DiveScene implements HitSink, PickupSink {
   private nextStrataDepth = STRATA_DEPTH;
   private charge = 0; // glow-charge from grazing (0..1)
   private dread = 0; // dread clock (0..1) — the deep closing in
+  private seen = new Set<string>(); // species catalogued this run
   private haulGlow?: Sprite;
   private cardRoot?: Container; // stratum threshold title card
   private cardTimer = 0;
@@ -136,7 +138,11 @@ export class DiveScene implements HitSink, PickupSink {
         this.run.xp.pendingLevelUps += 1; // guaranteed level-up
         audio.relic();
       },
-      scan: (x, y) => this.spawnFx("scan_ring", x, y),
+      scan: (x, y) => {
+        this.spawnFx("scan_ring", x, y);
+        const sp = SPECIES_FOR_STRATUM[this.stratumIndex];
+        if (sp) this.seen.add(sp.key);
+      },
       push: (fx, fy) => {
         this.player.vel.x += fx * this.stepDt;
         this.player.vel.y += fy * this.stepDt;
@@ -159,6 +165,19 @@ export class DiveScene implements HitSink, PickupSink {
 
   // ---- static views ----
   private buildStaticViews(): void {
+    // Hero landmark — an oversized, cool, low-alpha beacon far in the field that
+    // gives the stratum a memorable silhouette (drawn behind everything).
+    const lm = this.arena.landmark;
+    if (lm && this.assets.sprites[lm.sprite]) {
+      const node = this.assets.sprite(lm.sprite);
+      node.position.set(lm.pos.x, lm.pos.y);
+      node.scale.set(lm.scale);
+      node.alpha = 0.32;
+      node.tint = 0x7f9fb5;
+      this.engine.worldLayer.addChildAt(node, 0);
+      this.staticNodes.push(node as unknown as Container);
+    }
+
     for (const c of this.arena.currents) {
       if (!this.assets.has(c.sprite)) continue;
       const horiz = c.half.x >= c.half.y;
@@ -342,9 +361,10 @@ export class DiveScene implements HitSink, PickupSink {
       elites: this.eliteKills,
       relics: this.run.relics,
       level: this.run.xp.level,
+      stratum: this.stratumIndex,
       surfaced,
       maxedUpgrade: maxedAnyUpgrade(this.run),
-      seen: [],
+      seen: [...this.seen],
     };
   }
 

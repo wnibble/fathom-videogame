@@ -243,6 +243,12 @@ the beacon the deep hunts you by.
   40% on death); unbanked samples glow as a **trail** behind the diver (glow-as-treasure).
 - **Drifter enemy** — a slow area-denier that lays fading spore-mine hazards; a third
   verb (zone control). Fauna is now per-stratum weighted.
+- **Story delivery** (`content/species.ts` + `content/story.ts`) — scanning a research
+  probe catalogs the stratum's species into the codex; the Surface Station shows a
+  throughline-voice bark keyed to your deepest stratum + codex progress, all converging
+  on one mystery (what the Apex is, what the Station farms). Advances on death too.
+- **Hero landmarks** — each stratum has one oversized, cool, low-alpha beacon that gives
+  the place a memorable silhouette. Persistence tracks `deepestStratum` + `codexSeen`.
 
 ### Accepted deviations / deferred (documented, not silently skipped)
 

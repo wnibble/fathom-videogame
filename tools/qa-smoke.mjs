@@ -40,10 +40,12 @@ try {
   await page.keyboard.press("Enter");
   report.phases.stationReached = await waitState("station", 5000);
   await page.screenshot({ path: `${OUT}/01b-station.png` });
-  // Navigate to LAUNCH DIVE (below the 10 store rows) and confirm.
-  for (let i = 0; i < 10; i++) { await page.keyboard.press("ArrowDown"); await sleep(40); }
+  // LAUNCH DIVE is the 2nd-to-last row; reach it by wrapping UP twice (robust vs
+  // dropped inputs at low fps — two ArrowUp always lands on LAUNCH).
+  await page.keyboard.press("ArrowUp"); await sleep(160);
+  await page.keyboard.press("ArrowUp"); await sleep(160);
   await page.keyboard.press("Enter");
-  report.phases.diveReached = await waitState("dive", 12000); // through cold-open cutscene
+  report.phases.diveReached = await waitState("dive", 16000); // through cold-open cutscene
   await page.screenshot({ path: `${OUT}/02-dive.png` });
   if (!report.phases.diveReached) {
     report.defects.push("[blocker] never reached dive from menu");
