@@ -4,6 +4,7 @@
 
 import { Container, Graphics, Sprite } from "pixi.js";
 import type { Player, Vec2 } from "../core/types";
+import type { AssetStore } from "../engine/assets";
 import { getGlowTexture } from "../engine/glow";
 import { COLOR } from "../palette";
 
@@ -14,6 +15,13 @@ const TINT: Record<PickupKind, number> = {
   sample: COLOR.sample,
   xp: COLOR.aqua,
   upgrade: COLOR.amberBright,
+};
+// Real item sprites (from the new loot pack) per pickup kind.
+const ITEM: Record<PickupKind, string> = {
+  hp: "healing_orb",
+  sample: "sample_vial_small",
+  xp: "energy_shard",
+  upgrade: "upgrade_core",
 };
 
 interface Pickup {
@@ -33,7 +41,7 @@ export interface PickupSink {
 export class Pickups {
   private items: Pickup[] = [];
 
-  constructor(private world: Container, private light: Container) {}
+  constructor(private world: Container, private light: Container, private assets?: AssetStore) {}
 
   get count(): number {
     return this.items.length;
@@ -42,16 +50,25 @@ export class Pickups {
   spawn(kind: PickupKind, x: number, y: number, value: number, spreadVel = 60): void {
     const tint = TINT[kind];
     const node = new Container();
-    const core = new Graphics();
-    if (kind === "hp") {
-      core.roundRect(-2, -6, 4, 12, 2).fill(tint);
-      core.roundRect(-6, -2, 12, 4, 2).fill(tint);
-    } else if (kind === "upgrade") {
-      core.star(0, 0, 5, 7, 3).fill(tint);
+    // Prefer the real item sprite; fall back to the procedural core.
+    const itemName = ITEM[kind];
+    const a2 = this.assets;
+    if (a2 && (a2.anims[itemName] || a2.sprites[itemName])) {
+      const s = a2.anims[itemName] ? a2.anim(itemName) : a2.sprite(itemName);
+      s.scale.set(kind === "upgrade" ? 0.95 : 0.72);
+      node.addChild(s);
     } else {
-      core.circle(0, 0, 4).fill(tint);
+      const core = new Graphics();
+      if (kind === "hp") {
+        core.roundRect(-2, -6, 4, 12, 2).fill(tint);
+        core.roundRect(-6, -2, 12, 4, 2).fill(tint);
+      } else if (kind === "upgrade") {
+        core.star(0, 0, 5, 7, 3).fill(tint);
+      } else {
+        core.circle(0, 0, 4).fill(tint);
+      }
+      node.addChild(core);
     }
-    node.addChild(core);
     node.position.set(x, y);
     this.world.addChild(node);
 

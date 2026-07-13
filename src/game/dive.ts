@@ -154,7 +154,7 @@ export class DiveScene implements HitSink, PickupSink {
     this.arena = buildStratum(0, seed, assets);
     engine.setBgTint(this.arena.bg);
     this.proj = new Projectiles(assets, engine.worldLayer);
-    this.pickups = new Pickups(engine.worldLayer, engine.lightLayer);
+    this.pickups = new Pickups(engine.worldLayer, engine.lightLayer, assets);
     this.interactables = new Interactables(this.arena.interactables, engine.worldLayer, engine.lightLayer, assets);
     this.hazards = new Hazards(engine.lightLayer);
     this.floaters = new Floaters(engine.sceneRoot); // above world+light, moves with camera
@@ -856,7 +856,7 @@ export class DiveScene implements HitSink, PickupSink {
     this.applyWeatherCurrents();
     this.engine.setBgTint(this.arena.bg);
     this.interactables = new Interactables(this.arena.interactables, this.engine.worldLayer, this.engine.lightLayer, this.assets);
-    this.pickups = new Pickups(this.engine.worldLayer, this.engine.lightLayer);
+    this.pickups = new Pickups(this.engine.worldLayer, this.engine.lightLayer, this.assets);
     this.buildStaticViews();
     this.player.pos.x = this.arena.playerStart.x;
     this.player.pos.y = this.arena.playerStart.y;
