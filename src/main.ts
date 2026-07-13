@@ -16,6 +16,8 @@ import { DiveScene } from "./game/dive";
 import * as persistence from "./game/persistence";
 import type { DiveResult } from "./game/persistence";
 import { deriveMeta } from "./game/meta";
+import { weatherAt } from "./content/weather";
+import { BOON_BY_ID } from "./content/boons";
 import { audio } from "./engine/audio";
 import { StationOverlay } from "./ui/station";
 import { COLOR } from "./palette";
@@ -122,7 +124,10 @@ async function main(): Promise<void> {
   const startDive = () => {
     seed = (seed * 1103515245 + 12345) & 0x7fffffff;
     const meta = deriveMeta(save.metaTiers);
-    dive = new DiveScene(engine, assets, seed, save.settings.reducedMotion, save.settings.screenShake, meta);
+    const weather = weatherAt(save.weatherIndex);
+    const boons = save.pendingBoons.slice();
+    dive = new DiveScene(engine, assets, seed, save.settings.reducedMotion, save.settings.screenShake, meta, weather, boons);
+    save = persistence.clearBoons(save); // one-run boons are consumed on launch
     dive.onGameOver = (result) => {
       goPrevBestDepth = save.bestDepth;
       goPrevBestScore = save.bestScore;
@@ -138,11 +143,20 @@ async function main(): Promise<void> {
   };
 
   const buildStation = () =>
-    new StationOverlay(save, lastBank, {
+    new StationOverlay(save, lastBank, weatherAt(save.weatherIndex), {
       onLaunch: () => fsm.change(playedIntro ? "dive" : "cutscene"),
       onBack: () => fsm.change("menu"),
       onBuy: (id) => {
         const r = persistence.purchaseMeta(save, id);
+        if (r.ok) {
+          save = r.save;
+          audio.uiConfirm();
+        } else audio.uiMove();
+        return save;
+      },
+      onBuyBoon: (id) => {
+        const boon = BOON_BY_ID[id];
+        const r = boon ? persistence.purchaseBoon(save, boon) : { save, ok: false };
         if (r.ok) {
           save = r.save;
           audio.uiConfirm();
@@ -256,6 +270,8 @@ async function main(): Promise<void> {
         const s = activeOverlay as StationOverlay;
         if (input.pressed(KEYS.up)) s.move(-1);
         if (input.pressed(KEYS.down)) s.move(1);
+        if (input.pressed(KEYS.left)) s.switchTab(-1);
+        if (input.pressed(KEYS.right)) s.switchTab(1);
         if (input.pressed(KEYS.confirm)) s.activate();
         if (input.pressed(KEYS.pause)) fsm.change("menu");
       },

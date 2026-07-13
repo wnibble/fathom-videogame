@@ -27,6 +27,9 @@ export interface SaveData {
   totalRelics: number;
   totalPearlsEarned: number;
   deepestStratum: number;
+  resources: Record<string, number>; // stratum materials (Market currency)
+  weatherIndex: number; // current forecast (applies to the next dive)
+  pendingBoons: string[]; // Market boons queued for the next dive
 }
 
 export interface DiveResult {
@@ -41,6 +44,7 @@ export interface DiveResult {
   surfaced: boolean; // false = death (partial bank), true = voluntary surface (full)
   maxedUpgrade: boolean;
   seen: string[];
+  resources: Record<string, number>; // materials gathered this run
 }
 
 export const DEATH_BANK_RATIO = 0.4;
@@ -73,6 +77,9 @@ function fresh(): SaveData {
     totalRelics: 0,
     totalPearlsEarned: 0,
     deepestStratum: 0,
+    resources: {},
+    weatherIndex: 0,
+    pendingBoons: [],
   };
 }
 
@@ -105,6 +112,9 @@ export function load(): SaveData {
       totalRelics: num(parsed.totalRelics, 0),
       totalPearlsEarned: num(parsed.totalPearlsEarned, 0),
       deepestStratum: num(parsed.deepestStratum, 0),
+      resources: coerceTiers(parsed.resources),
+      weatherIndex: num(parsed.weatherIndex, 0),
+      pendingBoons: Array.isArray(parsed.pendingBoons) ? parsed.pendingBoons.filter((s) => typeof s === "string") : [],
     };
   } catch {
     return fresh();
@@ -150,6 +160,8 @@ export function bankDive(
     totalRelics: data.totalRelics + r.relics,
     deepestStratum: Math.max(data.deepestStratum, r.stratum),
     codexSeen: Array.from(new Set([...data.codexSeen, ...r.seen])),
+    resources: mergeResources(data.resources, r.resources),
+    weatherIndex: data.weatherIndex + 1, // the sea turns after every dive
   };
   const satisfied = evaluateBadges({
     bestDepth: next.bestDepth,
@@ -165,6 +177,29 @@ export function bankDive(
   if (newBadges.length) next = { ...next, badges: Array.from(new Set([...next.badges, ...newBadges])) };
   save(next);
   return { save: next, pearlsEarned, newBadges };
+}
+
+function mergeResources(a: Record<string, number>, b: Record<string, number>): Record<string, number> {
+  const out = { ...a };
+  for (const [k, v] of Object.entries(b)) out[k] = (out[k] ?? 0) + v;
+  return out;
+}
+
+/** Buy a one-run Market boon with stratum resources; queued for the next dive. */
+export function purchaseBoon(data: SaveData, boon: { id: string; resource: string; cost: number }): { save: SaveData; ok: boolean } {
+  if ((data.resources[boon.resource] ?? 0) < boon.cost) return { save: data, ok: false };
+  const next: SaveData = {
+    ...data,
+    resources: { ...data.resources, [boon.resource]: (data.resources[boon.resource] ?? 0) - boon.cost },
+    pendingBoons: [...data.pendingBoons, boon.id],
+  };
+  save(next);
+  return { save: next, ok: true };
+}
+export function clearBoons(data: SaveData): SaveData {
+  const next = { ...data, pendingBoons: [] };
+  save(next);
+  return next;
 }
 
 /** Buy the next tier of a meta upgrade. Returns ok=false if unaffordable/maxed/gated. */

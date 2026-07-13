@@ -1,0 +1,17 @@
+import { chromium } from "playwright";
+const b = await chromium.launch({ args: ["--enable-unsafe-swiftshader", "--use-gl=angle", "--use-angle=swiftshader"] });
+const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
+p.on("pageerror", (e) => console.log("[PAGEERROR]", e.message));
+const info = async () => p.evaluate(() => (window.__fathom && window.__fathom.info) || null);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const wait = async (s, ms) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { const i = await info(); if (i && i.state === s) return true; await sleep(100); } return false; };
+await p.goto("http://127.0.0.1:5173/", { waitUntil: "domcontentloaded" });
+await wait("menu", 15000);
+await p.keyboard.press("Enter");
+await wait("station", 5000);
+await p.keyboard.press("ArrowRight"); await sleep(300);
+await p.screenshot({ path: "qa-shots6/market.png" });
+await p.keyboard.press("ArrowRight"); await sleep(300);
+await p.screenshot({ path: "qa-shots6/archive.png" });
+console.log("captured market + archive");
+await b.close();

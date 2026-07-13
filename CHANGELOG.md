@@ -250,6 +250,22 @@ the beacon the deep hunts you by.
 - **Hero landmarks** — each stratum has one oversized, cool, low-alpha beacon that gives
   the place a memorable silhouette. Persistence tracks `deepestStratum` + `codexSeen`.
 
+## Pass 6.5 — Overworld / Underworld + Weather (2026-07-12)
+
+The Surface Station becomes a real **overworld** hub against the **underworld** dive.
+
+- **Weather** (`content/weather.ts`) — 6 climates (Calm, Bioluminescent Bloom, Storm
+  Surge, Cold Snap, Red Tide, Doldrums), each a **double-edged deal** (a bonus AND a
+  penalty) affecting loot/score/spawns/currents/elites/enemy-speed/dash/dread. The sea
+  **changes after every dive**; you check the forecast at the Station before you launch.
+  Applied throughout `dive.ts`.
+- **Resources** — each stratum drops its signature material (lumen/spore/alloy/ember/
+  shard), banked in `SaveData.resources`.
+- **Three shops** (tabbed Station, ←/→ to switch): **OUTFITTER** (pearls → permanent
+  gear, existing), **MARKET** (materials → 5 one-run **boons**: Charged Cell, Chum Bag,
+  Ballast, Adrenal Stim, Ember Core — applied to your next dive), **ARCHIVE** (the codex
+  with per-species lore). Weather forecast band + resources readout in the header.
+
 ### Phase 2 (started)
 - **Glow-as-identity (#7)** — your build lean (offense/defense/utility) tints the diver's
   **core HUE** and biases the upgrade draft toward your identity (snowballing a legible

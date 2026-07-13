@@ -56,6 +56,7 @@ export interface RunState {
   kills: number;
   relics: number;
   samples: number;
+  scoreMult: number; // weather / boon score multiplier
 }
 
 export function freshStats(): PlayerStats {
@@ -117,6 +118,7 @@ export function freshRun(baseWeapon: EmitterSpec, meta?: MetaState): RunState {
     kills: 0,
     relics: 0,
     samples: 0,
+    scoreMult: 1,
   };
 }
 
@@ -124,9 +126,9 @@ function recomputeMultiplier(run: RunState): void {
   run.score.multiplier = Math.min(MULT_CAP, 1 + Math.floor(run.score.combo / 5) * 0.5);
 }
 
-/** Raw score add; `mult` applies the current combo multiplier. */
+/** Raw score add; `mult` applies the current combo multiplier. Weather scales all score. */
 export function addScore(run: RunState, base: number, mult = true): void {
-  run.score.score += Math.round(base * (mult ? run.score.multiplier : 1));
+  run.score.score += Math.round(base * (mult ? run.score.multiplier : 1) * run.scoreMult);
 }
 
 export function addXp(run: RunState, amount: number): void {

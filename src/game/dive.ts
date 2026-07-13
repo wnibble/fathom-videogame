@@ -18,6 +18,7 @@ import { makeDarter, updateDarter } from "../systems/darter";
 import { makeDrifter, updateDrifter } from "../systems/drifter";
 import { buildStratum, STRATA, STRATA_DEPTH, type ArenaData } from "../content/strata";
 import { SPECIES_FOR_STRATUM } from "../content/species";
+import { WEATHER, type Weather } from "../content/weather";
 import { buildPlayerView, buildSpitterView, buildDarterView, buildDrifterView, type SpitterView } from "../render/actors";
 import { PLAYER_SHOT, SPITTER_RADIAL } from "../content/emitters";
 import { rollMutation, MUTATION_BY_ID } from "../content/mutations";
@@ -41,6 +42,7 @@ import {
   depthMilestone,
   depthTier,
   applyUpgrade as applyRunUpgrade,
+  deriveWeapon,
   rollChoices,
   hasUpgradesAvailable,
   maxedAnyUpgrade,
@@ -65,6 +67,14 @@ export class DiveScene implements HitSink, PickupSink {
   private charge = 0; // glow-charge from grazing (0..1)
   private dread = 0; // dread clock (0..1) — the deep closing in
   private seen = new Set<string>(); // species catalogued this run
+  private runResources: Record<string, number> = {}; // materials gathered this dive
+  // Weather/boon modifiers (1 = neutral)
+  private lootMult = 1;
+  private currentMult = 1;
+  private eliteMult = 1;
+  private enemySpeedMult = 1;
+  private spawnIntervalMult = 1;
+  private dreadMult = 1;
   private haulGlow?: Sprite;
   private cardRoot?: Container; // stratum threshold title card
   private cardTimer = 0;
@@ -104,7 +114,9 @@ export class DiveScene implements HitSink, PickupSink {
     private seed: number,
     private reducedMotion = false,
     screenShake = true,
-    private meta: MetaState = freshMeta()
+    private meta: MetaState = freshMeta(),
+    weather: Weather = WEATHER[0],
+    boons: string[] = []
   ) {
     this.shakeEnabled = screenShake && !reducedMotion;
     this.rng = new Rng((seed ^ 0x9e3779b9) >>> 0);
@@ -115,8 +127,30 @@ export class DiveScene implements HitSink, PickupSink {
     this.interactables = new Interactables(this.arena.interactables, engine.worldLayer, engine.lightLayer, assets);
     this.hazards = new Hazards(engine.lightLayer);
     this.run = freshRun(PLAYER_SHOT, meta);
+
+    // Weather modifiers (a double-edged climate) + one-run Market boons.
+    const wm = weather.mods;
+    this.run.scoreMult = wm.scoreMult;
+    this.run.stats.dashCooldownMult *= wm.dashCdMult;
+    this.lootMult = wm.lootCountMult * wm.sampleMult;
+    this.currentMult = wm.currentMult;
+    this.eliteMult = wm.eliteMult;
+    this.enemySpeedMult = wm.enemySpeedMult;
+    this.spawnIntervalMult = wm.spawnIntervalMult;
+    this.dreadMult = wm.dreadMult;
+    let bonusShield = 0;
+    for (const b of boons) {
+      if (b === "charged-cell") bonusShield += 40;
+      else if (b === "chum-bag") this.lootMult *= 1.6;
+      else if (b === "ballast") this.currentMult *= 0.4;
+      else if (b === "stim") this.run.xp.pendingLevelUps += 1;
+      else if (b === "ember-core") this.run.stats.damageMult += 0.25;
+    }
+    this.run.weapon = deriveWeapon(PLAYER_SHOT, this.run.stats);
+    this.applyWeatherCurrents();
+
     const maxHp = BASE_HP + meta.bonusMaxHp;
-    const shieldMax = meta.shieldCapacity + this.run.stats.shieldCapBonus;
+    const shieldMax = meta.shieldCapacity + this.run.stats.shieldCapBonus + bonusShield;
     this.player = {
       pos: { ...this.arena.playerStart },
       vel: { x: 0, y: 0 },
@@ -308,7 +342,7 @@ export class DiveScene implements HitSink, PickupSink {
     // Glow double-bind: charge bleeds slowly; dread rises faster the brighter you are
     // (charge) and the longer you linger. The deep hunts the bright.
     this.charge = Math.max(0, this.charge - dt * 0.02);
-    this.dread = Math.min(1, this.dread + dt * (0.017 + this.charge * 0.03));
+    this.dread = Math.min(1, this.dread + dt * (0.017 + this.charge * 0.03) * this.dreadMult);
     if (this.dread >= 1) {
       const a = this.rng.range(0, Math.PI * 2);
       this.hazards.spawn(p.pos.x + Math.cos(a) * 95, p.pos.y + Math.sin(a) * 95, 46, 2.4, 16, COLOR.coralBright);
@@ -330,7 +364,7 @@ export class DiveScene implements HitSink, PickupSink {
     this.spawnTimer -= dt;
     const tier = depthTier(this.depth, this.run.xp.level);
     const maxAlive = Math.min(6, 2 + Math.floor(tier));
-    const interval = Math.max(1.2, 3.2 - tier * 0.28);
+    const interval = Math.max(1.0, 3.2 - tier * 0.28) * this.spawnIntervalMult;
     const aliveCount = this.enemies.reduce((n, e) => n + (e.alive ? 1 : 0), 0);
     if (this.spawnTimer <= 0 && aliveCount < maxAlive) {
       this.spawnEnemy(tier);
@@ -375,6 +409,7 @@ export class DiveScene implements HitSink, PickupSink {
       surfaced,
       maxedUpgrade: maxedAnyUpgrade(this.run),
       seen: [...this.seen],
+      resources: { ...this.runResources },
     };
   }
 
@@ -388,7 +423,7 @@ export class DiveScene implements HitSink, PickupSink {
         best = s;
       }
     }
-    const elite = this.rng.chance(Math.min(0.35, tier * 0.06));
+    const elite = this.rng.chance(Math.min(0.5, tier * 0.06 * this.eliteMult));
     const kind = this.pickFauna();
 
     let e: Enemy;
@@ -410,6 +445,7 @@ export class DiveScene implements HitSink, PickupSink {
       e = makeSpitter(best, { elite, hp: Math.round(baseHp), speed, bulletCount });
       v = buildSpitterView(elite);
     }
+    e.speed *= this.enemySpeedMult; // weather (Cold Snap etc.)
     // Elite mutation — an aura color + a reused behavior seam.
     const mut = rollMutation(this.rng, tier);
     if (mut) {
@@ -424,6 +460,13 @@ export class DiveScene implements HitSink, PickupSink {
     this.enemyViews.set(e, v);
     this.engine.worldLayer.addChild(v.root);
     this.engine.lightLayer.addChild(v.glow);
+  }
+
+  private applyWeatherCurrents(): void {
+    for (const c of this.arena.currents) {
+      c.force.x *= this.currentMult;
+      c.force.y *= this.currentMult;
+    }
   }
 
   private pickFauna(): EnemyKind {
@@ -444,6 +487,7 @@ export class DiveScene implements HitSink, PickupSink {
     this.clearWorld();
     this.stratumIndex = next;
     this.arena = buildStratum(next, this.seed, this.assets);
+    this.applyWeatherCurrents();
     this.engine.setBgTint(this.arena.bg);
     this.interactables = new Interactables(this.arena.interactables, this.engine.worldLayer, this.engine.lightLayer, this.assets);
     this.pickups = new Pickups(this.engine.worldLayer, this.engine.lightLayer);
@@ -567,9 +611,12 @@ export class DiveScene implements HitSink, PickupSink {
     if (this.shakeEnabled) this.shake = enemy.elite ? 10 : 6;
     if (!this.reducedMotion) this.hitstop = 0.04;
     this.spawnFx("sample_burst", enemy.pos.x, enemy.pos.y);
-    // Loot: elites drop richer.
-    const drops = enemy.elite ? 2 : 1;
+    // Loot: elites drop richer; weather/boons scale the haul.
+    const drops = Math.max(1, Math.round((enemy.elite ? 2 : 1) * this.lootMult));
     for (let i = 0; i < drops; i++) this.pickups.spawn("sample", enemy.pos.x, enemy.pos.y, 1);
+    // Stratum material — the Market currency.
+    const res = this.arena.resource;
+    this.runResources[res] = (this.runResources[res] ?? 0) + (enemy.elite ? 2 : 1);
     if (enemy.elite) {
       this.pickups.spawn("xp", enemy.pos.x, enemy.pos.y, 20);
       if (this.rng.chance(0.25)) this.pickups.spawn("upgrade", enemy.pos.x, enemy.pos.y, 0);
