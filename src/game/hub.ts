@@ -44,6 +44,8 @@ interface Kiosk {
 
 const BOUNDS = { w: 1500, h: 1050 };
 const INTERACT_R = 96;
+// The metal deck occupies most of the hub; open water + reef fringe the edges.
+const DECK = { x0: 132, y0: 150, x1: BOUNDS.w - 132, y1: BOUNDS.h - 128 };
 
 export class Hub {
   private root = new Container(); // world-layer scene
@@ -95,11 +97,8 @@ export class Hub {
 
   // ---- scene construction ----
   private buildScene(): void {
-    // Seafloor gradient + a soft home glow.
-    const floor = new Graphics();
-    floor.rect(0, BOUNDS.h - 220, BOUNDS.w, 220).fill({ color: 0x0c2130, alpha: 0.9 });
-    floor.rect(0, BOUNDS.h - 120, BOUNDS.w, 120).fill({ color: 0x123049, alpha: 0.6 });
-    this.root.addChildAt(floor, 0);
+    // The station DECK — a tiled metal-slab base you move around on.
+    this.buildDeck();
 
     // The station structure — a stylized dome with lit windows, drawn to read as
     // "home" without needing bespoke art.
@@ -144,13 +143,13 @@ export class Hub {
       this.light.addChild(bglow);
     }
 
-    // Decorative flora (reef around the station) — swaying, from real assets.
+    // Reef flora in the OPEN WATER fringing the deck (never on the metal).
     const reef = this.assets.spritesInSheet("kelp_forest_props").filter((n) => /kelp|sprout|tangle|coral|frond/i.test(n));
     if (reef.length) {
       const spots: Vec2[] = [
-        { x: 150, y: BOUNDS.h - 150 }, { x: 360, y: BOUNDS.h - 120 }, { x: BOUNDS.w - 180, y: BOUNDS.h - 150 },
-        { x: BOUNDS.w - 380, y: BOUNDS.h - 110 }, { x: 90, y: BOUNDS.h - 340 }, { x: BOUNDS.w - 110, y: BOUNDS.h - 330 },
-        { x: 520, y: BOUNDS.h - 90 }, { x: BOUNDS.w - 560, y: BOUNDS.h - 95 },
+        { x: 60, y: BOUNDS.h - 210 }, { x: 66, y: BOUNDS.h - 90 }, { x: BOUNDS.w - 62, y: BOUNDS.h - 200 },
+        { x: BOUNDS.w - 70, y: BOUNDS.h - 80 }, { x: 60, y: 360 }, { x: BOUNDS.w - 60, y: 360 },
+        { x: DECK.x0 + 240, y: BOUNDS.h - 46 }, { x: DECK.x1 - 240, y: BOUNDS.h - 46 },
       ];
       spots.forEach((p, i) => {
         const name = reef[(i * 3 + 1) % reef.length];
@@ -250,6 +249,54 @@ export class Hub {
     cglow.scale.set(90 / 128);
     this.light.addChild(cglow);
     this.companion = { root: c, glow: cglow, pos: { x: this.player.pos.x - 40, y: this.player.pos.y - 30 }, phase: 0, idle, swim, flip };
+  }
+
+  /** Tile the metal station deck you move around on, with a raised frame + railings. */
+  private buildDeck(): void {
+    // Raised base beneath the tiles — gives the platform edge + reads as "solid".
+    const base = new Graphics();
+    base.roundRect(DECK.x0 - 26, DECK.y0 - 20, DECK.x1 - DECK.x0 + 52, DECK.y1 - DECK.y0 + 46, 30).fill({ color: 0x060c14 });
+    base.roundRect(DECK.x0 - 16, DECK.y0 - 12, DECK.x1 - DECK.x0 + 32, DECK.y1 - DECK.y0 + 28, 24).fill({ color: 0x0b1826 }).stroke({ width: 5, color: 0x1c3a56 });
+    this.root.addChildAt(base, 0);
+
+    if (this.assets.has("station_floor")) {
+      const deck = new Container();
+      const tw = 126, th = 128; // station_floor is 63x64 -> integer scale 2 (crisp)
+      let row = 0;
+      for (let y = DECK.y0; y < DECK.y1; y += th, row++) {
+        let col = 0;
+        for (let x = DECK.x0; x < DECK.x1; x += tw, col++) {
+          const t = this.assets.sprite("station_floor");
+          t.anchor.set(0, 0);
+          t.scale.set(2);
+          t.position.set(x, y);
+          t.tint = (row + col) % 2 === 0 ? 0xffffff : 0xdfe9f2; // subtle checker for grid legibility
+          deck.addChild(t);
+        }
+      }
+      // Clip the tile grid to a rounded platform so the edge reads clean.
+      const mask = new Graphics();
+      mask.roundRect(DECK.x0 - 8, DECK.y0 - 6, DECK.x1 - DECK.x0 + 16, DECK.y1 - DECK.y0 + 14, 22).fill(0xffffff);
+      deck.addChild(mask);
+      deck.mask = mask;
+      this.root.addChildAt(deck, 1);
+    }
+
+    // Railings along the top + bottom edges (bottom-center anchored props).
+    if (this.assets.has("railing_edge")) {
+      for (let x = DECK.x0 + 40; x < DECK.x1; x += 116) {
+        const rTop = this.assets.sprite("railing_edge");
+        rTop.scale.set(1.9);
+        rTop.position.set(x, DECK.y0 + 12);
+        rTop.alpha = 0.92;
+        this.root.addChild(rTop);
+        const rBot = this.assets.sprite("railing_edge");
+        rBot.scale.set(1.9);
+        rBot.position.set(x, DECK.y1 + 8);
+        rBot.alpha = 0.92;
+        this.root.addChild(rBot);
+      }
+    }
   }
 
   private mkLabel(s: string, size: number, color: number, weight: "normal" | "bold" = "normal"): Text {
