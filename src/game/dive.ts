@@ -7,6 +7,7 @@ import { Container, Graphics, Sprite, Text, TextStyle } from "pixi.js";
 import { getGlowTexture } from "../engine/glow";
 import { clamp } from "../engine/tween";
 import { squashStretch, phaseOf } from "../render/vitality";
+import { Floaters } from "../render/floaters";
 import type { Engine } from "../engine/app";
 import type { AssetStore } from "../engine/assets";
 import { Input, KEYS } from "../engine/input";
@@ -115,6 +116,8 @@ export class DiveScene implements HitSink, PickupSink {
   private bossCtx: BossCtx | null = null;
   private winSeqT = -1; // >=0 while the victory sequence plays
   private winCard: Container | null = null;
+  private floaters!: Floaters;
+  private lastMult = 1; // combo multiplier last frame (detect tier-ups)
 
   private acc = 0;
   private elapsed = 0;
@@ -155,6 +158,7 @@ export class DiveScene implements HitSink, PickupSink {
     this.pickups = new Pickups(engine.worldLayer, engine.lightLayer);
     this.interactables = new Interactables(this.arena.interactables, engine.worldLayer, engine.lightLayer, assets);
     this.hazards = new Hazards(engine.lightLayer);
+    this.floaters = new Floaters(engine.sceneRoot); // above world+light, moves with camera
     this.run = freshRun(PLAYER_SHOT, meta);
 
     // Weather modifiers (a double-edged climate) + one-run Market boons.
@@ -879,6 +883,7 @@ export class DiveScene implements HitSink, PickupSink {
     this.staticNodes = [];
     this.streams = [];
     this.sway = [];
+    this.floaters.clear();
     this.teardownBoss();
     if (this.flowFx) {
       this.flowFx.destroy();
@@ -964,6 +969,9 @@ export class DiveScene implements HitSink, PickupSink {
       this.player.hp = Math.min(this.player.maxHp, this.player.hp + damage * this.run.stats.lifestealFrac);
     }
     this.spawnHitFx(at.x, at.y, COLOR.aquaBright, false);
+    // Floating damage number — chip-damage satisfaction. Boss/elite hits punch bigger.
+    const big = enemy === this.boss || enemy.elite;
+    this.floaters.spawn(at.x, at.y, String(Math.round(damage)), big ? COLOR.coralBright : 0xdff4ff, big ? 16 : 12, big);
   }
   onEnemyKilled(enemy: Enemy): void {
     if (enemy === this.boss) {
@@ -977,8 +985,12 @@ export class DiveScene implements HitSink, PickupSink {
       this.onCradleCleared();
       return;
     }
+    const scoreBefore = this.run.score.score;
     onKill(this.run, enemy.elite);
     if (enemy.elite) this.eliteKills++;
+    // Floating score pop (combo-scaled, so a hot streak visibly pays off).
+    const gained = this.run.score.score - scoreBefore;
+    if (gained > 0) this.floaters.spawn(enemy.pos.x, enemy.pos.y - 10, `+${gained}`, COLOR.amberBright, enemy.elite ? 16 : 13, enemy.elite);
     // Bloomed mutation: burst a ring of bullets on death.
     if (enemy.mutation === "bloomed") {
       this.proj.fireBurst({ ...SPITTER_RADIAL, count: 12, speed: 150, ttl: 2.4, telegraph: undefined }, enemy.pos, 0, "enemy");
@@ -1105,7 +1117,14 @@ export class DiveScene implements HitSink, PickupSink {
   private renderSync(dt: number, _input: Input): void {
     const p = this.player;
     this.flowFx?.update(dt, this.elapsed); // drifting streaks reveal the living current
+    this.floaters.update(dt);
     this.renderBoss();
+    // Combo tier-up flourish — the multiplier climbing is the core score loop.
+    if (this.run.score.multiplier > this.lastMult) {
+      this.floaters.spawn(p.pos.x, p.pos.y - 28, `COMBO ×${this.run.score.multiplier.toFixed(1)}`, COLOR.aquaBright, 15, true);
+      audio.uiConfirm();
+    }
+    this.lastMult = this.run.score.multiplier;
     // Flora sway — organic props lean with the current so the field feels alive.
     for (const s of this.sway) {
       const w = Math.sin(this.elapsed * s.speed + s.phase);
@@ -1426,6 +1445,7 @@ export class DiveScene implements HitSink, PickupSink {
     }
     this.dyingViews = [];
     this.teardownBoss();
+    this.floaters.destroy();
     if (this.flowFx) {
       this.flowFx.destroy();
       this.flowFx = null;
