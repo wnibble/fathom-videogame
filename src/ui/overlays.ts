@@ -116,24 +116,42 @@ abstract class ButtonMenu implements Overlay {
   }
 }
 
+export interface LeaderboardRow {
+  name: string;
+  score: number;
+  depth: number;
+  won: boolean;
+}
+
 export class MenuOverlay extends ButtonMenu {
   private title = txt("FATHOM", 60, COLOR.aquaBright, "bold");
   private tagline = txt("a small light in a vast dark", 15, COLOR.teal);
   private stats: Text;
   private settingsLine: Text;
+  private lbPanel = new Container();
+  private lbBg = new Graphics();
+  private lbTitle = txt("◈  TOP DIVERS", 15, COLOR.amberBright, "bold");
+  private lbLines: Text[] = [];
+  private lbStatus = txt("reaching the surface relay…", 12, 0x5a7a9a);
+  private callsignBtn: Button;
   constructor(
     best: number,
     bestScore: number,
     private settings: Settings,
-    cbs: { onStation: () => void; onHowTo: () => void; onToggleMotion: () => void; onToggleShake: () => void; onToggleSound: () => void }
+    callsign: string,
+    cbs: { onStation: () => void; onHowTo: () => void; onCallsign: () => void; onToggleMotion: () => void; onToggleShake: () => void; onToggleSound: () => void }
   ) {
     super();
     this.title.style.letterSpacing = 10;
     this.stats = txt("", 14, COLOR.amber);
     this.settingsLine = txt("", 13, COLOR.teal);
     this.root.addChild(this.title, this.tagline, this.stats, this.settingsLine);
+    this.lbPanel.addChild(this.lbBg, this.lbTitle, this.lbStatus);
+    this.lbPanel.visible = false; // shown once online rows (or an offline verdict) arrive
+    this.root.addChild(this.lbPanel);
     this.addButton("SURFACE STATION", cbs.onStation);
     this.addButton("HOW TO PLAY", cbs.onHowTo);
+    this.callsignBtn = this.addButton(`CALLSIGN: ${callsign}`, cbs.onCallsign);
     this.addButton("", () => {
       cbs.onToggleMotion();
       this.refreshSettings();
@@ -150,23 +168,58 @@ export class MenuOverlay extends ButtonMenu {
     this.refreshSettings();
     this.stats.text = `BEST  ${Math.floor(best)} m   ·   HIGH SCORE  ${Math.floor(bestScore)}`;
   }
+  setCallsign(callsign: string): void {
+    this.callsignBtn.setText(`CALLSIGN: ${callsign}`);
+  }
+  /** Populate the TOP DIVERS panel (null = fetch failed / empty board). */
+  setLeaderboard(rows: LeaderboardRow[] | null): void {
+    this.lbPanel.visible = true;
+    for (const t of this.lbLines) t.destroy();
+    this.lbLines = [];
+    if (!rows || rows.length === 0) {
+      this.lbStatus.text = rows === null ? "surface relay unreachable" : "no dives logged yet — be first";
+      return;
+    }
+    this.lbStatus.text = "";
+    rows.slice(0, 8).forEach((r, i) => {
+      const name = r.name.length > 14 ? r.name.slice(0, 13) + "…" : r.name;
+      const line = txt(`${String(i + 1).padStart(2)}  ${name.padEnd(15, " ")} ${String(Math.floor(r.score)).padStart(7)}${r.won ? "  ❂" : ""}`, 13, i === 0 ? COLOR.amberBright : COLOR.teal);
+      line.anchor.set(0, 0.5);
+      this.lbPanel.addChild(line);
+      this.lbLines.push(line);
+    });
+    this.layoutLb();
+  }
+  private layoutLb(): void {
+    const wPanel = 320;
+    const hPanel = 66 + this.lbLines.length * 24;
+    this.lbBg.clear();
+    panel(this.lbBg, 0, 0, wPanel, hPanel, COLOR.amberBright);
+    this.lbTitle.position.set(wPanel / 2, 28);
+    this.lbStatus.position.set(wPanel / 2, 50);
+    this.lbLines.forEach((t, i) => t.position.set(24, 58 + i * 24));
+  }
   private refreshSettings(): void {
-    this.buttons[2].setText(`REDUCED MOTION: ${this.settings.reducedMotion ? "ON" : "OFF"}`);
-    this.buttons[3].setText(`SCREEN SHAKE: ${this.settings.screenShake ? "ON" : "OFF"}`);
-    this.buttons[4].setText(`SOUND: ${this.settings.sound ? "ON" : "OFF"}`);
+    this.buttons[3].setText(`REDUCED MOTION: ${this.settings.reducedMotion ? "ON" : "OFF"}`);
+    this.buttons[4].setText(`SCREEN SHAKE: ${this.settings.screenShake ? "ON" : "OFF"}`);
+    this.buttons[5].setText(`SOUND: ${this.settings.sound ? "ON" : "OFF"}`);
   }
   layout(w: number, h: number): void {
     scrim(this.bgG, w, h, 0.6);
-    const cx = w / 2;
+    const showLb = this.lbPanel.visible && w > 980;
+    // With the board up, shift the menu column left so both breathe.
+    const cx = showLb ? w * 0.38 : w / 2;
     this.title.position.set(cx, h * 0.2);
     this.tagline.position.set(cx, h * 0.2 + 46);
     this.stats.position.set(cx, h * 0.2 + 78);
-    let y = h * 0.44;
+    let y = h * 0.4;
     for (const b of this.buttons) {
       b.at(cx, y);
-      y += 58;
+      y += 54;
     }
     this.settingsLine.position.set(cx, y + 6);
+    this.layoutLb();
+    this.lbPanel.position.set(w * 0.62, h * 0.3);
   }
 }
 

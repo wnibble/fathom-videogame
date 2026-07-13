@@ -493,11 +493,12 @@ export class DiveScene implements HitSink, PickupSink {
     this.depth += dt * 3;
     depthMilestone(this.run, this.depth);
 
-    // waves (scaled by depth AND build power)
+    // waves (scaled by depth, build power AND how deep you've chosen to travel —
+    // each stratum is a real step up now that descent is portal-gated)
     this.spawnTimer -= dt;
-    const tier = depthTier(this.depth, this.run.xp.level);
-    const maxAlive = Math.min(6, 2 + Math.floor(tier));
-    const interval = Math.max(1.0, 3.2 - tier * 0.28) * this.spawnIntervalMult;
+    const tier = depthTier(this.depth, this.run.xp.level) + this.stratumIndex * 0.8;
+    const maxAlive = Math.min(10, 2 + Math.floor(tier * 1.25));
+    const interval = Math.max(0.7, 3.0 - tier * 0.34) * this.spawnIntervalMult;
     const aliveCount = this.enemies.reduce((n, e) => n + (e.alive ? 1 : 0), 0);
     // While the guardian lives, the normal wave stops — it summons its own adds.
     if (!this.boss?.alive && this.spawnTimer <= 0 && aliveCount < maxAlive) {
@@ -558,25 +559,25 @@ export class DiveScene implements HitSink, PickupSink {
         best = s;
       }
     }
-    const elite = this.rng.chance(Math.min(0.5, tier * 0.06 * this.eliteMult));
+    const elite = this.rng.chance(Math.min(0.6, tier * 0.075 * this.eliteMult));
     const kind = this.pickFauna();
 
     let e: Enemy;
     let v: SpitterView;
     if (kind === "darter") {
-      const hp = Math.round(32 * (1 + tier * 0.16) * (elite ? 2.6 : 1));
-      const speed = Math.min(96 * 1.6, 96 * (1 + tier * 0.05)) * (elite ? 1.2 : 1);
+      const hp = Math.round(32 * (1 + tier * 0.22) * (elite ? 2.6 : 1));
+      const speed = Math.min(96 * 1.7, 96 * (1 + tier * 0.06)) * (elite ? 1.2 : 1);
       e = makeDarter(best, { elite, hp, speed });
       v = buildDarterView(elite, this.assets);
     } else if (kind === "drifter") {
-      const hp = Math.round(42 * (1 + tier * 0.16) * (elite ? 2.6 : 1));
-      const speed = 58 * (1 + tier * 0.05) * (elite ? 1.15 : 1);
+      const hp = Math.round(42 * (1 + tier * 0.22) * (elite ? 2.6 : 1));
+      const speed = 58 * (1 + tier * 0.06) * (elite ? 1.15 : 1);
       e = makeDrifter(best, { elite, hp, speed });
       v = buildDrifterView(elite, this.assets);
     } else {
-      const baseHp = 60 * (1 + tier * 0.18) * (elite ? 3 : 1);
-      const speed = Math.min(78 * 1.5, 78 * (1 + tier * 0.06));
-      const bulletCount = Math.min(22, 14 + Math.floor(tier)) + (elite ? 4 : 0);
+      const baseHp = 60 * (1 + tier * 0.25) * (elite ? 3 : 1);
+      const speed = Math.min(78 * 1.6, 78 * (1 + tier * 0.07));
+      const bulletCount = Math.min(26, 14 + Math.floor(tier * 1.2)) + (elite ? 4 : 0);
       e = makeSpitter(best, { elite, hp: Math.round(baseHp), speed, bulletCount });
       v = buildSpitterView(elite, this.assets);
     }
@@ -600,7 +601,7 @@ export class DiveScene implements HitSink, PickupSink {
   /** Summon the Cradle guardian — the climax fight. Scales with the run's power. */
   private spawnBoss(): void {
     if (this.boss) return;
-    const hp = Math.round(2000 + this.run.xp.level * 90 + this.run.stats.maxHpBonus * 4);
+    const hp = Math.round(2600 + this.run.xp.level * 120 + this.run.stats.maxHpBonus * 5);
     const boss = makeBoss({ x: this.arena.bounds.w / 2, y: this.arena.bounds.h * 0.2 }, hp);
     const view = buildBossView(this.assets);
     this.boss = boss;

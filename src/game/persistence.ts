@@ -31,6 +31,7 @@ export interface SaveData {
   weatherIndex: number; // current forecast (applies to the next dive)
   pendingBoons: string[]; // Market boons queued for the next dive
   cradleClears: number; // times the Cradle guardian has been defeated (win count)
+  callsign: string; // leaderboard name (default DIVER-XXXX; user-editable)
 }
 
 export interface DiveResult {
@@ -62,9 +63,21 @@ function makeGuestId(): string {
 function defaultSettings(): Settings {
   return { reducedMotion: false, screenShake: true, sound: true };
 }
+/** Fun default leaderboard handle derived from the stable guest id. */
+function defaultCallsign(guestId: string): string {
+  const tail = guestId.replace(/[^a-z0-9]/gi, "").slice(-4).toUpperCase() || "0000";
+  return `DIVER-${tail}`;
+}
+/** Leaderboard-safe name: printable, trimmed, max 20 chars. */
+export function sanitizeCallsign(s: string, guestId: string): string {
+  const clean = s.replace(/[^\w \-'.!]/g, "").trim().slice(0, 20);
+  return clean.length >= 2 ? clean : defaultCallsign(guestId);
+}
 function fresh(): SaveData {
+  const guestId = makeGuestId();
   return {
-    guestId: makeGuestId(),
+    guestId,
+    callsign: defaultCallsign(guestId),
     bestDepth: 0,
     bestScore: 0,
     totalSamples: 0,
@@ -99,8 +112,10 @@ export function load(): SaveData {
     const bool = (v: unknown, d: boolean) => (typeof v === "boolean" ? v : d);
     const ps = (parsed.settings ?? {}) as Partial<Settings>;
     // Coerce every field — stored JSON may be tampered, legacy, or wrong-typed.
+    const guestId = typeof parsed.guestId === "string" ? parsed.guestId : makeGuestId();
     return {
-      guestId: typeof parsed.guestId === "string" ? parsed.guestId : makeGuestId(),
+      guestId,
+      callsign: sanitizeCallsign(typeof parsed.callsign === "string" ? parsed.callsign : "", guestId),
       bestDepth: num(parsed.bestDepth, 0),
       bestScore: num(parsed.bestScore, 0),
       totalSamples: num(parsed.totalSamples, 0),
@@ -224,6 +239,12 @@ export function purchaseMeta(data: SaveData, id: string): { save: SaveData; ok: 
 
 export function saveSettings(data: SaveData, settings: Settings): SaveData {
   const next = { ...data, settings };
+  save(next);
+  return next;
+}
+
+export function saveCallsign(data: SaveData, callsign: string): SaveData {
+  const next = { ...data, callsign: sanitizeCallsign(callsign, data.guestId) };
   save(next);
   return next;
 }

@@ -18,6 +18,10 @@ runs/raw-events.jsonl
 # Build output
 dist/
 
+# Local env (Supabase keys for local testing — set real ones in Vercel)
+.env.local
+.env*.local
+
 # Regeneratable QA/dev artifacts
 qa-shots*/
 qa-hub*/

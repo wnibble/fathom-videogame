@@ -17,17 +17,26 @@ npx vercel login          # one-time browser auth
 npx vercel --prod         # from the repo root
 ```
 
-## Phase 2 — Supabase (online features)
+## Supabase — global leaderboard (BUILT, needs 3 setup steps)
 
-Nothing blocks shipping v1 without it. When ready, the natural additions:
+The game already ships the client (`src/online/leaderboard.ts`): every finished
+run auto-submits (callsign, score, depth, kills, stratum, won) and the menu
+shows a TOP DIVERS board. With no keys configured it all silently no-ops and the
+game stays fully offline-playable. To turn it on:
 
-1. **Global leaderboard** — table `runs(id, player_name, score, depth, kills,
-   won, created_at)`; insert from the game-over screen via `@supabase/supabase-js`
-   with the anon key + RLS (insert-only for anon, read for all). Render a "TOP
-   DIVERS" board on the menu.
-2. **Cloud saves** — mirror the localStorage `SaveData` into a `saves(guest_id,
-   data jsonb, updated_at)` table keyed by the existing guestId; last-write-wins.
-3. **Auth (optional)** — Supabase magic-link auth to carry saves across devices.
+1. **Create a project** at supabase.com (free tier is plenty).
+2. **Run the schema**: Dashboard → SQL Editor → paste `docs/supabase-setup.sql`
+   → Run. (Table + RLS: anon can insert/read runs, never update/delete; a
+   `leaderboard` view keeps one best entry per player.)
+3. **Add env vars** in Vercel → Project → Settings → Environment Variables:
+   - `VITE_SUPABASE_URL` = your project URL (Settings → API)
+   - `VITE_SUPABASE_ANON_KEY` = the anon/public key (safe to expose under RLS)
+   Then **Redeploy**. Local testing: put the same two lines in `.env.local`.
 
-Supabase env vars would go in Vercel project settings as
-`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` (safe to expose with RLS).
+Players get a default callsign (`DIVER-XXXX`) editable from the main menu.
+
+### Later, if wanted
+- **Cloud saves** — mirror localStorage `SaveData` into `saves(guest_id, data
+  jsonb, updated_at)`; last-write-wins.
+- **Auth** — Supabase magic-link to carry saves across devices.
+- **Daily challenge** — a shared daily seed + per-day leaderboard view.

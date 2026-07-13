@@ -20,6 +20,8 @@ import { weatherAt } from "./content/weather";
 import { BOON_BY_ID } from "./content/boons";
 import { audio } from "./engine/audio";
 import { Hub } from "./game/hub";
+import { onlineEnabled, submitScore, fetchTop } from "./online/leaderboard";
+import { promptCallsign } from "./online/callsign";
 import { COLOR } from "./palette";
 import {
   MenuOverlay,
@@ -136,6 +138,15 @@ async function main(): Promise<void> {
       save = bank.save;
       lastBank = { pearlsEarned: bank.pearlsEarned, newBadges: bank.newBadges };
       goResult = result;
+      // Log the run to the global leaderboard (fire-and-forget; no-op offline).
+      void submitScore(save.guestId, {
+        name: save.callsign,
+        score: result.score,
+        depth: result.depth,
+        kills: result.kills,
+        stratum: result.stratum,
+        won: result.won ?? false,
+      });
       fsm.change("gameover");
     };
     if (!hud.root.parent) engine.uiRoot.addChild(hud.root);
@@ -150,10 +161,17 @@ async function main(): Promise<void> {
     audio.stopDrone();
   };
 
-  const buildMenu = () =>
-    new MenuOverlay(save.bestDepth, save.bestScore, save.settings, {
+  const buildMenu = () => {
+    const menu = new MenuOverlay(save.bestDepth, save.bestScore, save.settings, save.callsign, {
       onStation: () => fsm.change("station"),
       onHowTo: () => fsm.change("howto"),
+      onCallsign: () => {
+        void promptCallsign(save.callsign).then((name) => {
+          if (name === null) return;
+          save = persistence.saveCallsign(save, name);
+          if (activeOverlay === menu) menu.setCallsign(save.callsign);
+        });
+      },
       onToggleMotion: () => {
         save = persistence.saveSettings(save, { ...save.settings, reducedMotion: !save.settings.reducedMotion });
       },
@@ -165,6 +183,16 @@ async function main(): Promise<void> {
         audio.setEnabled(save.settings.sound);
       },
     });
+    // Populate TOP DIVERS asynchronously (panel stays hidden when offline).
+    if (onlineEnabled) {
+      void fetchTop(8).then((rows) => {
+        if (activeOverlay !== menu) return; // menu already gone
+        menu.setLeaderboard(rows);
+        menu.layout(engine.width, engine.height); // board arrived — reflow columns
+      });
+    }
+    return menu;
+  };
 
   const openLevelUp = () => {
     const choices = dive!.rollUpgradeChoices();
