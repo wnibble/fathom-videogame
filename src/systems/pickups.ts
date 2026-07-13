@@ -65,7 +65,7 @@ export class Pickups {
 
     // little outward pop on spawn (deterministic-ish via index count)
     const a = (this.items.length * 2.399963) % (Math.PI * 2);
-    this.items.push({ kind, pos: { x, y }, vel: { x: Math.cos(a) * spreadVel, y: Math.sin(a) * spreadVel }, ttl: 14, value, node, glow });
+    this.items.push({ kind, pos: { x, y }, vel: { x: Math.cos(a) * spreadVel, y: Math.sin(a) * spreadVel }, ttl: 20, value, node, glow });
   }
 
   update(dt: number, player: Player, magnetRadius: number, elapsed: number, sink: PickupSink): void {
@@ -78,8 +78,12 @@ export class Pickups {
       const dist = Math.hypot(dx, dy) || 1;
       if (dist < magnetRadius) {
         const pull = 1 - dist / magnetRadius;
-        p.vel.x += (dx / dist) * pull * 900 * dt;
-        p.vel.y += (dy / dist) * pull * 900 * dt;
+        p.vel.x += (dx / dist) * pull * 1100 * dt;
+        p.vel.y += (dy / dist) * pull * 1100 * dt;
+      } else if (player.alive && dist < 560) {
+        // Soft always-pull so orbs are never permanently abandoned in the field.
+        p.vel.x += (dx / dist) * 130 * dt;
+        p.vel.y += (dy / dist) * 130 * dt;
       }
       p.vel.x *= 1 / (1 + 4 * dt);
       p.vel.y *= 1 / (1 + 4 * dt);
@@ -89,7 +93,7 @@ export class Pickups {
       p.glow.position.set(p.pos.x, p.pos.y);
       p.glow.alpha = 0.4 + 0.25 * pulse;
 
-      if (player.alive && dist <= player.radius + 12) {
+      if (player.alive && dist <= player.radius + 16) {
         sink.onPickup(p.kind, p.value);
         p.ttl = -1;
       }

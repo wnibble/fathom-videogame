@@ -35,8 +35,8 @@ interface Stratum {
   landmark: string; // an oversized far parallax landmark that gives the place character
 }
 
-// Depth (m) spent per stratum before the descent gate opens to the next.
-export const STRATA_DEPTH = 180;
+// Depth (m) spent per stratum before descending to the next (with a fade + card).
+export const STRATA_DEPTH = 220;
 
 export const STRATA: Stratum[] = [
   { name: "Twilight Drift", tagline: "eerie open midwater", bg: 0x0a1a2e, structSheet: "twilight_drift_props", glow: ["plankton_dense", "plankton_sparse", "jelly_colony"], fauna: [{ kind: "spitter", weight: 3 }, { kind: "darter", weight: 1 }], resource: "lumen", landmark: "suspended_coral_chunk" },

@@ -33,7 +33,7 @@ export const WEATHER: Weather[] = [
   { id: "surge", name: "Storm Surge", icon: "↯", desc: "Violent currents rip through the strata.", bonus: "+50% score", penalty: "currents are twice as strong", mods: m({ scoreMult: 1.5, currentMult: 2.0 }) },
   { id: "coldsnap", name: "Cold Snap", icon: "❄", desc: "The cold slows everything down — including you.", bonus: "enemies are sluggish", penalty: "your dash recharges slower", mods: m({ enemySpeedMult: 0.72, dashCdMult: 1.5 }) },
   { id: "redtide", name: "Red Tide", icon: "☣", desc: "A predatory bloom. The deep is hungry and rich.", bonus: "+loot & +score", penalty: "far more elites; dread rises faster", mods: m({ sampleMult: 1.3, scoreMult: 1.3, eliteMult: 2.2, dreadMult: 1.5 }) },
-  { id: "doldrums", name: "The Doldrums", icon: "○", desc: "Dead water. Quiet, and thin.", bonus: "few enemies, weak currents", penalty: "-30% loot", mods: m({ spawnIntervalMult: 1.4, currentMult: 0.4, sampleMult: 0.7, lootCountMult: 0.7 }) },
+  { id: "doldrums", name: "The Doldrums", icon: "○", desc: "Dead water. Quiet, and thin.", bonus: "calmer seas, weak currents", penalty: "-25% loot", mods: m({ spawnIntervalMult: 1.22, currentMult: 0.4, sampleMult: 0.75, lootCountMult: 0.75 }) },
 ];
 
 export const WEATHER_BY_ID: Record<string, Weather> = Object.fromEntries(WEATHER.map((w) => [w.id, w]));

@@ -172,13 +172,38 @@ export class MenuOverlay extends ButtonMenu {
 
 export class PauseOverlay extends ButtonMenu {
   private title = txt("PAUSED", 34, COLOR.aquaBright, "bold");
+  private armed: Button | null = null;
+  private armLabels = new Map<Button, [string, string]>();
   constructor(cbs: { onResume: () => void; onRestart: () => void; onQuit: () => void }) {
     super();
     this.root.addChild(this.title);
     this.addButton("RESUME", cbs.onResume);
-    this.addButton("RESTART DIVE", cbs.onRestart);
-    this.addButton("QUIT TO SURFACE", cbs.onQuit);
+    // Restart + Quit abandon the dive — require a confirm press so a stray click
+    // can't lose your run.
+    const restart = this.addButton("RESTART DIVE", () => this.confirm(restart, cbs.onRestart));
+    const quit = this.addButton("QUIT TO SURFACE", () => this.confirm(quit, cbs.onQuit));
+    this.armLabels.set(restart, ["RESTART DIVE", "RESTART? — press again"]);
+    this.armLabels.set(quit, ["QUIT TO SURFACE", "QUIT? — press again"]);
     this.buttons[0].setSelected(true);
+  }
+  private disarm(): void {
+    if (this.armed) {
+      this.armed.setText(this.armLabels.get(this.armed)![0]);
+      this.armed = null;
+    }
+  }
+  private confirm(btn: Button, action: () => void): void {
+    if (this.armed === btn) {
+      action();
+      return;
+    }
+    this.disarm();
+    this.armed = btn;
+    btn.setText(this.armLabels.get(btn)![1]);
+  }
+  move(delta: number): void {
+    this.disarm();
+    super.move(delta);
   }
   layout(w: number, h: number): void {
     scrim(this.bgG, w, h, 0.7);

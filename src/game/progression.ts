@@ -72,7 +72,7 @@ export function freshStats(): PlayerStats {
     lifestealFrac: 0,
     moveSpeedMult: 1,
     dashCooldownMult: 1,
-    magnetRadius: 44,
+    magnetRadius: 72,
     enemyBulletSlow: 0,
     maxHpBonus: 0,
     postDashHaste: 0,

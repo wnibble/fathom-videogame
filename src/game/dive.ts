@@ -5,6 +5,8 @@
 
 import { Container, Graphics, Sprite, Text, TextStyle } from "pixi.js";
 import { getGlowTexture } from "../engine/glow";
+import { clamp } from "../engine/tween";
+import { squashStretch, phaseOf } from "../render/vitality";
 import type { Engine } from "../engine/app";
 import type { AssetStore } from "../engine/assets";
 import { Input, KEYS } from "../engine/input";
@@ -13,6 +15,7 @@ import type { Damageable, HitSink } from "../systems/projectiles";
 import { Projectiles } from "../systems/projectiles";
 import { Hazards } from "../systems/hazards";
 import { updatePlayerMovement } from "../systems/movement";
+import { FlowField, FlowParticles } from "../systems/flow";
 import { makeSpitter, updateSpitter } from "../systems/spitter";
 import { makeDarter, updateDarter } from "../systems/darter";
 import { makeDrifter, updateDrifter } from "../systems/drifter";
@@ -98,12 +101,18 @@ export class DiveScene implements HitSink, PickupSink {
   private wispTimer = 0;
   private currentBase: Vec2[] = []; // base current forces (for dynamic ebb/flow)
   private streams: { s: Sprite; axisStart: number; cross: number; span: number; base: number; dir: number; horiz: boolean }[] = [];
+  private flow!: FlowField; // ambient sea drift over the whole arena
+  private flowFx: FlowParticles | null = null;
+  private flowVec: Vec2 = { x: 0, y: 0 };
 
   private acc = 0;
   private elapsed = 0;
   private hitstop = 0;
   private depth = 0;
-  private shake = 0;
+  private shake = 0; // trauma 0..1
+  private recoil = { x: 0, y: 0 }; // camera kick
+  private muzzles: { s: Sprite; age: number }[] = [];
+  private dyingViews: { root: Container; glow: Sprite; age: number; life: number }[] = [];
   private spawnTimer = 2;
   private nextResupply = 200; // depth (m) of next interactable resupply
   private eliteKills = 0;
@@ -347,6 +356,14 @@ export class DiveScene implements HitSink, PickupSink {
       this.arena.currents[i].force.y = b.y * osc;
     }
 
+    // Ambient flow drifts the whole sea — a gentle omnipresent nudge so you
+    // always feel the current, even outside the strong authored bands.
+    if (p.alive) {
+      this.flow.sample(p.pos.x, p.pos.y, this.elapsed, this.flowVec);
+      p.vel.x += this.flowVec.x * dt;
+      p.vel.y += this.flowVec.y * dt;
+    }
+
     updatePlayerMovement(p, input.state.move, this.arena.currents, dt, this.arena.bounds, this.run.stats.moveSpeedMult);
 
     // Movement wisps — trailing motes while moving (juice, no new art).
@@ -362,6 +379,9 @@ export class DiveScene implements HitSink, PickupSink {
       const ang = Math.atan2(this.lastAim.y, this.lastAim.x);
       this.proj.fireBurst(this.run.weapon, p.pos, ang, "player");
       audio.shoot();
+      this.spawnMuzzle(p.pos.x + this.lastAim.x * 11, p.pos.y + this.lastAim.y * 11);
+      this.recoil.x -= this.lastAim.x * 2.2;
+      this.recoil.y -= this.lastAim.y * 2.2;
       const haste = this.dash.postHaste > 0 ? 1 + this.run.stats.postDashHaste : 1;
       p.fireCooldown = this.run.fireInterval / haste;
     }
@@ -447,7 +467,7 @@ export class DiveScene implements HitSink, PickupSink {
     if (lowNow && !this.lowHp) audio.lowHp();
     this.lowHp = lowNow;
 
-    if (this.shake > 0) this.shake = Math.max(0, this.shake - dt * 60);
+    if (this.shake > 0) this.shake = Math.max(0, this.shake - dt * 1.8);
 
     if (!p.alive && !this.ended) {
       this.ended = true;
@@ -527,6 +547,41 @@ export class DiveScene implements HitSink, PickupSink {
       c.force.y *= this.currentMult;
     }
     this.currentBase = this.arena.currents.map((c) => ({ x: c.force.x, y: c.force.y }));
+    this.buildFlow();
+  }
+
+  /** Ambient, arena-wide flow so the sea drifts everywhere — not just in bands. */
+  private buildFlow(): void {
+    if (this.flowFx) {
+      this.flowFx.destroy();
+      this.flowFx = null;
+    }
+    const b = this.arena.bounds;
+    // Prevailing drift leans toward the mean of the authored bands (so ambient
+    // agrees with them), else a gentle seeded lean. Small — a felt nudge.
+    let bx = 0;
+    let by = 0;
+    for (const c of this.arena.currents) {
+      bx += c.force.x;
+      by += c.force.y;
+    }
+    const bl = Math.hypot(bx, by) || 1;
+    const bias = { x: (bx / bl) * 9, y: (by / bl) * 9 };
+    this.flow = new FlowField(22 * this.currentMult, bias, (this.seed + this.stratumIndex * 9176 + 1) >>> 0);
+    this.flowFx = new FlowParticles(this.flow, this.arena.currents, b);
+    this.engine.worldLayer.addChildAt(this.flowFx.layer, 0);
+  }
+
+  private spawnMuzzle(x: number, y: number): void {
+    if (this.muzzles.length > 8) return;
+    const s = new Sprite(getGlowTexture());
+    s.anchor.set(0.5);
+    s.tint = leanHue(this.run);
+    s.position.set(x, y);
+    s.scale.set(38 / 128);
+    s.alpha = 0.5;
+    this.engine.lightLayer.addChild(s);
+    this.muzzles.push({ s, age: 0 });
   }
 
   private spawnWisp(x: number, y: number): void {
@@ -603,12 +658,28 @@ export class DiveScene implements HitSink, PickupSink {
       w.s.destroy();
     }
     this.wisps = [];
+    for (const m of this.muzzles) {
+      m.s.parent?.removeChild(m.s);
+      m.s.destroy();
+    }
+    this.muzzles = [];
+    for (const d of this.dyingViews) {
+      d.root.parent?.removeChild(d.root);
+      d.root.destroy({ children: true });
+      d.glow.parent?.removeChild(d.glow);
+      d.glow.destroy();
+    }
+    this.dyingViews = [];
     for (const n of this.staticNodes) {
       n.parent?.removeChild(n);
       n.destroy({ children: true });
     }
     this.staticNodes = [];
     this.streams = [];
+    if (this.flowFx) {
+      this.flowFx.destroy();
+      this.flowFx = null;
+    }
     for (const [, v] of this.enemyViews) {
       v.root.destroy({ children: true });
       v.glow.destroy();
@@ -663,7 +734,14 @@ export class DiveScene implements HitSink, PickupSink {
     const { hpDamage, absorbed } = absorb(this.player, damage);
     this.player.hp -= hpDamage;
     this.player.invuln = 0.85;
-    if (this.shakeEnabled) this.shake = absorbed ? 5 : 10;
+    if (this.shakeEnabled) {
+      this.shake = Math.min(1, this.shake + (absorbed ? 0.35 : 0.7));
+      const dx = this.player.pos.x - at.x;
+      const dy = this.player.pos.y - at.y;
+      const l = Math.hypot(dx, dy) || 1;
+      this.recoil.x += (dx / l) * (absorbed ? 8 : 14);
+      this.recoil.y += (dy / l) * (absorbed ? 8 : 14);
+    }
     if (!this.reducedMotion) this.hitstop = absorbed ? 0.03 : 0.05;
     // A fully-shielded hit keeps your combo — the payoff for a shield build.
     if (!absorbed) onPlayerHitScore(this.run);
@@ -691,8 +769,8 @@ export class DiveScene implements HitSink, PickupSink {
       this.proj.fireBurst({ ...SPITTER_RADIAL, count: 12, speed: 150, ttl: 2.4, telegraph: undefined }, enemy.pos, 0, "enemy");
     }
     audio.kill();
-    if (this.shakeEnabled) this.shake = enemy.elite ? 10 : 6;
-    if (!this.reducedMotion) this.hitstop = 0.04;
+    if (this.shakeEnabled) this.shake = Math.min(1, this.shake + (enemy.elite ? 0.5 : 0.28));
+    if (!this.reducedMotion) this.hitstop = enemy.elite ? 0.08 : 0.05;
     this.spawnFx("sample_burst", enemy.pos.x, enemy.pos.y);
     // Loot: elites drop richer; weather/boons scale the haul.
     const drops = Math.max(1, Math.round((enemy.elite ? 2 : 1) * this.lootMult));
@@ -723,7 +801,8 @@ export class DiveScene implements HitSink, PickupSink {
     this.charge = 0;
     this.proj.popRadius(p.pos.x, p.pos.y, 165);
     this.spawnHitFx(p.pos.x, p.pos.y, COLOR.aquaBright, true);
-    if (this.shakeEnabled) this.shake = 8;
+    if (this.shakeEnabled) this.shake = Math.min(1, this.shake + 0.5);
+    if (!this.reducedMotion) this.hitstop = 0.09;
     const r2 = 165 * 165;
     for (const e of this.enemies) {
       if (!e.alive) continue;
@@ -810,6 +889,7 @@ export class DiveScene implements HitSink, PickupSink {
   // ---- render ----
   private renderSync(dt: number, _input: Input): void {
     const p = this.player;
+    this.flowFx?.update(dt, this.elapsed); // drifting streaks reveal the living current
     const flowSpeed = 62;
     for (const st of this.streams) {
       const along = (((st.base + this.elapsed * flowSpeed * st.dir) % st.span) + st.span) % st.span;
@@ -866,9 +946,48 @@ export class DiveScene implements HitSink, PickupSink {
       }
     }
 
+    // Muzzle flashes fade.
+    if (this.muzzles.length) {
+      for (const mz of this.muzzles) {
+        mz.age += dt;
+        const t = mz.age / 0.07;
+        mz.s.alpha = 0.5 * (1 - t);
+        mz.s.scale.set((38 / 128) * (1 - 0.6 * t));
+      }
+      if (this.muzzles.some((m) => m.age >= 0.07)) {
+        for (const m of this.muzzles) {
+          if (m.age < 0.07) continue;
+          m.s.parent?.removeChild(m.s);
+          m.s.destroy();
+        }
+        this.muzzles = this.muzzles.filter((m) => m.age < 0.07);
+      }
+    }
+    // Dying enemies squash to zero (juicy death, no instant pop).
+    if (this.dyingViews.length) {
+      for (const d of this.dyingViews) {
+        d.age += dt;
+        const t = Math.min(1, d.age / d.life);
+        d.root.scale.set(1 + 0.3 * t, Math.max(0.03, 1 - t));
+        d.root.alpha = 1 - t;
+        d.glow.alpha = (1 - t) * 0.6;
+      }
+      if (this.dyingViews.some((d) => d.age >= d.life)) {
+        for (const d of this.dyingViews) {
+          if (d.age < d.life) continue;
+          d.root.parent?.removeChild(d.root);
+          d.root.destroy({ children: true });
+          d.glow.parent?.removeChild(d.glow);
+          d.glow.destroy();
+        }
+        this.dyingViews = this.dyingViews.filter((d) => d.age < d.life);
+      }
+    }
+
     this.playerView.root.visible = p.alive;
     this.playerView.root.position.set(p.pos.x, p.pos.y);
     this.playerView.root.rotation = Math.atan2(this.lastAim.y, this.lastAim.x);
+    squashStretch(this.playerView.root, Math.hypot(p.vel.x, p.vel.y), 0.28, 0.02, this.elapsed, 0);
     this.playerView.root.alpha = p.invuln > 0 ? (Math.floor(p.invuln * 20) % 2 ? 0.4 : 1) : 1;
     this.playerView.lamp.position.set(p.pos.x, p.pos.y);
     this.playerView.lamp.visible = p.alive;
@@ -903,10 +1022,8 @@ export class DiveScene implements HitSink, PickupSink {
       const v = this.enemyViews.get(e);
       if (!v) continue;
       if (!e.alive) {
-        this.engine.worldLayer.removeChild(v.root);
-        this.engine.lightLayer.removeChild(v.glow);
-        v.root.destroy({ children: true });
-        v.glow.destroy();
+        // Hand the view to the dying list for a squash-to-zero instead of a pop.
+        this.dyingViews.push({ root: v.root, glow: v.glow, age: 0, life: 0.14 });
         this.enemyViews.delete(e);
         const tg = this.telegraphs.get(e);
         if (tg) {
@@ -918,7 +1035,13 @@ export class DiveScene implements HitSink, PickupSink {
       }
       v.root.position.set(e.pos.x, e.pos.y);
       v.glow.position.set(e.pos.x, e.pos.y);
-      v.root.scale.set(e.flash > 0 ? 1.15 : 1);
+      // Idle breathe (desynced by position phase) + a hit-flash pop.
+      const ph = phaseOf(e.pos.x, e.pos.y);
+      const amp = e.kind === "drifter" ? 0.06 : e.kind === "spitter" ? 0.04 : 0.025;
+      const spd = e.kind === "drifter" ? 2.2 : 3;
+      let sc = 1 + amp * Math.sin(this.elapsed * spd + ph);
+      if (e.flash > 0) sc *= 1.12;
+      v.root.scale.set(sc);
       if (e.kind === "darter") {
         if (Math.hypot(e.vel.x, e.vel.y) > 6) v.root.rotation = Math.atan2(e.vel.y, e.vel.x);
         else v.root.rotation = Math.atan2(this.player.pos.y - e.pos.y, this.player.pos.x - e.pos.x);
@@ -927,13 +1050,20 @@ export class DiveScene implements HitSink, PickupSink {
     }
     this.enemies = this.enemies.filter((e) => e.alive || this.enemyViews.has(e));
 
-    this.engine.centerOn(p.pos.x, p.pos.y);
+    // Camera lead — bias toward where you're aiming/moving, framing the danger.
+    const leadX = clamp(this.lastAim.x * 70 + p.vel.x * 0.18, -90, 90);
+    const leadY = clamp(this.lastAim.y * 70 + p.vel.y * 0.18, -90, 90);
+    this.engine.centerOn(p.pos.x + leadX, p.pos.y + leadY);
     this.engine.updateCamera(dt);
-    if (this.shake > 0) {
-      const sx = (Math.sin(this.elapsed * 137.13) * this.shake) | 0;
-      const sy = (Math.cos(this.elapsed * 91.7) * this.shake) | 0;
-      this.engine.sceneRoot.position.x += sx;
-      this.engine.sceneRoot.position.y += sy;
+    // Trauma shake (integer offset, no rotation) + decaying directional recoil.
+    this.recoil.x *= 0.82;
+    this.recoil.y *= 0.82;
+    if (this.shake > 0 || Math.abs(this.recoil.x) > 0.5 || Math.abs(this.recoil.y) > 0.5) {
+      const mag = this.shake * this.shake * 16;
+      const ox = ((Math.random() * 2 - 1) * mag + this.recoil.x) | 0;
+      const oy = ((Math.random() * 2 - 1) * mag + this.recoil.y) | 0;
+      this.engine.sceneRoot.position.x += ox;
+      this.engine.sceneRoot.position.y += oy;
     }
   }
 
@@ -1061,6 +1191,22 @@ export class DiveScene implements HitSink, PickupSink {
       w.s.destroy();
     }
     this.wisps = [];
+    for (const m of this.muzzles) {
+      m.s.parent?.removeChild(m.s);
+      m.s.destroy();
+    }
+    this.muzzles = [];
+    for (const d of this.dyingViews) {
+      d.root.parent?.removeChild(d.root);
+      d.root.destroy({ children: true });
+      d.glow.parent?.removeChild(d.glow);
+      d.glow.destroy();
+    }
+    this.dyingViews = [];
+    if (this.flowFx) {
+      this.flowFx.destroy();
+      this.flowFx = null;
+    }
     for (const n of this.staticNodes) {
       n.parent?.removeChild(n);
       n.destroy({ children: true });
