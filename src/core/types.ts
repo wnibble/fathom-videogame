@@ -103,3 +103,11 @@ export interface Prop {
   glow: boolean; // drawn in the additive light layer if true
   animation?: string; // animation group key (optional)
 }
+
+/** A solid rock/cave obstacle bodies collide with (circle collision). */
+export interface Obstacle {
+  pos: Vec2;
+  radius: number; // collision radius
+  sprite: string; // cave/rock sprite key
+  scale: number; // render scale
+}

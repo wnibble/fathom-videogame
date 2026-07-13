@@ -15,7 +15,7 @@ import type { Enemy, EnemyKind, Player, Vec2 } from "../core/types";
 import type { Damageable, HitSink } from "../systems/projectiles";
 import { Projectiles } from "../systems/projectiles";
 import { Hazards } from "../systems/hazards";
-import { updatePlayerMovement } from "../systems/movement";
+import { updatePlayerMovement, resolveObstacles } from "../systems/movement";
 import { FlowField, FlowParticles } from "../systems/flow";
 import { makeSpitter, updateSpitter } from "../systems/spitter";
 import { makeDarter, updateDarter } from "../systems/darter";
@@ -291,6 +291,26 @@ export class DiveScene implements HitSink, PickupSink {
         this.sway.push({ node, baseX: p.pos.x, baseRot: node.rotation, phase: ph, amp: 0.05 + (p.scale - 1) * 0.03, speed: 0.7 + (ph % 1) * 0.5 });
       }
     }
+
+    // Solid rock/cave obstacles — a soft contact shadow beneath, then the sprite.
+    for (const o of this.arena.obstacles) {
+      const shadow = new Graphics();
+      shadow.ellipse(o.pos.x, o.pos.y + o.radius * 0.55, o.radius * 1.05, o.radius * 0.4).fill({ color: COLOR.abyss, alpha: 0.4 });
+      this.engine.worldLayer.addChild(shadow);
+      this.staticNodes.push(shadow as unknown as Container);
+      if (this.assets.has(o.sprite)) {
+        const node = this.assets.sprite(o.sprite);
+        node.position.set(o.pos.x, o.pos.y);
+        node.scale.set(o.scale);
+        this.engine.worldLayer.addChild(node);
+        this.staticNodes.push(node);
+      } else {
+        const g = new Graphics();
+        g.circle(o.pos.x, o.pos.y, o.radius).fill({ color: 0x0c1826, alpha: 0.96 }).stroke({ width: 2, color: 0x1d3346 });
+        this.engine.worldLayer.addChild(g);
+        this.staticNodes.push(g as unknown as Container);
+      }
+    }
   }
 
   // ---- update ----
@@ -395,7 +415,7 @@ export class DiveScene implements HitSink, PickupSink {
       p.vel.y += this.flowVec.y * dt;
     }
 
-    updatePlayerMovement(p, input.state.move, this.arena.currents, dt, this.arena.bounds, this.run.stats.moveSpeedMult);
+    updatePlayerMovement(p, input.state.move, this.arena.currents, dt, this.arena.bounds, this.run.stats.moveSpeedMult, this.arena.obstacles);
 
     // Movement wisps — trailing motes while moving (juice, no new art).
     const spd = Math.hypot(p.vel.x, p.vel.y);
@@ -444,6 +464,8 @@ export class DiveScene implements HitSink, PickupSink {
           this.hazards.spawn(e.pos.x, e.pos.y, 20, 3, 8, 0x8fe04a);
         }
       }
+      // Enemies collide with rocks too (except the boss, which hovers above).
+      if (e !== this.boss && this.arena.obstacles.length) resolveObstacles(e.pos, e.radius, e.vel, this.arena.obstacles);
     }
 
     this.proj.enemySlow = this.run.stats.enemyBulletSlow;

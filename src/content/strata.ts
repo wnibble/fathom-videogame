@@ -4,7 +4,7 @@
 // the Cradle (stratum 5) is the floor. buildStratum(index) parametrizes one arena.
 
 import type { AssetStore } from "../engine/assets";
-import type { Current, EnemyKind, Prop, Vec2 } from "../core/types";
+import type { Current, EnemyKind, Obstacle, Prop, Vec2 } from "../core/types";
 import type { InteractableData, InteractableKind } from "../systems/interactables";
 import { Rng } from "../core/rng";
 
@@ -12,6 +12,7 @@ export interface ArenaData {
   bounds: { w: number; h: number };
   playerStart: Vec2;
   props: Prop[];
+  obstacles: Obstacle[];
   currents: Current[];
   spawns: Vec2[];
   interactables: InteractableData[];
@@ -33,18 +34,19 @@ interface Stratum {
   fauna: { kind: EnemyKind; weight: number }[];
   resource: string;
   landmark: string; // an oversized far parallax landmark that gives the place character
+  caves: string[]; // rock/cave sprites used as solid obstacles (from the new pack)
 }
 
 // Depth (m) spent per stratum before descending to the next (with a fade + card).
 export const STRATA_DEPTH = 220;
 
 export const STRATA: Stratum[] = [
-  { name: "Twilight Drift", tagline: "eerie open midwater", bg: 0x0a1a2e, structSheet: "twilight_drift_props", glow: ["plankton_dense", "plankton_sparse", "jelly_colony"], fauna: [{ kind: "spitter", weight: 3 }, { kind: "darter", weight: 1 }], resource: "lumen", landmark: "suspended_coral_chunk" },
-  { name: "Kelp Forest", tagline: "occlusion and ambush", bg: 0x0a241e, structSheet: "kelp_forest_props", glow: ["sprout_aqua_1", "sprout_aqua_2", "sprout_amber_1", "tangle_glowing"], fauna: [{ kind: "darter", weight: 3 }, { kind: "spitter", weight: 2 }], resource: "spore", landmark: "tangle_large_a" },
-  { name: "The Wreck", tagline: "tight salvage, mechanical hazards", bg: 0x17130e, structSheet: "wreck_thermal_props", glow: ["emergency_lamp", "gas_pocket"], fauna: [{ kind: "darter", weight: 2 }, { kind: "spitter", weight: 2 }, { kind: "drifter", weight: 1 }], resource: "alloy", landmark: "vent_chimney" },
-  { name: "Thermal Vents", tagline: "eruptions and aggression", bg: 0x1e0f0a, structSheet: "wreck_thermal_props", glow: ["sparking_cable", "gas_pocket"], fauna: [{ kind: "darter", weight: 2 }, { kind: "drifter", weight: 2 }, { kind: "spitter", weight: 1 }], resource: "ember", landmark: "pipe_cluster" },
-  { name: "Abyssal Plain", tagline: "dark, sparse, deadly", bg: 0x05080f, structSheet: "twilight_drift_props", glow: ["plankton_sparse"], fauna: [{ kind: "spitter", weight: 2 }, { kind: "drifter", weight: 3 }, { kind: "darter", weight: 1 }], resource: "shard", landmark: "dead_drifting_creature" },
-  { name: "The Cradle", tagline: "the bottom — something waits", bg: 0x0b0616, structSheet: "twilight_drift_props", glow: ["plankton_dense", "jelly_colony"], fauna: [{ kind: "drifter", weight: 2 }, { kind: "spitter", weight: 1 }], resource: "relic", landmark: "tube_worm_colony" },
+  { name: "Twilight Drift", tagline: "eerie open midwater", bg: 0x0a1a2e, structSheet: "twilight_drift_props", glow: ["plankton_dense", "plankton_sparse", "jelly_colony"], fauna: [{ kind: "spitter", weight: 3 }, { kind: "darter", weight: 1 }], resource: "lumen", landmark: "suspended_coral_chunk", caves: ["floating_reef_chunk", "fan_coral"] },
+  { name: "Kelp Forest", tagline: "occlusion and ambush", bg: 0x0a241e, structSheet: "kelp_forest_props", glow: ["sprout_aqua_1", "sprout_aqua_2", "sprout_amber_1", "tangle_glowing"], fauna: [{ kind: "darter", weight: 3 }, { kind: "spitter", weight: 2 }], resource: "spore", landmark: "tangle_large_a", caves: ["abyssal_root_mass", "floating_reef_chunk", "tube_coral"] },
+  { name: "The Wreck", tagline: "tight salvage, mechanical hazards", bg: 0x17130e, structSheet: "wreck_thermal_props", glow: ["emergency_lamp", "gas_pocket"], fauna: [{ kind: "darter", weight: 2 }, { kind: "spitter", weight: 2 }, { kind: "drifter", weight: 1 }], resource: "alloy", landmark: "vent_chimney", caves: ["cargo_crate_closed", "rusted_barrel", "pipe_cluster", "floating_reef_chunk"] },
+  { name: "Thermal Vents", tagline: "eruptions and aggression", bg: 0x1e0f0a, structSheet: "wreck_thermal_props", glow: ["sparking_cable", "gas_pocket"], fauna: [{ kind: "darter", weight: 2 }, { kind: "drifter", weight: 2 }, { kind: "spitter", weight: 1 }], resource: "ember", landmark: "pipe_cluster", caves: ["floating_reef_chunk", "crystal_coral", "rusted_barrel"] },
+  { name: "Abyssal Plain", tagline: "dark, sparse, deadly", bg: 0x05080f, structSheet: "twilight_drift_props", glow: ["plankton_sparse"], fauna: [{ kind: "spitter", weight: 2 }, { kind: "drifter", weight: 3 }, { kind: "darter", weight: 1 }], resource: "shard", landmark: "dead_drifting_creature", caves: ["floating_reef_chunk", "crystal_coral", "abyssal_root_mass"] },
+  { name: "The Cradle", tagline: "the bottom — something waits", bg: 0x0b0616, structSheet: "twilight_drift_props", glow: ["plankton_dense", "jelly_colony"], fauna: [{ kind: "drifter", weight: 2 }, { kind: "spitter", weight: 1 }], resource: "relic", landmark: "tube_worm_colony", caves: ["crystal_coral", "abyssal_root_mass"] },
 ];
 
 // Sprite names owned by interactables — never scatter them as decoration.
@@ -61,7 +63,8 @@ export function buildStratum(index: number, seed: number, assets: AssetStore): A
   const si = Math.max(0, Math.min(STRATA.length - 1, index));
   const S = STRATA[si];
   const rng = new Rng((seed + si * 2654435761) >>> 0);
-  const bounds = { w: 1900, h: 1500 }; // bigger field — less "boxed in"
+  // Map expands with depth — the deep opens up (1900x1500 -> ~2700x2100).
+  const bounds = { w: 1900 + si * 160, h: 1500 + si * 120 };
   const playerStart = { x: bounds.w / 2, y: bounds.h / 2 };
 
   // Decoration pools from this stratum's sheet (structural sprites), plus curated glow.
@@ -91,6 +94,26 @@ export function buildStratum(index: number, seed: number, assets: AssetStore): A
   if (kelp.length) scatter(kelp, 10, false, false, [1, 1.4], 110); // kelp forest verticals
   scatter(glowSprites, 8, true, false, [1, 1.4], 100);
   scatter(glowAnims, 5, true, true, [1, 1.3], 140);
+
+  // Solid rock/cave obstacles — deeper strata are rockier, but always MOSTLY OPEN
+  // (a few big formations to weave around, never a maze). Bodies collide with these.
+  const obstacles: Obstacle[] = [];
+  const caves = S.caves.filter((n) => assets.sprites[n]);
+  if (caves.length) {
+    const count = 3 + si; // Twilight 3 -> Cradle 8
+    let tries = 0;
+    while (obstacles.length < count && tries < count * 20) {
+      tries++;
+      const pos = { x: rng.range(180, bounds.w - 180), y: rng.range(180, bounds.h - 180) };
+      // Keep the spawn area + lanes clear, and rocks well apart (stay open).
+      if (Math.hypot(pos.x - playerStart.x, pos.y - playerStart.y) < 340) continue;
+      if (!farFrom(pos, placed, 300)) continue;
+      const radius = rng.range(46, 82);
+      const sprite = rng.pick(caves);
+      obstacles.push({ pos, radius, sprite, scale: (radius * 2.1) / 60 });
+      placed.push(pos);
+    }
+  }
 
   // Currents (teach flow) — unchanged shape.
   const currents: Current[] = [];
@@ -150,5 +173,5 @@ export function buildStratum(index: number, seed: number, assets: AssetStore): A
     landmark = { sprite: S.landmark, pos: { x: lx, y: ly }, scale: rng.range(3.2, 4.2) };
   }
 
-  return { bounds, playerStart, props, currents, spawns, interactables, name: S.name, tagline: S.tagline, bg: S.bg, fauna: S.fauna, resource: S.resource, isFloor: si === STRATA.length - 1, landmark };
+  return { bounds, playerStart, props, obstacles, currents, spawns, interactables, name: S.name, tagline: S.tagline, bg: S.bg, fauna: S.fauna, resource: S.resource, isFloor: si === STRATA.length - 1, landmark };
 }
