@@ -1,0 +1,9 @@
+# Keep CLI uploads lean — none of this is needed to build the game.
+Game asset (pictures with guide)
+qa-*
+runs
+dashboard
+contracts
+docs
+contact-sheet.png
+*.md
