@@ -6,6 +6,8 @@ import { Container, Graphics, Sprite } from "pixi.js";
 import { COLOR } from "../palette";
 import { getGlowTexture, GLOW_SIZE } from "../engine/glow";
 import type { AssetStore } from "../engine/assets";
+import type { Enemy } from "../core/types";
+import { phaseOf } from "./vitality";
 
 function glow(diameter: number, color: number, alpha: number): Sprite {
   const s = new Sprite(getGlowTexture());
@@ -75,65 +77,127 @@ export function buildPlayerView(assets?: AssetStore): PlayerView {
 export interface SpitterView {
   root: Container; // world layer
   glow: Sprite; // light layer
-  body: Graphics; // for hit feedback
+  body?: Graphics; // procedural path only (unused elsewhere)
+  /** Sprite path: drive pose (idle/windup/fire/lunge…), facing + breathe/flash. */
+  update?(e: Enemy, dt: number, elapsed: number): void;
 }
 
-export function buildSpitterView(elite = false): SpitterView {
+// Shared breathe/flash so procedural + sprite paths feel identical.
+function faunaBreathe(e: Enemy, elapsed: number, elite: boolean): number {
+  const ph = phaseOf(e.pos.x, e.pos.y);
+  const amp = e.kind === "drifter" ? 0.06 : e.kind === "spitter" ? 0.04 : 0.025;
+  const spd = e.kind === "drifter" ? 2.2 : 3;
+  let sc = (elite ? 1.28 : 1) * (1 + amp * Math.sin(elapsed * spd + ph));
+  if (e.flash > 0) sc *= 1.12;
+  return sc;
+}
+
+// The Spitter — a spiky urchin that winds up then fires a radial volley.
+export function buildSpitterView(elite = false, assets?: AssetStore): SpitterView {
   const root = new Container();
+  const glowS = glow(elite ? 175 : 120, COLOR.coral, elite ? 0.95 : 0.85);
+  if (assets?.has("spitter_idle")) {
+    const idle = assets.anim("spitter_idle");
+    const windup = assets.has("spitter_windup") ? assets.sprite("spitter_windup") : null;
+    const fire = assets.has("spitter_fire") ? assets.sprite("spitter_fire") : null;
+    root.addChild(idle);
+    if (windup) { windup.visible = false; root.addChild(windup); }
+    if (fire) { fire.visible = false; root.addChild(fire); }
+    let prevTele = false, fireT = 0;
+    return {
+      root, glow: glowS,
+      update(e, dt, elapsed) {
+        const tele = e.telegraphTimer > 0;
+        if (prevTele && !tele) fireT = 0.18;
+        prevTele = tele;
+        fireT = Math.max(0, fireT - dt);
+        const showFire = fireT > 0 && !!fire;
+        const showWind = tele && !!windup && !showFire;
+        idle.visible = !showFire && !showWind;
+        if (windup) windup.visible = showWind;
+        if (fire) fire.visible = showFire;
+        root.scale.set(faunaBreathe(e, elapsed, elite));
+      },
+    };
+  }
   const body = new Graphics();
-  const r = elite ? 17 : 13;
-  const spike = elite ? 26 : 20;
-  const outline = elite ? COLOR.amberBright : COLOR.coral;
+  const r = elite ? 17 : 13, spike = elite ? 26 : 20, outline = elite ? COLOR.amberBright : COLOR.coral;
   for (let i = 0; i < 8; i++) {
     const a = (i / 8) * Math.PI * 2;
-    const sx = Math.cos(a) * r;
-    const sy = Math.sin(a) * r;
-    const tx = Math.cos(a) * spike;
-    const ty = Math.sin(a) * spike;
-    const px = Math.cos(a + 0.32) * (r - 2);
-    const py = Math.sin(a + 0.32) * (r - 2);
-    body.poly([sx, sy, tx, ty, px, py]).fill(COLOR.coral);
+    body.poly([Math.cos(a) * r, Math.sin(a) * r, Math.cos(a) * spike, Math.sin(a) * spike, Math.cos(a + 0.32) * (r - 2), Math.sin(a + 0.32) * (r - 2)]).fill(COLOR.coral);
   }
   body.circle(0, 0, r).fill(COLOR.deepNavy).stroke({ width: elite ? 3 : 2, color: outline });
   body.circle(0, 0, r * 0.46).fill(COLOR.navy);
   body.circle(0, 0, elite ? 4 : 3).fill(COLOR.amberBright);
   root.addChild(body);
-
-  // Brighter/larger than ambient fauna glows — the threat must be the loudest
-  // warm signal on screen, not blend into set-dressing. Elites glow harder.
-  return { root, glow: glow(elite ? 175 : 120, COLOR.coral, elite ? 0.95 : 0.85), body };
+  return { root, glow: glowS, body };
 }
 
-// The Drifter — a slow jelly-like mine-layer: a domed bell + drooping tendrils.
-// A distinct silhouette from the spiky Spitter and arrow Darter.
-export function buildDrifterView(elite = false): SpitterView {
+// The Drifter — a slow jelly mine-layer: domed bell + drooping tendrils.
+export function buildDrifterView(elite = false, assets?: AssetStore): SpitterView {
   const root = new Container();
+  const glowS = glow(elite ? 130 : 90, COLOR.coral, elite ? 0.85 : 0.6);
+  if (assets?.has("drifter_idle")) {
+    const idle = assets.anim("drifter_idle");
+    const pulse = assets.has("drifter_pulse") ? assets.sprite("drifter_pulse") : null;
+    root.addChild(idle);
+    if (pulse) { pulse.visible = false; root.addChild(pulse); }
+    return {
+      root, glow: glowS,
+      update(e, _dt, elapsed) {
+        // Pulse frame when a mine is imminent (irradiated cadence), else drift.
+        const pulsing = !!pulse && (e.mineTimer !== undefined && e.mineTimer < 0.2);
+        idle.visible = !pulsing;
+        if (pulse) pulse.visible = pulsing;
+        root.scale.set(faunaBreathe(e, elapsed, elite));
+      },
+    };
+  }
   const body = new Graphics();
-  const s = elite ? 1.3 : 1;
-  const outline = elite ? COLOR.amberBright : COLOR.coral;
-  // bell dome
+  const s = elite ? 1.3 : 1, outline = elite ? COLOR.amberBright : COLOR.coral;
   body.ellipse(0, -2 * s, 13 * s, 10 * s).fill(COLOR.deepNavy).stroke({ width: 2, color: outline });
   body.ellipse(0, -4 * s, 7 * s, 5 * s).fill(COLOR.navy);
-  // drooping tendrils
-  for (let i = -2; i <= 2; i++) {
-    const x = i * 5 * s;
-    body.moveTo(x, 6 * s).lineTo(x + Math.sign(i) * 2, 16 * s).stroke({ width: 2, color: COLOR.coral, alpha: 0.8 });
-  }
-  body.circle(0, -3 * s, 2.4 * s).fill(COLOR.amberBright); // eye
+  for (let i = -2; i <= 2; i++) body.moveTo(i * 5 * s, 6 * s).lineTo(i * 5 * s + Math.sign(i) * 2, 16 * s).stroke({ width: 2, color: COLOR.coral, alpha: 0.8 });
+  body.circle(0, -3 * s, 2.4 * s).fill(COLOR.amberBright);
   root.addChild(body);
-  return { root, glow: glow(elite ? 130 : 90, COLOR.coral, elite ? 0.85 : 0.6), body };
+  return { root, glow: glowS, body };
 }
 
-// The Darter — a sleek lunging predator (points +x; dive rotates it to face its
-// lunge). Distinct silhouette from the Spitter so the two threats read apart.
-export function buildDarterView(elite = false): SpitterView {
+// The Darter — a sleek lunging eel. Side-view sprite: flips L/R to face its lunge.
+export function buildDarterView(elite = false, assets?: AssetStore): SpitterView {
   const root = new Container();
+  const glowS = glow(elite ? 120 : 82, COLOR.coral, elite ? 0.9 : 0.72);
+  if (assets?.has("darter_idle")) {
+    const flip = new Container();
+    root.addChild(flip);
+    const idle = assets.sprite("darter_idle");
+    const windup = assets.has("darter_windup") ? assets.sprite("darter_windup") : null;
+    const lunge = assets.has("darter_lunge") ? assets.sprite("darter_lunge") : null;
+    const recover = assets.has("darter_recover") ? assets.sprite("darter_recover") : null;
+    flip.addChild(idle);
+    for (const s of [windup, lunge, recover]) if (s) { s.visible = false; flip.addChild(s); }
+    let face = 1;
+    return {
+      root, glow: glowS,
+      update(e, _dt, elapsed) {
+        const dir = Math.abs(e.vel.x) > 6 ? e.vel.x : 0;
+        if (dir !== 0) face = dir > 0 ? -1 : 1; // art faces LEFT; flip for rightward
+        flip.scale.x = face;
+        const lunging = !!lunge && e.lungeTimer > 0;
+        const winding = !!windup && e.telegraphTimer > 0 && !lunging;
+        idle.visible = !lunging && !winding;
+        if (windup) windup.visible = winding;
+        if (lunge) lunge.visible = lunging;
+        if (recover) recover.visible = false;
+        root.scale.set(faunaBreathe(e, elapsed, elite));
+      },
+    };
+  }
   const body = new Graphics();
-  const s = elite ? 1.35 : 1;
-  const outline = elite ? COLOR.amberBright : COLOR.coral;
+  const s = elite ? 1.35 : 1, outline = elite ? COLOR.amberBright : COLOR.coral;
   body.poly([15 * s, 0, -8 * s, -8 * s, -3 * s, 0, -8 * s, 8 * s]).fill(COLOR.deepNavy).stroke({ width: 2, color: outline });
   body.poly([-3 * s, 0, -15 * s, -6 * s, -10 * s, 0, -15 * s, 6 * s]).fill(COLOR.coral);
   body.circle(6 * s, 0, 2.6 * s).fill(COLOR.amberBright);
   root.addChild(body);
-  return { root, glow: glow(elite ? 120 : 82, COLOR.coral, elite ? 0.9 : 0.72), body };
+  return { root, glow: glowS, body };
 }

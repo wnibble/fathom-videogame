@@ -543,18 +543,18 @@ export class DiveScene implements HitSink, PickupSink {
       const hp = Math.round(32 * (1 + tier * 0.16) * (elite ? 2.6 : 1));
       const speed = Math.min(96 * 1.6, 96 * (1 + tier * 0.05)) * (elite ? 1.2 : 1);
       e = makeDarter(best, { elite, hp, speed });
-      v = buildDarterView(elite);
+      v = buildDarterView(elite, this.assets);
     } else if (kind === "drifter") {
       const hp = Math.round(42 * (1 + tier * 0.16) * (elite ? 2.6 : 1));
       const speed = 58 * (1 + tier * 0.05) * (elite ? 1.15 : 1);
       e = makeDrifter(best, { elite, hp, speed });
-      v = buildDrifterView(elite);
+      v = buildDrifterView(elite, this.assets);
     } else {
       const baseHp = 60 * (1 + tier * 0.18) * (elite ? 3 : 1);
       const speed = Math.min(78 * 1.5, 78 * (1 + tier * 0.06));
       const bulletCount = Math.min(22, 14 + Math.floor(tier)) + (elite ? 4 : 0);
       e = makeSpitter(best, { elite, hp: Math.round(baseHp), speed, bulletCount });
-      v = buildSpitterView(elite);
+      v = buildSpitterView(elite, this.assets);
     }
     e.speed *= this.enemySpeedMult; // weather (Cold Snap etc.)
     // Elite mutation — an aura color + a reused behavior seam.
@@ -578,7 +578,7 @@ export class DiveScene implements HitSink, PickupSink {
     if (this.boss) return;
     const hp = Math.round(2000 + this.run.xp.level * 90 + this.run.stats.maxHpBonus * 4);
     const boss = makeBoss({ x: this.arena.bounds.w / 2, y: this.arena.bounds.h * 0.2 }, hp);
-    const view = buildBossView();
+    const view = buildBossView(this.assets);
     this.boss = boss;
     this.bossView = view;
     this.enemies.push(boss);
@@ -609,7 +609,7 @@ export class DiveScene implements HitSink, PickupSink {
   private spawnBossAdd(pos: Vec2): void {
     if (this.enemies.reduce((n, e) => n + (e.alive ? 1 : 0), 0) > 8) return;
     const e = makeDarter(pos, { elite: false, hp: 40, speed: 130 });
-    const v = buildDarterView(false);
+    const v = buildDarterView(false, this.assets);
     this.enemies.push(e);
     this.enemyViews.set(e, v);
     this.engine.worldLayer.addChild(v.root);
@@ -691,7 +691,7 @@ export class DiveScene implements HitSink, PickupSink {
     this.winSeqT = -1;
   }
 
-  private renderBoss(): void {
+  private renderBoss(dt: number): void {
     const b = this.boss;
     const v = this.bossView;
     if (!b || !v) return;
@@ -718,10 +718,14 @@ export class DiveScene implements HitSink, PickupSink {
     const tele = b.telegraphTimer > 0;
     v.glow.alpha = (tele ? 0.72 : 0.46) + 0.14 * pulse;
     v.glow.tint = tele ? 0xff5c7a : 0xb85cff;
-    let sc = 1 + 0.03 * Math.sin(this.elapsed * 1.6);
-    if (b.flash > 0) sc *= 1.06;
-    v.root.scale.set(sc);
-    v.root.rotation = Math.sin(this.elapsed * 0.4) * 0.06;
+    if (v.update) {
+      v.update(b, dt, this.elapsed); // sprite gatekeeper picks its pose + breathe
+    } else {
+      let sc = 1 + 0.03 * Math.sin(this.elapsed * 1.6);
+      if (b.flash > 0) sc *= 1.06;
+      v.root.scale.set(sc);
+      v.root.rotation = Math.sin(this.elapsed * 0.4) * 0.06;
+    }
 
     if (this.bossRing) {
       this.bossRing.clear();
@@ -1119,7 +1123,7 @@ export class DiveScene implements HitSink, PickupSink {
     const p = this.player;
     this.flowFx?.update(dt, this.elapsed); // drifting streaks reveal the living current
     this.floaters.update(dt);
-    this.renderBoss();
+    this.renderBoss(dt);
     // Combo tier-up flourish — the multiplier climbing is the core score loop.
     if (this.run.score.multiplier > this.lastMult) {
       this.floaters.spawn(p.pos.x, p.pos.y - 28, `COMBO ×${this.run.score.multiplier.toFixed(1)}`, COLOR.aquaBright, 15, true);
@@ -1284,16 +1288,21 @@ export class DiveScene implements HitSink, PickupSink {
       }
       v.root.position.set(e.pos.x, e.pos.y);
       v.glow.position.set(e.pos.x, e.pos.y);
-      // Idle breathe (desynced by position phase) + a hit-flash pop.
-      const ph = phaseOf(e.pos.x, e.pos.y);
-      const amp = e.kind === "drifter" ? 0.06 : e.kind === "spitter" ? 0.04 : 0.025;
-      const spd = e.kind === "drifter" ? 2.2 : 3;
-      let sc = 1 + amp * Math.sin(this.elapsed * spd + ph);
-      if (e.flash > 0) sc *= 1.12;
-      v.root.scale.set(sc);
-      if (e.kind === "darter") {
-        if (Math.hypot(e.vel.x, e.vel.y) > 6) v.root.rotation = Math.atan2(e.vel.y, e.vel.x);
-        else v.root.rotation = Math.atan2(this.player.pos.y - e.pos.y, this.player.pos.x - e.pos.x);
+      if (v.update) {
+        // Sprite path owns pose/facing/breathe (stays upright — side-view art).
+        v.update(e, dt, this.elapsed);
+      } else {
+        // Procedural fallback: idle breathe + hit-flash pop + darter facing.
+        const ph = phaseOf(e.pos.x, e.pos.y);
+        const amp = e.kind === "drifter" ? 0.06 : e.kind === "spitter" ? 0.04 : 0.025;
+        const spd = e.kind === "drifter" ? 2.2 : 3;
+        let sc = 1 + amp * Math.sin(this.elapsed * spd + ph);
+        if (e.flash > 0) sc *= 1.12;
+        v.root.scale.set(sc);
+        if (e.kind === "darter") {
+          if (Math.hypot(e.vel.x, e.vel.y) > 6) v.root.rotation = Math.atan2(e.vel.y, e.vel.x);
+          else v.root.rotation = Math.atan2(this.player.pos.y - e.pos.y, this.player.pos.x - e.pos.x);
+        }
       }
       this.syncTelegraph(e);
     }
@@ -1537,6 +1546,20 @@ export class DiveScene implements HitSink, PickupSink {
   /** Debug: jump depth (QA only). */
   debugSetDepth(d: number): void {
     this.depth = d;
+  }
+  /** Debug: spawn one of each fauna near the player to inspect the sprites (QA only). */
+  debugSpawnFauna(): void {
+    const kinds: EnemyKind[] = ["spitter", "darter", "drifter"];
+    const p = this.player.pos;
+    const savedSpawns = this.arena.spawns;
+    const savedFauna = this.arena.fauna;
+    kinds.forEach((k, i) => {
+      this.arena.spawns = [{ x: p.x - 150 + i * 150, y: p.y - 150 }];
+      this.arena.fauna = [{ kind: k, weight: 1 }];
+      this.spawnEnemy(4);
+    });
+    this.arena.spawns = savedSpawns;
+    this.arena.fauna = savedFauna;
   }
   /** Debug: warp straight to the Cradle floor + summon the guardian (QA only). */
   debugToCradle(): void {

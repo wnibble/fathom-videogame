@@ -10,6 +10,7 @@ import { SPITTER_RADIAL } from "../content/emitters";
 import { getGlowTexture } from "../engine/glow";
 import { COLOR } from "../palette";
 import type { SpitterView } from "../render/actors";
+import type { AssetStore } from "../engine/assets";
 
 export const BOSS_TELEGRAPH = 0.9;
 const HOVER = 240; // preferred distance it keeps from the player
@@ -39,27 +40,54 @@ export function makeBoss(pos: Vec2, hp: number): Enemy {
   };
 }
 
-export function buildBossView(): SpitterView {
+export function buildBossView(assets?: AssetStore): SpitterView {
   const root = new Container();
-  const body = new Graphics();
-  // A dark bulbous mass with a ring of tendrils and a bright core "eye".
-  for (let i = 0; i < 10; i++) {
-    const a = (i / 10) * Math.PI * 2;
-    const r = 34;
-    const tip = 58;
-    body.poly([Math.cos(a) * r, Math.sin(a) * r, Math.cos(a + 0.18) * tip, Math.sin(a + 0.18) * tip, Math.cos(a + 0.36) * r, Math.sin(a + 0.36) * r]).fill({ color: 0x2a1440, alpha: 0.95 });
-  }
-  body.circle(0, 0, 40).fill(0x160a26).stroke({ width: 3, color: 0x6a3fa0 });
-  body.circle(0, 0, 26).fill(0x241038);
-  body.circle(0, 0, 13).fill(COLOR.coralBright); // core / eye
-  body.circle(0, 0, 6).fill(0xffe6c0);
-  root.addChild(body);
-
   const glow = new Sprite(getGlowTexture());
   glow.anchor.set(0.5);
   glow.tint = 0xb85cff;
   glow.alpha = 0.5;
   glow.scale.set(360 / 128);
+
+  // Real gatekeeper sprite: idle / attack (wind-up) / open (fire) / hurt poses.
+  if (assets?.has("gatekeeper_idle")) {
+    const idle = assets.sprite("gatekeeper_idle");
+    const attack = assets.has("gatekeeper_attack") ? assets.sprite("gatekeeper_attack") : null;
+    const open = assets.has("gatekeeper_open") ? assets.sprite("gatekeeper_open") : null;
+    const hurt = assets.has("gatekeeper_hurt") ? assets.sprite("gatekeeper_hurt") : null;
+    root.addChild(idle);
+    for (const s of [attack, open, hurt]) if (s) { s.visible = false; root.addChild(s); }
+    let prevTele = false, openT = 0;
+    return {
+      root, glow,
+      update(e, dt, elapsed) {
+        const tele = e.telegraphTimer > 0;
+        if (prevTele && !tele) openT = 0.4; // fired — flash the open mouth
+        prevTele = tele;
+        openT = Math.max(0, openT - dt);
+        const showHurt = e.flash > 0 && !!hurt;
+        const showOpen = openT > 0 && !!open && !showHurt;
+        const showAttack = tele && !!attack && !showOpen && !showHurt;
+        idle.visible = !showHurt && !showOpen && !showAttack;
+        if (hurt) hurt.visible = showHurt;
+        if (open) open.visible = showOpen;
+        if (attack) attack.visible = showAttack;
+        root.scale.set(1 + 0.02 * Math.sin(elapsed * 1.6));
+      },
+    };
+  }
+
+  // Procedural fallback — a dark tendrilled mass with a bright core "eye".
+  const body = new Graphics();
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * Math.PI * 2;
+    const r = 34, tip = 58;
+    body.poly([Math.cos(a) * r, Math.sin(a) * r, Math.cos(a + 0.18) * tip, Math.sin(a + 0.18) * tip, Math.cos(a + 0.36) * r, Math.sin(a + 0.36) * r]).fill({ color: 0x2a1440, alpha: 0.95 });
+  }
+  body.circle(0, 0, 40).fill(0x160a26).stroke({ width: 3, color: 0x6a3fa0 });
+  body.circle(0, 0, 26).fill(0x241038);
+  body.circle(0, 0, 13).fill(COLOR.coralBright);
+  body.circle(0, 0, 6).fill(0xffe6c0);
+  root.addChild(body);
   return { root, glow, body };
 }
 
