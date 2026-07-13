@@ -23,6 +23,7 @@ const TIERS = [
 export class MarineSnow {
   readonly root = new Container();
   private motes: Mote[] = [];
+  private bubbles: Mote[] = []; // rising, additive — they catch the light
   private w = 1280;
   private h = 720;
   private t = 0;
@@ -39,12 +40,24 @@ export class MarineSnow {
         this.motes.push({ s, vy: tier.vy, swayAmp: 8 + Math.random() * 14, swayFreq: 0.4 + Math.random() * 0.6, phase: Math.random() * Math.PI * 2 });
       }
     }
+    for (let i = 0; i < 12; i++) {
+      const s = new Sprite(getGlowTexture());
+      s.anchor.set(0.5);
+      s.tint = 0x9fe6ff;
+      s.blendMode = "add";
+      s.alpha = 0.12 + Math.random() * 0.12;
+      const size = 2 + Math.random() * 4;
+      s.scale.set((size * 2) / 128);
+      this.root.addChild(s);
+      this.bubbles.push({ s, vy: -(14 + Math.random() * 26), swayAmp: 10 + Math.random() * 18, swayFreq: 0.6 + Math.random() * 0.9, phase: Math.random() * Math.PI * 2 });
+    }
   }
 
   reseed(w: number, h: number): void {
     this.w = w;
     this.h = h;
     for (const m of this.motes) m.s.position.set(Math.random() * w, Math.random() * h);
+    for (const b of this.bubbles) b.s.position.set(Math.random() * w, Math.random() * h);
   }
 
   update(dt: number, w: number, h: number): void {
@@ -62,6 +75,14 @@ export class MarineSnow {
       }
       if (m.s.x < -8) m.s.x = w + 8;
       else if (m.s.x > w + 8) m.s.x = -8;
+    }
+    for (const b of this.bubbles) {
+      b.s.y += b.vy * dt; // rises
+      b.s.x += Math.sin(this.t * b.swayFreq + b.phase) * b.swayAmp * dt;
+      if (b.s.y < -8) {
+        b.s.y = h + 8;
+        b.s.x = Math.random() * w;
+      }
     }
   }
 }

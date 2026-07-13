@@ -101,6 +101,7 @@ export class DiveScene implements HitSink, PickupSink {
   private wispTimer = 0;
   private currentBase: Vec2[] = []; // base current forces (for dynamic ebb/flow)
   private streams: { s: Sprite; axisStart: number; cross: number; span: number; base: number; dir: number; horiz: boolean }[] = [];
+  private sway: { node: Container; baseX: number; baseRot: number; phase: number; amp: number; speed: number }[] = [];
   private flow!: FlowField; // ambient sea drift over the whole arena
   private flowFx: FlowParticles | null = null;
   private flowVec: Vec2 = { x: 0, y: 0 };
@@ -265,6 +266,11 @@ export class DiveScene implements HitSink, PickupSink {
       node.scale.set(p.scale);
       (p.glow ? this.engine.lightLayer : this.engine.worldLayer).addChild(node);
       this.staticNodes.push(node);
+      // Organic flora sways with the current — the sea breathes (Stardew-style).
+      if (/kelp|sprout|tangle|coral|tube_worm|jelly|weed|frond/i.test(p.sprite)) {
+        const ph = phaseOf(p.pos.x, p.pos.y);
+        this.sway.push({ node, baseX: p.pos.x, baseRot: node.rotation, phase: ph, amp: 0.05 + (p.scale - 1) * 0.03, speed: 0.7 + (ph % 1) * 0.5 });
+      }
     }
   }
 
@@ -676,6 +682,7 @@ export class DiveScene implements HitSink, PickupSink {
     }
     this.staticNodes = [];
     this.streams = [];
+    this.sway = [];
     if (this.flowFx) {
       this.flowFx.destroy();
       this.flowFx = null;
@@ -890,6 +897,12 @@ export class DiveScene implements HitSink, PickupSink {
   private renderSync(dt: number, _input: Input): void {
     const p = this.player;
     this.flowFx?.update(dt, this.elapsed); // drifting streaks reveal the living current
+    // Flora sway — organic props lean with the current so the field feels alive.
+    for (const s of this.sway) {
+      const w = Math.sin(this.elapsed * s.speed + s.phase);
+      s.node.rotation = s.baseRot + s.amp * w;
+      s.node.position.x = s.baseX + s.amp * 22 * w;
+    }
     const flowSpeed = 62;
     for (const st of this.streams) {
       const along = (((st.base + this.elapsed * flowSpeed * st.dir) % st.span) + st.span) % st.span;
