@@ -20,5 +20,7 @@ dist/
 
 # Regeneratable QA/dev artifacts
 qa-shots*/
+qa-hub*/
+qa-*/
 contact-sheet.png
 *.log
