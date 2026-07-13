@@ -34,7 +34,7 @@ export class Hud {
     this.sampleText = new Text({ text: "◈ 0", style: mono(16, COLOR.sample, "bold") });
     this.levelText = new Text({ text: "LV 1", style: mono(13, COLOR.aqua, "bold") });
     this.buildText = new Text({ text: "", style: mono(12, COLOR.teal) });
-    this.hintText = new Text({ text: "WASD move · mouse aim · click fire · Shift dash · Esc pause   —   warm = danger, cool = you", style: mono(12, 0x5a7a9a) });
+    this.hintText = new Text({ text: "WASD move · mouse aim · click fire · Shift dash · Esc pause · swim into the ◈ portal to go deeper", style: mono(12, 0x5a7a9a) });
     this.scoreText.anchor.set(0.5, 0);
     this.comboText.anchor.set(0.5, 0);
     this.root.addChild(this.bars, this.threats, this.scoreText, this.comboText, this.depthText, this.bestText, this.sampleText, this.levelText, this.buildText, this.hintText);

@@ -3,7 +3,7 @@
 // hidden relics, vents push you, and relics grant a guaranteed level-up. Shootable
 // ones expose a Damageable face to the projectile system.
 
-import { Container, Graphics, Sprite } from "pixi.js";
+import { Container, Graphics, Sprite, Text, TextStyle } from "pixi.js";
 import type { Vec2 } from "../core/types";
 import type { Damageable } from "./projectiles";
 import type { AssetStore } from "../engine/assets";
@@ -149,6 +149,14 @@ export class Interactables {
     ring.position.set(d.pos.x, d.pos.y);
     ring.visible = !hidden;
     this.world.addChild(ring);
+
+    // The descent portal is signposted so it's unmistakable once found.
+    if (d.kind === "descend_portal") {
+      const label = new Text({ text: "DESCEND", style: new TextStyle({ fontFamily: "Consolas, monospace", fontSize: 11, fill: 0x9db8ff, fontWeight: "bold", letterSpacing: 2 }) });
+      label.anchor.set(0.5, 1);
+      label.position.set(d.pos.x, d.pos.y - def.radius - 12);
+      this.world.addChild(label);
+    }
 
     this.items.push({
       kind: d.kind,
