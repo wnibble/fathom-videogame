@@ -137,7 +137,9 @@ function removeBackground(img) {
   }
 
   // Fringe decontamination: opaque magenta-ish pixels touching transparency are
-  // the antialias rim — strip them for a clean binary edge.
+  // the antialias rim — strip them for a clean binary edge. The rim test is
+  // LOOSER than isMagenta (blended halves count) but only fires beside holes.
+  const isMagentaRim = (r, g, b) => r > 110 && b > 110 && r - g > 30 && b - g > 30;
   const alpha0 = new Uint8Array(w * h);
   for (let i = 0; i < w * h; i++) alpha0[i] = data[i * 4 + 3];
   for (let y = 0; y < h; y++) {
@@ -145,7 +147,7 @@ function removeBackground(img) {
       const p = y * w + x;
       if (alpha0[p] === 0) continue;
       const o = p * 4;
-      if (!isMagenta(data[o], data[o + 1], data[o + 2])) continue;
+      if (!isMagentaRim(data[o], data[o + 1], data[o + 2])) continue;
       let touchesBg = false;
       for (let dy = -1; dy <= 1 && !touchesBg; dy++) {
         for (let dx = -1; dx <= 1; dx++) {
@@ -218,6 +220,65 @@ function downscale(img, targetMax) {
 const anchorFor = (pivot) => PIVOT_TO_ANCHOR[pivot] || [0.5, 0.5];
 const animMatch = (name) => name.match(/^(.*)_f(\d+)$/);
 
+// Sheets whose generated frames are NOT pixel-aligned between cells. For these:
+// center each frame on its own alpha bounds (stable output), and strip stray
+// components (neighbor-cell slivers bleeding across the crop edge, baked label
+// text under the art) by keeping only components that are large relative to the
+// biggest one and don't hug the crop border.
+const LOOSE_SHEETS = new Set([
+  "gatekeeper",
+  "01_loot_samples_upgrades",
+  "02_bioluminescent_flora",
+  "03_hazards_and_ancient_tech",
+  "04_wreck_industrial_props",
+  "05_surface_station_devices",
+]);
+
+// Keep the dominant art: drop connected alpha components that are tiny (<4% of
+// the largest) or that touch the crop border while not being the largest (those
+// are almost always a neighboring cell's art bleeding into a generous bbox).
+function filterComponents(img) {
+  const { w, h, data } = img;
+  const comp = new Int32Array(w * h).fill(-1);
+  const sizes = [];
+  const touchesBorder = [];
+  let n = 0;
+  for (let start = 0; start < w * h; start++) {
+    if (comp[start] !== -1 || data[start * 4 + 3] === 0) continue;
+    let size = 0;
+    let border = false;
+    const stack = [start];
+    comp[start] = n;
+    while (stack.length) {
+      const p = stack.pop();
+      size++;
+      const x = p % w;
+      const y = (p - x) / w;
+      if (x === 0 || y === 0 || x === w - 1 || y === h - 1) border = true;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        const q = ny * w + nx;
+        if (comp[q] !== -1 || data[q * 4 + 3] === 0) continue;
+        comp[q] = n;
+        stack.push(q);
+      }
+    }
+    sizes.push(size);
+    touchesBorder.push(border);
+    n++;
+  }
+  if (n <= 1) return;
+  const largest = sizes.indexOf(Math.max(...sizes));
+  for (let p = 0; p < w * h; p++) {
+    const c = comp[p];
+    if (c === -1 || c === largest) continue;
+    const tiny = sizes[c] < sizes[largest] * 0.04;
+    const bleed = touchesBorder[c] && sizes[c] < sizes[largest] * 0.5;
+    if (tiny || bleed) data[p * 4 + 3] = 0;
+  }
+}
+
 function processManifest(manifestPath, dir, atlas, counts) {
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 
@@ -231,10 +292,12 @@ function processManifest(manifestPath, dir, atlas, counts) {
     const targetMax = TARGET_MAX[sheetKey] ?? 48;
     const fps = FPS[sheetKey] ?? 8;
 
+    const loose = LOOSE_SHEETS.has(sheetKey);
     const extracted = sheet.entries.map((e) => {
       const [x0, y0, x1, y1] = e.bbox;
       const img = crop(src, Math.max(0, x0), Math.max(0, y0), Math.min(src.width, x1), Math.min(src.height, y1));
       removeBackground(img);
+      if (loose) filterComponents(img); // strip neighbor bleed + baked label text
       return { name: e.name, pivot: e.pivot, img, bounds: alphaBounds(img) };
     });
 
@@ -253,28 +316,50 @@ function processManifest(manifestPath, dir, atlas, counts) {
       if (!usable.length) continue;
 
       if (g.isAnim && usable.length > 1) {
-        const u = usable.reduce(
-          (a, f) => ({
-            minX: Math.min(a.minX, f.bounds.minX),
-            minY: Math.min(a.minY, f.bounds.minY),
-            maxX: Math.max(a.maxX, f.bounds.maxX),
-            maxY: Math.max(a.maxY, f.bounds.maxY),
-          }),
-          { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity }
-        );
-        const scale = Math.min(1, targetMax / Math.max(u.maxX - u.minX + 1, u.maxY - u.minY + 1));
+        const sorted = usable.sort((a, b) => +animMatch(a.name)[2] - +animMatch(b.name)[2]);
         const frameFiles = [];
         let fw = 0, fh = 0;
-        usable
-          .sort((a, b) => +animMatch(a.name)[2] - +animMatch(b.name)[2])
-          .forEach((f) => {
+        if (loose) {
+          // Generated frames aren't aligned in-sheet: center each frame's tight
+          // crop on a shared canvas instead (stable playback, no wobble).
+          const cw = Math.max(...sorted.map((f) => f.bounds.maxX - f.bounds.minX + 1));
+          const ch = Math.max(...sorted.map((f) => f.bounds.maxY - f.bounds.minY + 1));
+          const scale = Math.min(1, targetMax / Math.max(cw, ch));
+          for (const f of sorted) {
+            const tight = subCrop(f.img, f.bounds.minX, f.bounds.minY, f.bounds.maxX, f.bounds.maxY);
+            const canvas = { w: cw, h: ch, data: Buffer.alloc(cw * ch * 4) };
+            const ox = Math.floor((cw - tight.w) / 2);
+            const oy = Math.floor((ch - tight.h) / 2);
+            for (let y = 0; y < tight.h; y++) {
+              tight.data.copy(canvas.data, ((oy + y) * cw + ox) * 4, y * tight.w * 4, (y + 1) * tight.w * 4);
+            }
+            const small = downscale(canvas, Math.max(cw, ch) * scale);
+            fw = small.w; fh = small.h;
+            const rel = `sprites/${f.name}.png`;
+            writePNG(path.join(OUT_DIR, `${f.name}.png`), small.w, small.h, small.data);
+            frameFiles.push(rel);
+          }
+        } else {
+          // Aligned sheets: shared union bounds preserve authored frame offsets.
+          const u = sorted.reduce(
+            (a, f) => ({
+              minX: Math.min(a.minX, f.bounds.minX),
+              minY: Math.min(a.minY, f.bounds.minY),
+              maxX: Math.max(a.maxX, f.bounds.maxX),
+              maxY: Math.max(a.maxY, f.bounds.maxY),
+            }),
+            { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity }
+          );
+          const scale = Math.min(1, targetMax / Math.max(u.maxX - u.minX + 1, u.maxY - u.minY + 1));
+          for (const f of sorted) {
             const cropped = subCrop(f.img, u.minX, u.minY, u.maxX, u.maxY);
             const small = downscale(cropped, Math.max(cropped.w, cropped.h) * scale);
             fw = small.w; fh = small.h;
             const rel = `sprites/${f.name}.png`;
             writePNG(path.join(OUT_DIR, `${f.name}.png`), small.w, small.h, small.data);
             frameFiles.push(rel);
-          });
+          }
+        }
         atlas.animations[g.key] = { frames: frameFiles, w: fw, h: fh, anchor: anchorFor(g.frames[0].pivot), fps, sheet: sheetKey };
         counts.anims++;
       } else {

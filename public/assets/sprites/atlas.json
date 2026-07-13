@@ -913,7 +913,7 @@
     "gatekeeper_idle": {
       "file": "sprites/gatekeeper_idle.png",
       "w": 112,
-      "h": 105,
+      "h": 108,
       "anchor": [
         0.5,
         0.5
@@ -922,8 +922,8 @@
     },
     "gatekeeper_open": {
       "file": "sprites/gatekeeper_open.png",
-      "w": 111,
-      "h": 112,
+      "w": 112,
+      "h": 102,
       "anchor": [
         0.5,
         0.5
@@ -933,7 +933,7 @@
     "gatekeeper_attack": {
       "file": "sprites/gatekeeper_attack.png",
       "w": 112,
-      "h": 108,
+      "h": 102,
       "anchor": [
         0.5,
         0.5
@@ -943,7 +943,7 @@
     "gatekeeper_hurt": {
       "file": "sprites/gatekeeper_hurt.png",
       "w": 112,
-      "h": 108,
+      "h": 94,
       "anchor": [
         0.5,
         0.5
@@ -1043,7 +1043,7 @@
     "kelp_bush": {
       "file": "sprites/kelp_bush.png",
       "w": 60,
-      "h": 52,
+      "h": 59,
       "anchor": [
         0.5,
         1
@@ -1072,8 +1072,8 @@
     },
     "tube_coral": {
       "file": "sprites/tube_coral.png",
-      "w": 60,
-      "h": 55,
+      "w": 49,
+      "h": 60,
       "anchor": [
         0.5,
         1
@@ -1092,8 +1092,8 @@
     },
     "abyssal_root_mass": {
       "file": "sprites/abyssal_root_mass.png",
-      "w": 52,
-      "h": 60,
+      "w": 60,
+      "h": 52,
       "anchor": [
         0.5,
         1
@@ -1103,7 +1103,7 @@
     "crystal_coral": {
       "file": "sprites/crystal_coral.png",
       "w": 60,
-      "h": 52,
+      "h": 53,
       "anchor": [
         0.5,
         1
@@ -1112,7 +1112,7 @@
     },
     "floating_reef_chunk": {
       "file": "sprites/floating_reef_chunk.png",
-      "w": 49,
+      "w": 52,
       "h": 60,
       "anchor": [
         0.5,
@@ -1132,8 +1132,8 @@
     },
     "thermal_vent_warning": {
       "file": "sprites/thermal_vent_warning.png",
-      "w": 39,
-      "h": 52,
+      "w": 52,
+      "h": 49,
       "anchor": [
         0.5,
         1
@@ -1153,7 +1153,7 @@
     "spike_mound_open": {
       "file": "sprites/spike_mound_open.png",
       "w": 52,
-      "h": 36,
+      "h": 52,
       "anchor": [
         0.5,
         1
@@ -1162,8 +1162,8 @@
     },
     "spike_mound_attack": {
       "file": "sprites/spike_mound_attack.png",
-      "w": 52,
-      "h": 35,
+      "w": 45,
+      "h": 52,
       "anchor": [
         0.5,
         1
@@ -1173,7 +1173,7 @@
     "wreck_generator_off": {
       "file": "sprites/wreck_generator_off.png",
       "w": 52,
-      "h": 26,
+      "h": 40,
       "anchor": [
         0.5,
         1
@@ -1182,8 +1182,8 @@
     },
     "wreck_generator_active": {
       "file": "sprites/wreck_generator_active.png",
-      "w": 52,
-      "h": 34,
+      "w": 44,
+      "h": 52,
       "anchor": [
         0.5,
         1
@@ -1192,8 +1192,8 @@
     },
     "ancient_eye_closed": {
       "file": "sprites/ancient_eye_closed.png",
-      "w": 52,
-      "h": 38,
+      "w": 49,
+      "h": 52,
       "anchor": [
         0.5,
         0.5
@@ -1202,7 +1202,7 @@
     },
     "ancient_eye_charge": {
       "file": "sprites/ancient_eye_charge.png",
-      "w": 51,
+      "w": 52,
       "h": 52,
       "anchor": [
         0.5,
@@ -1212,7 +1212,7 @@
     },
     "turret_idle": {
       "file": "sprites/turret_idle.png",
-      "w": 39,
+      "w": 38,
       "h": 52,
       "anchor": [
         0.5,
@@ -1222,7 +1222,7 @@
     },
     "turret_windup": {
       "file": "sprites/turret_windup.png",
-      "w": 40,
+      "w": 39,
       "h": 52,
       "anchor": [
         0.5,
@@ -1232,7 +1232,7 @@
     },
     "turret_fire": {
       "file": "sprites/turret_fire.png",
-      "w": 36,
+      "w": 51,
       "h": 52,
       "anchor": [
         0.5,
@@ -1252,7 +1252,7 @@
     },
     "cargo_crate_broken": {
       "file": "sprites/cargo_crate_broken.png",
-      "w": 60,
+      "w": 46,
       "h": 60,
       "anchor": [
         0.5,
@@ -1262,7 +1262,7 @@
     },
     "rusted_locker": {
       "file": "sprites/rusted_locker.png",
-      "w": 45,
+      "w": 28,
       "h": 60,
       "anchor": [
         0.5,
@@ -1272,7 +1272,7 @@
     },
     "large_valve": {
       "file": "sprites/large_valve.png",
-      "w": 54,
+      "w": 53,
       "h": 60,
       "anchor": [
         0.5,
@@ -1292,8 +1292,8 @@
     },
     "anchor": {
       "file": "sprites/anchor.png",
-      "w": 60,
-      "h": 46,
+      "w": 55,
+      "h": 60,
       "anchor": [
         0.5,
         1
@@ -1302,7 +1302,7 @@
     },
     "floodlight_off": {
       "file": "sprites/floodlight_off.png",
-      "w": 31,
+      "w": 39,
       "h": 60,
       "anchor": [
         0.5,
@@ -1312,7 +1312,7 @@
     },
     "floodlight_on": {
       "file": "sprites/floodlight_on.png",
-      "w": 30,
+      "w": 39,
       "h": 60,
       "anchor": [
         0.5,
@@ -1342,7 +1342,7 @@
     },
     "terminal_b": {
       "file": "sprites/terminal_b.png",
-      "w": 40,
+      "w": 56,
       "h": 60,
       "anchor": [
         0.5,
@@ -1352,7 +1352,7 @@
     },
     "hanging_hook": {
       "file": "sprites/hanging_hook.png",
-      "w": 28,
+      "w": 24,
       "h": 60,
       "anchor": [
         0.5,
@@ -1362,7 +1362,7 @@
     },
     "bollard": {
       "file": "sprites/bollard.png",
-      "w": 40,
+      "w": 60,
       "h": 60,
       "anchor": [
         0.5,
@@ -1372,7 +1372,7 @@
     },
     "rusted_barrel": {
       "file": "sprites/rusted_barrel.png",
-      "w": 37,
+      "w": 38,
       "h": 60,
       "anchor": [
         0.5,
@@ -1382,7 +1382,7 @@
     },
     "floor_grate": {
       "file": "sprites/floor_grate.png",
-      "w": 49,
+      "w": 59,
       "h": 60,
       "anchor": [
         0.5,
@@ -1402,7 +1402,7 @@
     },
     "upgrade_shrine_off": {
       "file": "sprites/upgrade_shrine_off.png",
-      "w": 52,
+      "w": 53,
       "h": 64,
       "anchor": [
         0.5,
@@ -1442,8 +1442,8 @@
     },
     "moon_pool_closed": {
       "file": "sprites/moon_pool_closed.png",
-      "w": 64,
-      "h": 61,
+      "w": 50,
+      "h": 64,
       "anchor": [
         0.5,
         1
@@ -1462,8 +1462,8 @@
     },
     "communications_dish_idle": {
       "file": "sprites/communications_dish_idle.png",
-      "w": 64,
-      "h": 52,
+      "w": 52,
+      "h": 64,
       "anchor": [
         0.5,
         1
@@ -1472,8 +1472,8 @@
     },
     "communications_dish_active": {
       "file": "sprites/communications_dish_active.png",
-      "w": 64,
-      "h": 42,
+      "w": 40,
+      "h": 64,
       "anchor": [
         0.5,
         1
@@ -1492,7 +1492,7 @@
     },
     "bank_lantern_on": {
       "file": "sprites/bank_lantern_on.png",
-      "w": 60,
+      "w": 15,
       "h": 64,
       "anchor": [
         0.5,
@@ -1502,8 +1502,8 @@
     },
     "companion_portal_off": {
       "file": "sprites/companion_portal_off.png",
-      "w": 64,
-      "h": 49,
+      "w": 54,
+      "h": 64,
       "anchor": [
         0.5,
         1
@@ -1523,7 +1523,7 @@
     "vault_door_closed": {
       "file": "sprites/vault_door_closed.png",
       "w": 64,
-      "h": 48,
+      "h": 62,
       "anchor": [
         0.5,
         1
@@ -1532,7 +1532,7 @@
     },
     "vault_door_powered": {
       "file": "sprites/vault_door_powered.png",
-      "w": 60,
+      "w": 59,
       "h": 64,
       "anchor": [
         0.5,
@@ -1783,7 +1783,7 @@
         "sprites/egg_cluster_f2.png"
       ],
       "w": 60,
-      "h": 44,
+      "h": 49,
       "anchor": [
         0.5,
         1
@@ -2029,7 +2029,7 @@
         "sprites/specimen_canister_medium_f2.png",
         "sprites/specimen_canister_medium_f3.png"
       ],
-      "w": 19,
+      "w": 11,
       "h": 24,
       "anchor": [
         0.5,
@@ -2044,7 +2044,7 @@
         "sprites/living_specimen_tank_f2.png",
         "sprites/living_specimen_tank_f3.png"
       ],
-      "w": 21,
+      "w": 12,
       "h": 24,
       "anchor": [
         0.5,
@@ -2060,7 +2060,7 @@
         "sprites/upgrade_core_f3.png"
       ],
       "w": 24,
-      "h": 14,
+      "h": 18,
       "anchor": [
         0.5,
         0.5
@@ -2074,8 +2074,8 @@
         "sprites/energy_shard_f2.png",
         "sprites/energy_shard_f3.png"
       ],
-      "w": 24,
-      "h": 15,
+      "w": 18,
+      "h": 24,
       "anchor": [
         0.5,
         0.5
@@ -2090,7 +2090,7 @@
         "sprites/healing_orb_f3.png"
       ],
       "w": 24,
-      "h": 15,
+      "h": 20,
       "anchor": [
         0.5,
         0.5
@@ -2119,8 +2119,8 @@
         "sprites/rune_fragment_f2.png",
         "sprites/rune_fragment_f3.png"
       ],
-      "w": 14,
-      "h": 24,
+      "w": 24,
+      "h": 23,
       "anchor": [
         0.5,
         1
@@ -2134,8 +2134,8 @@
         "sprites/mineral_cluster_f2.png",
         "sprites/mineral_cluster_f3.png"
       ],
-      "w": 24,
-      "h": 21,
+      "w": 17,
+      "h": 24,
       "anchor": [
         0.5,
         0.5
@@ -2149,8 +2149,8 @@
         "sprites/salvage_crate_f2.png",
         "sprites/salvage_crate_f3.png"
       ],
-      "w": 24,
-      "h": 21,
+      "w": 21,
+      "h": 24,
       "anchor": [
         0.5,
         1
@@ -2164,7 +2164,7 @@
         "sprites/leviathan_scale_f2.png",
         "sprites/leviathan_scale_f3.png"
       ],
-      "w": 10,
+      "w": 19,
       "h": 24,
       "anchor": [
         0.5,
@@ -2178,8 +2178,8 @@
         "sprites/danger_anemone_f1.png",
         "sprites/danger_anemone_f2.png"
       ],
-      "w": 60,
-      "h": 44,
+      "w": 55,
+      "h": 60,
       "anchor": [
         0.5,
         1
@@ -2192,7 +2192,7 @@
         "sprites/tube_worm_colony_f1.png",
         "sprites/tube_worm_colony_f2.png"
       ],
-      "w": 52,
+      "w": 51,
       "h": 60,
       "anchor": [
         0.5,
@@ -2206,8 +2206,8 @@
         "sprites/jelly_mushroom_cluster_f1.png",
         "sprites/jelly_mushroom_cluster_f2.png"
       ],
-      "w": 60,
-      "h": 55,
+      "w": 43,
+      "h": 60,
       "anchor": [
         0.5,
         1
@@ -2220,7 +2220,7 @@
         "sprites/angler_plant_f1.png",
         "sprites/angler_plant_f2.png"
       ],
-      "w": 43,
+      "w": 36,
       "h": 60,
       "anchor": [
         0.5,
@@ -2234,7 +2234,7 @@
         "sprites/thermal_vent_erupt_f1.png",
         "sprites/thermal_vent_erupt_f2.png"
       ],
-      "w": 36,
+      "w": 33,
       "h": 52,
       "anchor": [
         0.5,
@@ -2249,8 +2249,8 @@
         "sprites/electric_anemone_f2.png",
         "sprites/electric_anemone_f3.png"
       ],
-      "w": 52,
-      "h": 43,
+      "w": 50,
+      "h": 52,
       "anchor": [
         0.5,
         1
@@ -2264,7 +2264,7 @@
         "sprites/proximity_mine_f2.png"
       ],
       "w": 52,
-      "h": 47,
+      "h": 49,
       "anchor": [
         0.5,
         0.5
@@ -2278,7 +2278,7 @@
         "sprites/spike_mound_idle_f2.png"
       ],
       "w": 52,
-      "h": 38,
+      "h": 48,
       "anchor": [
         0.5,
         1
@@ -2292,7 +2292,7 @@
         "sprites/scan_beacon_f2.png",
         "sprites/scan_beacon_f3.png"
       ],
-      "w": 37,
+      "w": 45,
       "h": 52,
       "anchor": [
         0.5,
@@ -2307,7 +2307,7 @@
         "sprites/wreck_generator_charge_f2.png"
       ],
       "w": 52,
-      "h": 37,
+      "h": 28,
       "anchor": [
         0.5,
         1
@@ -2321,7 +2321,7 @@
         "sprites/spawn_egg_f2.png",
         "sprites/spawn_egg_f3.png"
       ],
-      "w": 32,
+      "w": 50,
       "h": 52,
       "anchor": [
         0.5,
@@ -2335,8 +2335,8 @@
         "sprites/ancient_eye_open_f1.png",
         "sprites/ancient_eye_open_f2.png"
       ],
-      "w": 52,
-      "h": 38,
+      "w": 51,
+      "h": 52,
       "anchor": [
         0.5,
         0.5
@@ -2349,8 +2349,8 @@
         "sprites/damaged_generator_f1.png",
         "sprites/damaged_generator_f2.png"
       ],
-      "w": 58,
-      "h": 60,
+      "w": 60,
+      "h": 54,
       "anchor": [
         0.5,
         1
@@ -2364,7 +2364,7 @@
         "sprites/sample_scanner_f2.png",
         "sprites/sample_scanner_f3.png"
       ],
-      "w": 64,
+      "w": 35,
       "h": 64,
       "anchor": [
         0.5,
@@ -2378,8 +2378,8 @@
         "sprites/codex_terminal_f1.png",
         "sprites/codex_terminal_f2.png"
       ],
-      "w": 64,
-      "h": 54,
+      "w": 44,
+      "h": 64,
       "anchor": [
         0.5,
         1
@@ -2407,8 +2407,8 @@
         "sprites/portal_ring_f2.png",
         "sprites/portal_ring_f3.png"
       ],
-      "w": 64,
-      "h": 46,
+      "w": 62,
+      "h": 64,
       "anchor": [
         0.5,
         0.5
@@ -2436,7 +2436,7 @@
         "sprites/surface_buoy_f2.png",
         "sprites/surface_buoy_f3.png"
       ],
-      "w": 47,
+      "w": 52,
       "h": 64,
       "anchor": [
         0.5,
@@ -2451,7 +2451,7 @@
         "sprites/depth_monument_f2.png",
         "sprites/depth_monument_f3.png"
       ],
-      "w": 62,
+      "w": 54,
       "h": 64,
       "anchor": [
         0.5,

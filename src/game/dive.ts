@@ -1333,8 +1333,10 @@ export class DiveScene implements HitSink, PickupSink {
     this.enemies = this.enemies.filter((e) => e.alive || this.enemyViews.has(e));
 
     // Camera lead — bias toward where you're aiming/moving, framing the danger.
-    const leadX = clamp(this.lastAim.x * 70 + p.vel.x * 0.18, -90, 90);
-    const leadY = clamp(this.lastAim.y * 70 + p.vel.y * 0.18, -90, 90);
+    // Camera lead — gentle. Strong aim-lead read as nauseating; keep a whisper of
+    // it (mostly velocity-based, which tracks intent without swimming the screen).
+    const leadX = clamp(this.lastAim.x * 22 + p.vel.x * 0.1, -40, 40);
+    const leadY = clamp(this.lastAim.y * 22 + p.vel.y * 0.1, -40, 40);
     this.engine.centerOn(p.pos.x + leadX, p.pos.y + leadY);
     this.engine.updateCamera(dt);
     // Trauma shake (integer offset, no rotation) + decaying directional recoil.

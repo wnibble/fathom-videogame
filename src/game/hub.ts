@@ -103,41 +103,42 @@ export class Hub {
     // The depth monument — the station's centerpiece, high on the deck.
     const cx = BOUNDS.w / 2;
     const cy = BOUNDS.h * 0.5;
-    this.placeDevice("depth_monument", cx, DECK.y0 + 190, 2.2, 0xffb64a, 0.32);
+    // Scales sized against the 63px tile + 34px diver (a device ≈ 1.5-2 diver heights).
+    this.placeDevice("depth_monument", cx, DECK.y0 + 190, 1.5, 0xffb64a, 0.32);
 
     // Station devices dressing the deck — a real facility.
-    this.placeDevice("communications_dish_idle", DECK.x0 + 130, DECK.y0 + 150, 1.9);
-    this.placeDevice("specimen_lab_a", DECK.x1 - 150, DECK.y0 + 150, 1.9);
-    this.placeDevice("vault_door_powered", cx - 300, DECK.y0 + 118, 2.0, 0x9db8ff, 0.22);
-    this.placeDevice("core_socket_off", cx + 300, DECK.y0 + 150, 1.9);
-    this.placeDevice("bank_lantern_on", DECK.x0 + 150, DECK.y1 - 120, 2.0, 0xffb64a, 0.34);
-    this.placeDevice("bank_lantern_on", DECK.x1 - 150, DECK.y1 - 120, 2.0, 0xffb64a, 0.34);
+    this.placeDevice("communications_dish_idle", DECK.x0 + 130, DECK.y0 + 150, 1.3);
+    this.placeDevice("specimen_lab_a", DECK.x1 - 150, DECK.y0 + 150, 1.3);
+    this.placeDevice("vault_door_powered", cx - 300, DECK.y0 + 118, 1.4, 0x9db8ff, 0.22);
+    this.placeDevice("core_socket_off", cx + 300, DECK.y0 + 150, 1.3);
+    this.placeDevice("bank_lantern_on", DECK.x0 + 150, DECK.y1 - 120, 1.3, 0xffb64a, 0.34);
+    this.placeDevice("bank_lantern_on", DECK.x1 - 150, DECK.y1 - 120, 1.3, 0xffb64a, 0.34);
     // The companion portal — where the bichon comes from.
-    this.placeDevice("companion_portal_on", DECK.x1 - 220, DECK.y1 - 240, 1.9, 0x8ff6ff, 0.32);
+    this.placeDevice("companion_portal_on", DECK.x1 - 220, DECK.y1 - 240, 1.3, 0x8ff6ff, 0.32);
     // The station keeper tends the deck.
     if (this.assets.has("keeper_idle")) {
       const keeper = this.assets.anim("keeper_idle");
       keeper.position.set(cx + 150, DECK.y0 + 210);
-      keeper.scale.set(1.2);
+      keeper.scale.set(1.05);
       this.root.addChild(keeper);
     }
     // The weather buoy — reads the sea you'll dive into.
-    this.placeDevice("surface_buoy", DECK.x0 + 220, DECK.y1 - 240, 1.9, 0xffe08a, 0.3);
+    this.placeDevice("surface_buoy", DECK.x0 + 220, DECK.y1 - 240, 1.3, 0xffe08a, 0.3);
 
     // Industrial clutter + lighting — authored positions so the deck reads busy but
     // never blocks movement (hub props are decoration only).
     const clutter: [string, number, number, number][] = [
-      ["pipe_cluster", DECK.x0 + 60, DECK.y0 + 320, 1.9], ["pipe_cluster", DECK.x1 - 60, DECK.y0 + 360, 1.9],
-      ["cargo_crate_closed", DECK.x0 + 90, DECK.y1 - 300, 1.7], ["rusted_barrel", DECK.x0 + 170, DECK.y1 - 300, 1.7],
-      ["cargo_crate_closed", DECK.x1 - 100, DECK.y1 - 300, 1.7], ["rusted_barrel", DECK.x1 - 185, DECK.y1 - 290, 1.7],
-      ["floor_grate", cx - 210, cy + 40, 2.0], ["floor_grate", cx + 210, cy + 40, 2.0],
-      ["bollard", cx - 120, DECK.y1 - 90, 1.7], ["bollard", cx + 120, DECK.y1 - 90, 1.7],
-      ["large_valve", DECK.x1 - 250, cy - 20, 1.7],
+      ["pipe_cluster", DECK.x0 + 60, DECK.y0 + 320, 1.25], ["pipe_cluster", DECK.x1 - 60, DECK.y0 + 360, 1.25],
+      ["cargo_crate_closed", DECK.x0 + 90, DECK.y1 - 300, 1.15], ["rusted_barrel", DECK.x0 + 170, DECK.y1 - 300, 1.1],
+      ["cargo_crate_closed", DECK.x1 - 100, DECK.y1 - 300, 1.15], ["rusted_barrel", DECK.x1 - 185, DECK.y1 - 290, 1.1],
+      ["floor_grate", cx - 210, cy + 40, 1.3], ["floor_grate", cx + 210, cy + 40, 1.3],
+      ["bollard", cx - 120, DECK.y1 - 90, 1.1], ["bollard", cx + 120, DECK.y1 - 90, 1.1],
+      ["large_valve", DECK.x1 - 250, cy - 20, 1.15],
     ];
     for (const [name, x, y, sc] of clutter) this.placeDevice(name, x, y, sc);
     // Floodlights at the corners cast warm pools across the deck.
     for (const [x, y] of [[DECK.x0 + 70, DECK.y0 + 70], [DECK.x1 - 70, DECK.y0 + 70], [DECK.x0 + 70, DECK.y1 - 40], [DECK.x1 - 70, DECK.y1 - 40]] as [number, number][]) {
-      this.placeDevice("floodlight_on", x, y, 1.7, 0xffe08a, 0.26);
+      this.placeDevice("floodlight_on", x, y, 1.15, 0xffe08a, 0.26);
     }
 
     // Reef flora in the OPEN WATER fringing the deck (never on the metal).
@@ -169,7 +170,7 @@ export class Hub {
       { tab: 2, name: "ARCHIVE", color: COLOR.aqua, device: "codex_terminal", pos: { x: cx + 360, y: BOUNDS.h * 0.5 } },
     ];
     for (const d of kioskDefs) {
-      const placed = this.placeDevice(d.device, d.pos.x, d.pos.y + 30, 2.1) ?? this.placeDevice("shop_console", d.pos.x, d.pos.y + 28, 1.4);
+      const placed = this.placeDevice(d.device, d.pos.x, d.pos.y + 30, 1.5) ?? this.placeDevice("shop_console", d.pos.x, d.pos.y + 28, 1.1);
       if (!placed) {
         const pillar = new Graphics();
         pillar.roundRect(d.pos.x - 16, d.pos.y - 8, 32, 54, 6).fill({ color: 0x0d2233, alpha: 0.96 }).stroke({ width: 2, color: 0x1d4a66 });
@@ -196,7 +197,7 @@ export class Hub {
     if (this.assets.has("dive_vent")) {
       const vent = this.assets.sprite("dive_vent");
       vent.position.set(gpos.x, gpos.y + 40);
-      vent.scale.set(1.6);
+      vent.scale.set(1.35);
       this.root.addChild(vent);
       this.hasVent = true;
     }
@@ -255,16 +256,15 @@ export class Hub {
 
     if (this.assets.has("station_floor")) {
       const deck = new Container();
-      const tw = 126, th = 128; // station_floor is 63x64 -> integer scale 2 (crisp)
+      const tw = 63, th = 64; // station_floor at native scale 1 — small tiles, lots of them
       let row = 0;
       for (let y = DECK.y0; y < DECK.y1; y += th, row++) {
         let col = 0;
         for (let x = DECK.x0; x < DECK.x1; x += tw, col++) {
           const t = this.assets.sprite("station_floor");
           t.anchor.set(0, 0);
-          t.scale.set(2);
           t.position.set(x, y);
-          t.tint = (row + col) % 2 === 0 ? 0xffffff : 0xdfe9f2; // subtle checker for grid legibility
+          t.tint = (row + col) % 2 === 0 ? 0xffffff : 0xe9eff5; // whisper checker for grid legibility
           deck.addChild(t);
         }
       }
@@ -278,26 +278,31 @@ export class Hub {
 
     // Railings along the top + bottom edges (bottom-center anchored props).
     if (this.assets.has("railing_edge")) {
-      for (let x = DECK.x0 + 40; x < DECK.x1; x += 116) {
+      for (let x = DECK.x0 + 42; x < DECK.x1; x += 82) {
         const rTop = this.assets.sprite("railing_edge");
-        rTop.scale.set(1.9);
-        rTop.position.set(x, DECK.y0 + 12);
+        rTop.scale.set(1.3);
+        rTop.position.set(x, DECK.y0 + 8);
         rTop.alpha = 0.92;
         this.root.addChild(rTop);
         const rBot = this.assets.sprite("railing_edge");
-        rBot.scale.set(1.9);
-        rBot.position.set(x, DECK.y1 + 8);
+        rBot.scale.set(1.3);
+        rBot.position.set(x, DECK.y1 + 6);
         rBot.alpha = 0.92;
         this.root.addChild(rBot);
       }
     }
   }
 
-  /** Place a station device sprite/anim on the deck, with an optional under-glow. */
+  /** Place a station device sprite on the deck, with an optional under-glow.
+   * Animated entries are frozen on frame 1 — the generated frames aren't
+   * pixel-aligned, so playing them makes devices visibly wobble. */
   private placeDevice(name: string, x: number, y: number, scale: number, glowTint?: number, glowAlpha = 0): Container | null {
     let node: Container | null = null;
-    if (this.assets.anims[name]) node = this.assets.anim(name);
-    else if (this.assets.sprites[name]) node = this.assets.sprite(name);
+    if (this.assets.anims[name]) {
+      const a = this.assets.anim(name);
+      a.gotoAndStop(0);
+      node = a;
+    } else if (this.assets.sprites[name]) node = this.assets.sprite(name);
     if (!node) return null;
     node.position.set(x, y);
     node.scale.set(scale);
