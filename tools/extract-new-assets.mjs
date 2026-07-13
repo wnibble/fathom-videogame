@@ -128,6 +128,14 @@ function removeBackground(img) {
     push(x + 1, y); push(x - 1, y); push(x, y + 1); push(x, y - 1);
     push(x + 1, y + 1); push(x - 1, y - 1); push(x + 1, y - 1); push(x - 1, y + 1);
   }
+  // Enclosed magenta: holes walled off inside the sprite (e.g. a valve's spokes)
+  // never touch the border, so the flood can't reach them. Pure #ff00ff never
+  // appears in the actual art, so remove ANY strongly-magenta pixel globally.
+  for (let i = 0; i < w * h; i++) {
+    const o = i * 4;
+    if (data[o + 3] > 0 && isMagenta(data[o], data[o + 1], data[o + 2])) data[o + 3] = 0;
+  }
+
   // Fringe decontamination: opaque magenta-ish pixels touching transparency are
   // the antialias rim — strip them for a clean binary edge.
   const alpha0 = new Uint8Array(w * h);

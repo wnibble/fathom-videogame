@@ -35,18 +35,22 @@ interface Stratum {
   resource: string;
   landmark: string; // an oversized far parallax landmark that gives the place character
   caves: string[]; // rock/cave sprites used as solid obstacles (from the new pack)
+  decor: string[]; // curated new-pack set-dressing sprites/anims (fresh per place)
+  ambient?: string[]; // animated hazard-like props scattered sparsely for life
 }
 
 // Depth (m) spent per stratum before descending to the next (with a fade + card).
 export const STRATA_DEPTH = 220;
 
 export const STRATA: Stratum[] = [
-  { name: "Twilight Drift", tagline: "eerie open midwater", bg: 0x0a1a2e, structSheet: "twilight_drift_props", glow: ["plankton_dense", "plankton_sparse", "jelly_colony"], fauna: [{ kind: "spitter", weight: 3 }, { kind: "darter", weight: 1 }], resource: "lumen", landmark: "suspended_coral_chunk", caves: ["floating_reef_chunk", "fan_coral"] },
-  { name: "Kelp Forest", tagline: "occlusion and ambush", bg: 0x0a241e, structSheet: "kelp_forest_props", glow: ["sprout_aqua_1", "sprout_aqua_2", "sprout_amber_1", "tangle_glowing"], fauna: [{ kind: "darter", weight: 3 }, { kind: "spitter", weight: 2 }], resource: "spore", landmark: "tangle_large_a", caves: ["abyssal_root_mass", "floating_reef_chunk", "tube_coral"] },
-  { name: "The Wreck", tagline: "tight salvage, mechanical hazards", bg: 0x17130e, structSheet: "wreck_thermal_props", glow: ["emergency_lamp", "gas_pocket"], fauna: [{ kind: "darter", weight: 2 }, { kind: "spitter", weight: 2 }, { kind: "drifter", weight: 1 }], resource: "alloy", landmark: "vent_chimney", caves: ["cargo_crate_closed", "rusted_barrel", "pipe_cluster", "floating_reef_chunk"] },
-  { name: "Thermal Vents", tagline: "eruptions and aggression", bg: 0x1e0f0a, structSheet: "wreck_thermal_props", glow: ["sparking_cable", "gas_pocket"], fauna: [{ kind: "darter", weight: 2 }, { kind: "drifter", weight: 2 }, { kind: "spitter", weight: 1 }], resource: "ember", landmark: "pipe_cluster", caves: ["floating_reef_chunk", "crystal_coral", "rusted_barrel"] },
-  { name: "Abyssal Plain", tagline: "dark, sparse, deadly", bg: 0x05080f, structSheet: "twilight_drift_props", glow: ["plankton_sparse"], fauna: [{ kind: "spitter", weight: 2 }, { kind: "drifter", weight: 3 }, { kind: "darter", weight: 1 }], resource: "shard", landmark: "dead_drifting_creature", caves: ["floating_reef_chunk", "crystal_coral", "abyssal_root_mass"] },
-  { name: "The Cradle", tagline: "the bottom — something waits", bg: 0x0b0616, structSheet: "twilight_drift_props", glow: ["plankton_dense", "jelly_colony"], fauna: [{ kind: "drifter", weight: 2 }, { kind: "spitter", weight: 1 }], resource: "relic", landmark: "tube_worm_colony", caves: ["crystal_coral", "abyssal_root_mass"] },
+  { name: "Twilight Drift", tagline: "eerie open midwater", bg: 0x0a1a2e, structSheet: "twilight_drift_props", glow: ["plankton_dense", "plankton_sparse", "jelly_colony"], fauna: [{ kind: "spitter", weight: 3 }, { kind: "darter", weight: 1 }], resource: "lumen", landmark: "suspended_coral_chunk", caves: ["floating_reef_chunk", "fan_coral"], decor: ["fan_coral", "tube_coral", "amber_sponge", "lure_grass"], ambient: ["jelly_mushroom_cluster", "danger_anemone"] },
+  // FULL LEVEL — a dense, living kelp forest.
+  { name: "Kelp Forest", tagline: "occlusion and ambush", bg: 0x0a241e, structSheet: "kelp_forest_props", glow: ["sprout_aqua_1", "sprout_aqua_2", "sprout_amber_1", "tangle_glowing"], fauna: [{ kind: "darter", weight: 3 }, { kind: "spitter", weight: 2 }], resource: "spore", landmark: "tangle_large_a", caves: ["abyssal_root_mass", "floating_reef_chunk", "tube_coral"], decor: ["kelp_tall_a", "kelp_tall_b", "kelp_branching", "kelp_bush", "lure_grass", "fan_coral"], ambient: ["angler_plant", "danger_anemone", "jelly_mushroom_cluster"] },
+  // FULL LEVEL — a broken industrial wreck.
+  { name: "The Wreck", tagline: "tight salvage, mechanical hazards", bg: 0x17130e, structSheet: "wreck_thermal_props", glow: ["emergency_lamp", "gas_pocket"], fauna: [{ kind: "darter", weight: 2 }, { kind: "spitter", weight: 2 }, { kind: "drifter", weight: 1 }], resource: "alloy", landmark: "vent_chimney", caves: ["cargo_crate_closed", "rusted_barrel", "pipe_cluster", "floating_reef_chunk"], decor: ["cargo_crate_broken", "rusted_locker", "pipe_cluster", "large_valve", "chain_pile", "broken_console", "bollard", "floor_grate"], ambient: ["floodlight_on", "terminal_a", "damaged_generator"] },
+  { name: "Thermal Vents", tagline: "eruptions and aggression", bg: 0x1e0f0a, structSheet: "wreck_thermal_props", glow: ["sparking_cable", "gas_pocket"], fauna: [{ kind: "darter", weight: 2 }, { kind: "drifter", weight: 2 }, { kind: "spitter", weight: 1 }], resource: "ember", landmark: "pipe_cluster", caves: ["floating_reef_chunk", "crystal_coral", "rusted_barrel"], decor: ["pipe_cluster", "large_valve", "rusted_barrel", "amber_sponge"], ambient: ["thermal_vent_dormant", "damaged_generator", "wreck_generator_off"] },
+  { name: "Abyssal Plain", tagline: "dark, sparse, deadly", bg: 0x05080f, structSheet: "twilight_drift_props", glow: ["plankton_sparse"], fauna: [{ kind: "spitter", weight: 2 }, { kind: "drifter", weight: 3 }, { kind: "darter", weight: 1 }], resource: "shard", landmark: "dead_drifting_creature", caves: ["floating_reef_chunk", "crystal_coral", "abyssal_root_mass"], decor: ["crystal_coral", "abyssal_root_mass", "amber_sponge"], ambient: ["egg_cluster", "ancient_eye_closed", "jelly_mushroom_cluster"] },
+  { name: "The Cradle", tagline: "the bottom — something waits", bg: 0x0b0616, structSheet: "twilight_drift_props", glow: ["plankton_dense", "jelly_colony"], fauna: [{ kind: "drifter", weight: 2 }, { kind: "spitter", weight: 1 }], resource: "relic", landmark: "tube_worm_colony", caves: ["crystal_coral", "abyssal_root_mass"], decor: ["crystal_coral", "tube_coral", "amber_sponge"], ambient: ["egg_cluster", "tube_worm_colony", "jelly_mushroom_cluster"] },
 ];
 
 // Sprite names owned by interactables — never scatter them as decoration.
@@ -72,6 +76,12 @@ export function buildStratum(index: number, seed: number, assets: AssetStore): A
   const glowSprites = S.glow.filter((n) => assets.sprites[n]);
   const glowAnims = S.glow.filter((n) => assets.anims[n]);
   const kelp = assets.spritesInSheet(S.structSheet).filter((n) => /^kelp_(tall|mid)/.test(n));
+  // Curated fresh set-dressing from the new pack — the star of each authored place.
+  const decorSprites = S.decor.filter((n) => assets.sprites[n]);
+  const decorAnims = S.decor.filter((n) => assets.anims[n]);
+  const ambSprites = (S.ambient ?? []).filter((n) => assets.sprites[n]);
+  const ambAnims = (S.ambient ?? []).filter((n) => assets.anims[n]);
+  const richness = decorSprites.length + decorAnims.length; // "full" levels have more
 
   const props: Prop[] = [];
   const placed: Vec2[] = [playerStart];
@@ -90,10 +100,17 @@ export function buildStratum(index: number, seed: number, assets: AssetStore): A
       made++;
     }
   };
-  scatter(structPool, 12, false, false, [1, 1.5], 120);
-  if (kelp.length) scatter(kelp, 10, false, false, [1, 1.4], 110); // kelp forest verticals
+  // Fresh curated decor leads; the old struct sheet fills in behind it (less of it
+  // when the new pack is rich, so each place reads as its own authored world).
+  scatter(decorSprites, richness >= 6 ? 18 : 11, false, false, [0.85, 1.5], 120);
+  scatter(decorAnims, 5, false, true, [0.9, 1.35], 150);
+  scatter(structPool, richness >= 6 ? 5 : 10, false, false, [1, 1.5], 130);
+  if (kelp.length) scatter(kelp, 8, false, false, [1, 1.4], 110); // kelp forest verticals
   scatter(glowSprites, 8, true, false, [1, 1.4], 100);
   scatter(glowAnims, 5, true, true, [1, 1.3], 140);
+  // Sparse animated "life" props (anemones, vents, generators, eggs).
+  scatter(ambSprites, 4, false, false, [0.9, 1.3], 220);
+  scatter(ambAnims, 4, false, true, [0.9, 1.25], 240);
 
   // Solid rock/cave obstacles — deeper strata are rockier, but always MOSTLY OPEN
   // (a few big formations to weave around, never a maze). Bodies collide with these.
