@@ -3,7 +3,8 @@
 // interactables + hidden relics, magnetized loot, and depth/level difficulty
 // scaling. Permadeath: dying loses unbanked samples but banks depth + score.
 
-import { Container, Sprite } from "pixi.js";
+import { Container, Graphics, Sprite } from "pixi.js";
+import { getGlowTexture } from "../engine/glow";
 import type { Engine } from "../engine/app";
 import type { AssetStore } from "../engine/assets";
 import { Input, KEYS } from "../engine/input";
@@ -62,6 +63,7 @@ export class DiveScene implements HitSink, PickupSink {
   private telegraphs = new Map<Enemy, Sprite>();
   private staticNodes: Container[] = [];
   private liveFx: Sprite[] = [];
+  private hitFx: { ring: Graphics; glow: Sprite; age: number; life: number; rMax: number; color: number; sparks: number[] }[] = [];
   private streams: { s: Sprite; axisStart: number; cross: number; span: number; base: number; dir: number; horiz: boolean }[] = [];
 
   private acc = 0;
@@ -368,7 +370,7 @@ export class DiveScene implements HitSink, PickupSink {
     // A fully-shielded hit keeps your combo — the payoff for a shield build.
     if (!absorbed) onPlayerHitScore(this.run);
     audio.playerHit();
-    this.spawnFx(absorbed ? "impact_aqua" : "impact_coral", at.x, at.y);
+    this.spawnHitFx(at.x, at.y, absorbed ? COLOR.aquaBright : COLOR.coralBright, true);
     bus.emit("player:hit", { damage });
     if (this.player.hp <= 0) {
       this.player.hp = 0;
@@ -381,7 +383,7 @@ export class DiveScene implements HitSink, PickupSink {
     if (this.run.stats.lifestealFrac > 0 && this.player.alive) {
       this.player.hp = Math.min(this.player.maxHp, this.player.hp + damage * this.run.stats.lifestealFrac);
     }
-    this.spawnFx("impact_aqua", at.x, at.y);
+    this.spawnHitFx(at.x, at.y, COLOR.aquaBright, false);
   }
   onEnemyKilled(enemy: Enemy): void {
     onKill(this.run, enemy.elite);
@@ -400,7 +402,7 @@ export class DiveScene implements HitSink, PickupSink {
     bus.emit("enemy:killed", { kind: enemy.kind, pos: { ...enemy.pos } });
   }
   onDestructibleHit(_d: Damageable, _damage: number, at: Vec2): void {
-    this.spawnFx("impact_aqua", at.x, at.y);
+    this.spawnHitFx(at.x, at.y, COLOR.aquaBright, false);
   }
   onDestructibleDestroyed(d: Damageable): void {
     this.interactables.onDestroyed(d, this.interactSink);
@@ -432,6 +434,24 @@ export class DiveScene implements HitSink, PickupSink {
     }
   }
 
+  // Procedural hit burst — an expanding additive ring + radial sparks. Replaces the
+  // extracted impact sprites (which had a clipped flat edge) for the frequent hits.
+  private spawnHitFx(x: number, y: number, color: number, big = false): void {
+    const ring = new Graphics();
+    ring.position.set(x, y);
+    this.engine.lightLayer.addChild(ring);
+    const glow = new Sprite(getGlowTexture());
+    glow.anchor.set(0.5);
+    glow.tint = color;
+    glow.position.set(x, y);
+    this.engine.lightLayer.addChild(glow);
+    const n = big ? 8 : 5;
+    const seed = x * 0.7 + y * 0.31;
+    const sparks: number[] = [];
+    for (let i = 0; i < n; i++) sparks.push((i / n) * Math.PI * 2 + seed);
+    this.hitFx.push({ ring, glow, age: 0, life: big ? 0.32 : 0.22, rMax: big ? 34 : 22, color, sparks });
+  }
+
   private spawnFx(anim: string, x: number, y: number): void {
     if (!this.assets.has(anim)) return;
     const a = this.assets.anim(anim);
@@ -456,6 +476,37 @@ export class DiveScene implements HitSink, PickupSink {
       const along = (((st.base + this.elapsed * flowSpeed * st.dir) % st.span) + st.span) % st.span;
       if (st.horiz) st.s.position.set(st.axisStart + along, st.cross);
       else st.s.position.set(st.cross, st.axisStart + along);
+    }
+
+    // Procedural hit bursts — expand + fade, then self-remove.
+    if (this.hitFx.length) {
+      for (const fx of this.hitFx) {
+        fx.age += dt;
+        const t = Math.min(1, fx.age / fx.life);
+        const ease = 1 - (1 - t) * (1 - t);
+        const r = fx.rMax * ease;
+        const a = 1 - t;
+        fx.ring.clear();
+        fx.ring.circle(0, 0, r).stroke({ width: 2 * (1 - t) + 0.5, color: fx.color, alpha: a * 0.9 });
+        for (const ang of fx.sparks) {
+          fx.ring
+            .moveTo(Math.cos(ang) * r * 0.5, Math.sin(ang) * r * 0.5)
+            .lineTo(Math.cos(ang) * r * 1.4, Math.sin(ang) * r * 1.4)
+            .stroke({ width: 1.5 * (1 - t) + 0.3, color: fx.color, alpha: a });
+        }
+        fx.glow.alpha = a * 0.55;
+        fx.glow.scale.set((r * 1.6) / 128);
+      }
+      if (this.hitFx.some((fx) => fx.age >= fx.life)) {
+        for (const fx of this.hitFx) {
+          if (fx.age < fx.life) continue;
+          fx.ring.parent?.removeChild(fx.ring);
+          fx.ring.destroy();
+          fx.glow.parent?.removeChild(fx.glow);
+          fx.glow.destroy();
+        }
+        this.hitFx = this.hitFx.filter((fx) => fx.age < fx.life);
+      }
     }
 
     this.playerView.root.visible = p.alive;
@@ -601,6 +652,13 @@ export class DiveScene implements HitSink, PickupSink {
       a.destroy();
     }
     this.liveFx = [];
+    for (const fx of this.hitFx) {
+      fx.ring.parent?.removeChild(fx.ring);
+      fx.ring.destroy();
+      fx.glow.parent?.removeChild(fx.glow);
+      fx.glow.destroy();
+    }
+    this.hitFx = [];
     for (const n of this.staticNodes) {
       n.parent?.removeChild(n);
       n.destroy({ children: true });

@@ -14,10 +14,9 @@ biggest wins are real animated pixel-art for the things you look at most.
 - [ ] **Elite variants** — recolored/enlarged elite frames for both enemies.
 
 ## P1 — polish existing effects
-- [ ] **Impact VFX edges** — the extracted `impact_aqua/coral/amber` frames go flat at
-      their sprite border (hard clip) which reads poorly. Fix by re-authoring with a
-      soft radial falloff, OR mask the additive sprite with the glow texture so the
-      edge fades. (Owner-reported.)
+- [x] **Impact VFX edges** — the extracted `impact_*` frames clipped flat at the bbox
+      edge. Replaced the frequent hit impacts with a **procedural expanding ring + sparks**
+      (edge-free, additive) in `dive.ts` `spawnHitFx`. (Owner-reported; fixed.)
 - [ ] **Bullet trails** — short additive trail/streak behind fast bullets for motion.
 - [ ] **Muzzle flash** on the player weapon; **hit spark** distinct from impact.
 - [ ] **Death dissolve** — the player/enemy fade into particles instead of vanishing.
