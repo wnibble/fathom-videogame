@@ -5,9 +5,24 @@
 // Deterministic: no Math.random — strafe flips on a timer, radial offset uses a
 // per-enemy spinSeed, attack choice alternates via attackCount.
 
-import type { Enemy, Player, Vec2 } from "../core/types";
-import { SPITTER_RADIAL, SPITTER_AIMED } from "../content/emitters";
+import type { Enemy, EmitterSpec, Player, Vec2 } from "../core/types";
+import { SPITTER_RADIAL, SPITTER_AIMED, SPITTER_GAP_RING, SPITTER_WAVE, SPITTER_CROSS, SPITTER_SPIRAL_SHOT } from "../content/emitters";
 import type { Projectiles } from "./projectiles";
+
+/** Advance a sequential volley (spiral/stream) — shared by spitter + boss. */
+export function tickVolley(e: Enemy, dt: number, fire: (spec: EmitterSpec, pos: Vec2, base: number) => void): boolean {
+  if (!e.volley) return false;
+  const v = e.volley;
+  v.timer -= dt;
+  while (v.timer <= 0 && v.shotsLeft > 0) {
+    fire(v.spec, e.pos, v.base);
+    v.base += v.step;
+    v.shotsLeft--;
+    v.timer += v.interval;
+  }
+  if (v.shotsLeft <= 0) e.volley = null;
+  return true;
+}
 
 // Ranges kept inside the ZOOM-2 viewport (~640×360 → ~180px half-height) so the
 // Spitter AND its wind-up telegraph stay on screen — the whole point of Pillar 1.
@@ -99,6 +114,9 @@ export function updateSpitter(
   e.pos.x = Math.max(m, Math.min(bounds.w - m, e.pos.x));
   e.pos.y = Math.max(m, Math.min(bounds.h - m, e.pos.y));
 
+  // Sequential volley in flight (spiral stream) — keep releasing it.
+  if (tickVolley(e, dt, (spec, pos, base) => proj.fireBurst(spec, pos, base, "enemy"))) return;
+
   // Attack cycle — GATED on proximity so a wind-up + shot can never happen while
   // the Spitter (and its telegraph) are off-screen (Pillar 1: readable danger).
   if (e.telegraphTimer > 0) {
@@ -112,9 +130,17 @@ export function updateSpitter(
       if (e.telegraphTimer <= 0 && e.pendingSpec) {
         const spec = e.pendingSpec;
         const base = spec.aim === "aimed" ? angleTo(e.pos, player.pos) : e.spinSeed;
-        // radial burst size scales with the enemy (depth tier / elite)
-        const fired = spec.aim === "radial" ? { ...spec, count: e.bulletCount } : spec;
-        proj.fireBurst(fired, e.pos, base, "enemy");
+        if (spec === SPITTER_SPIRAL_SHOT) {
+          // Fire hose: sweep an arc toward-then-past the player over ~0.9s.
+          e.volley = { spec, shotsLeft: 9, interval: 0.1, timer: 0, base: angleTo(e.pos, player.pos) - 0.9 * e.strafeDir, step: 0.22 * e.strafeDir };
+        } else if (spec === SPITTER_CROSS) {
+          // Four tight prongs at 90° — wide lanes between, rotated by spinSeed.
+          for (let k = 0; k < 4; k++) proj.fireBurst({ ...spec, count: 3, spread: 0.2, gapArc: 0 }, e.pos, e.spinSeed + (k * Math.PI) / 2, "enemy");
+        } else {
+          // radial burst size scales with the enemy (depth tier / elite)
+          const fired = spec.aim === "radial" && !spec.gapArc ? { ...spec, count: e.bulletCount } : spec;
+          proj.fireBurst(fired, e.pos, base, "enemy");
+        }
         e.spinSeed += 0.6;
         e.pendingSpec = null;
         e.attackCount++;
@@ -124,8 +150,12 @@ export function updateSpitter(
   } else {
     e.attackTimer -= dt;
     if (e.attackTimer <= 0 && dist < ENGAGE) {
-      // Alternate radial / aimed for variety and readability.
-      const spec = e.attackCount % 2 === 0 ? SPITTER_RADIAL : SPITTER_AIMED;
+      // Pattern table (pass: new shot patterns) — elites get the whole songbook;
+      // common spitters rotate a lighter set. Every pattern telegraphs.
+      const table = e.elite
+        ? [SPITTER_GAP_RING, SPITTER_SPIRAL_SHOT, SPITTER_WAVE, SPITTER_CROSS, SPITTER_AIMED]
+        : [SPITTER_RADIAL, SPITTER_WAVE, SPITTER_GAP_RING, SPITTER_AIMED];
+      const spec = table[e.attackCount % table.length];
       e.pendingSpec = spec;
       e.telegraphTimer = spec.telegraph!.time;
     }

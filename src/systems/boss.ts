@@ -7,6 +7,7 @@
 import { Container, Graphics, Sprite } from "pixi.js";
 import type { Enemy, EmitterSpec, Player, Vec2 } from "../core/types";
 import { SPITTER_RADIAL } from "../content/emitters";
+import { tickVolley } from "./spitter";
 import { getGlowTexture } from "../engine/glow";
 import { COLOR } from "../palette";
 import type { SpitterView } from "../render/actors";
@@ -143,6 +144,9 @@ export function updateBoss(e: Enemy, dt: number, player: Player, ctx: BossCtx, p
     ctx.hitPlayer(e.contactDamage, { x: player.pos.x, y: player.pos.y });
   }
 
+  // Spiral hose in flight — keep sweeping it.
+  if (tickVolley(e, dt, (spec, pos, base) => ctx.fire(spec, pos, base))) return;
+
   // Telegraph → fire cycle.
   if (e.telegraphTimer > 0) {
     e.telegraphTimer -= dt;
@@ -167,19 +171,21 @@ export function updateBoss(e: Enemy, dt: number, player: Player, ctx: BossCtx, p
 }
 
 function fireAttack(e: Enemy, player: Player, ctx: BossCtx, phase: number): void {
-  const kind = e.attackCount % (phase >= 2 ? 3 : 2);
+  const kind = e.attackCount % (phase >= 2 ? 4 : 3);
   const aimBase = Math.atan2(player.pos.y - e.pos.y, player.pos.x - e.pos.x);
   if (kind === 0) {
-    // Wide radial wall.
-    ctx.fire({ ...RADIAL, count: phase >= 2 ? 30 : 22, speed: 135, ttl: 4.2 }, e.pos, e.spinSeed);
+    // Wide radial wall WITH a dodge lane — the taught escape (gap faces off-aim).
+    ctx.fire({ ...RADIAL, count: phase >= 2 ? 32 : 24, speed: 135, ttl: 4.2, gapArc: phase >= 2 ? 0.55 : 0.8, gapAt: 0 }, e.pos, aimBase + Math.PI * 0.35);
   } else if (kind === 1) {
     // Two offset rings — a denser weave.
     ctx.fire({ ...RADIAL, count: 16, speed: 120, ttl: 4 }, e.pos, e.spinSeed);
     ctx.fire({ ...RADIAL, count: 16, speed: 175, ttl: 4 }, e.pos, e.spinSeed + Math.PI / 16);
+  } else if (kind === 2) {
+    // Rolling wave crest aimed at you.
+    ctx.fire({ ...RADIAL, count: 13, spread: 1.9, aim: "aimed", speed: 170, ttl: 3.6, speedSpread: 0.35 }, e.pos, aimBase);
   } else {
-    // Phase 2: aimed spiral + summon two adds to pressure your position.
-    ctx.fire({ ...RADIAL, count: 20, speed: 150, ttl: 4 }, e.pos, aimBase);
-    ctx.fire({ ...RADIAL, count: 20, speed: 150, ttl: 4 }, e.pos, aimBase + 0.3);
+    // Phase 2: spiral fire-hose sweep + summon two adds to pressure your position.
+    e.volley = { spec: { ...RADIAL, count: 2, spread: 0.14, speed: 185, ttl: 3.8 }, shotsLeft: 14, interval: 0.08, timer: 0, base: aimBase - 1.1, step: 0.17 };
     ctx.spawnAdd({ x: e.pos.x - 40, y: e.pos.y });
     ctx.spawnAdd({ x: e.pos.x + 40, y: e.pos.y });
   }

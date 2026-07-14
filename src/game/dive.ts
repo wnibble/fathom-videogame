@@ -162,6 +162,16 @@ export class DiveScene implements HitSink, PickupSink {
     this.playerView = buildPlayerView(assets);
     // Bullets die on cavern walls — closure reads the CURRENT arena every call.
     this.proj.wallQuery = (x, y) => this.arena.cavern.bulletBlocked(x, y);
+    // Inward wall normal (finite-difference of the carve SDF) for Rebound Slugs.
+    this.proj.wallNormal = (x, y) => {
+      const sd = this.arena.cavern.sd;
+      const e = 3;
+      const gx = sd(x + e, y) - sd(x - e, y);
+      const gy = sd(x, y + e) - sd(x, y - e);
+      const l = Math.hypot(gx, gy);
+      if (l < 1e-4) return null;
+      return { x: -gx / l, y: -gy / l }; // points back into open water
+    };
     this.run = freshRun(PLAYER_SHOT, meta);
 
     // Weather modifiers (a double-edged climate) + one-run Market boons.
@@ -551,6 +561,11 @@ export class DiveScene implements HitSink, PickupSink {
     if (input.state.firing && p.fireCooldown <= 0 && p.alive) {
       const ang = Math.atan2(this.lastAim.y, this.lastAim.x);
       this.proj.fireBurst(this.run.weapon, p.pos, ang, "player");
+      // Rear Guard — a half-power volley covering your back.
+      if (this.run.stats.rearShots > 0) {
+        const w = this.run.weapon;
+        this.proj.fireBurst({ ...w, count: this.run.stats.rearShots, spread: this.run.stats.rearShots > 1 ? 0.35 : 0, damage: (w.damage ?? 10) * 0.5 }, p.pos, ang + Math.PI, "player");
+      }
       audio.shoot();
       this.spawnMuzzle(p.pos.x + this.lastAim.x * 11, p.pos.y + this.lastAim.y * 11);
       this.recoil.x -= this.lastAim.x * 2.2;

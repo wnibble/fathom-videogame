@@ -28,6 +28,12 @@ export interface EmitterSpec {
   damage?: number; // per-bullet damage (default 10)
   pierce?: number; // extra enemies a player bullet passes through (default 0)
   telegraph?: { sprite: string; time: number; scale?: number }; // wind-up shown before firing
+  // ---- pattern extensions ----
+  gapArc?: number; // radians of HOLE in a radial ring (the dodge lane)
+  gapAt?: number; // center angle of the gap (rad, relative to base)
+  speedSpread?: number; // ± fraction of speed varied across the burst (wave walls)
+  homing?: number; // rad/sec steering toward the nearest enemy (player bullets)
+  bounces?: number; // wall ricochets before dying (player bullets)
 }
 
 export interface Bullet {
@@ -43,6 +49,8 @@ export interface Bullet {
   pierce: number; // remaining enemies this bullet can pass through
   lastHit: Enemy | null; // guard against double-hitting the same enemy while overlapping
   grazed: boolean; // enemy bullet already counted as a graze (charge once per bullet)
+  homing: number; // rad/sec steer toward nearest enemy (0 = ballistic)
+  bounces: number; // remaining wall ricochets
 }
 
 export type EnemyKind = "spitter" | "darter" | "drifter";
@@ -71,6 +79,8 @@ export interface Enemy {
   contactDamage: number; // melee/lunge contact damage
   mutation?: string; // elite modifier id (irradiated/bloomed/voltaic)
   mineTimer?: number; // irradiated mutation: cadence for laying a damage trail
+  /** Sequential fire state — spirals/streams release over time, not in one burst. */
+  volley?: { spec: EmitterSpec; shotsLeft: number; interval: number; timer: number; base: number; step: number } | null;
 }
 
 export interface Player {

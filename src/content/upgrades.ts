@@ -33,6 +33,10 @@ export const UPGRADES: Upgrade[] = [
   { id: "regen", name: "Symbiont Bloom", desc: "slowly regenerate HP", category: "defense", weight: 5, maxStacks: 3, apply: (s) => (s.regenPerSec += 1.2) },
   { id: "shieldcap", name: "Aegis Cell", desc: "+30 shield capacity", category: "defense", weight: 5, maxStacks: 3, apply: (s) => (s.shieldCapBonus += 30) },
   { id: "shieldregen", name: "Aegis Flow", desc: "+3 shield regen/sec", category: "defense", weight: 4, maxStacks: 3, apply: (s) => (s.shieldRegenBonus += 3) },
+  // ---- shot-pattern upgrades (pass: new shot patterns) ----
+  { id: "seeker", name: "Seeker Filaments", desc: "shots curve toward prey", category: "offense", weight: 4, maxStacks: 2, apply: (s) => (s.homing += 2.4) },
+  { id: "rebound", name: "Rebound Slugs", desc: "shots ricochet off walls +1", category: "offense", weight: 4, maxStacks: 2, apply: (s) => (s.bounces += 1) },
+  { id: "rearguard", name: "Rear Guard", desc: "fire a half-power shot backward", category: "defense", weight: 4, maxStacks: 2, apply: (s) => (s.rearShots += 1) },
 ];
 
 export const UPGRADE_BY_ID: Record<string, Upgrade> = Object.fromEntries(UPGRADES.map((u) => [u.id, u]));

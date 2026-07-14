@@ -44,6 +44,9 @@ export interface PlayerStats {
   regenPerSec: number;
   shieldCapBonus: number; // in-run shield capacity added (Aegis Cell)
   shieldRegenBonus: number; // in-run shield regen/s added
+  homing: number; // rad/sec bullet steering toward prey (Seeker Filaments)
+  bounces: number; // wall ricochets per bullet (Rebound Slugs)
+  rearShots: number; // half-power shots fired backward (Rear Guard)
 }
 
 export interface RunState {
@@ -79,6 +82,9 @@ export function freshStats(): PlayerStats {
     regenPerSec: 0,
     shieldCapBonus: 0,
     shieldRegenBonus: 0,
+    homing: 0,
+    bounces: 0,
+    rearShots: 0,
   };
 }
 
@@ -102,6 +108,8 @@ export function deriveWeapon(base: EmitterSpec, s: PlayerStats): EmitterSpec {
     ttl: base.ttl * s.ttlMult,
     damage: (base.damage ?? 10) * s.damageMult,
     pierce: s.pierce,
+    homing: s.homing,
+    bounces: s.bounces,
   };
 }
 export function fireInterval(s: PlayerStats, hasteFactor = 1): number {
