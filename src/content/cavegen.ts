@@ -361,13 +361,13 @@ export function generateCavern(seed: number, opts: CavernOptsV2): Cavern {
         const d = sdShape(px, py, o);
         if (d < dOthers) dOthers = d;
       }
-      if (dOthers < -8) return;
+      if (dOthers < -24) return; // MAP-RULES B1: cull only well inside the union
       const rockR = rng.range(34, 54);
       const cx = px + nx * rockR * rng.range(0.15, 0.45);
       const cy = py + ny * rockR * rng.range(0.15, 0.45);
       wallRocks.push({ sprite: rng.pick(opts.wallSprites), pos: { x: cx, y: cy }, scale: (rockR * 2.15) / 60, glow: false });
-      // Second layer deeper into the dark = wall mass.
-      if (rng.chance(0.2 + rockiness * 0.25)) {
+      // Second layer deeper into the dark = wall mass, not a rim.
+      if (rng.chance(0.35 + rockiness * 0.3)) {
         const r2 = rockR * 0.7;
         wallRocks.push({ sprite: rng.pick(opts.wallSprites), pos: { x: px + nx * rockR * 1.5, y: py + ny * rockR * 1.5 }, scale: (r2 * 2.15) / 60, glow: false });
       }
@@ -376,7 +376,7 @@ export function generateCavern(seed: number, opts: CavernOptsV2): Cavern {
         growth.push({ sprite: rng.pick(opts.growthSprites), pos: { x: cx + rng.range(-10, 10), y: cy - rockR * 0.9 }, scale: rng.range(0.8, 1.2), glow: false });
       }
     };
-    const step = 44 * (1.75 - rockiness * 0.3);
+    const step = 44 * (1.3 - rockiness * 0.3); // ~53px: neighbors always overlap (B1)
     if (s.kind === "circle") {
       const n = Math.max(6, Math.ceil((Math.PI * 2 * s.r) / step));
       for (let i = 0; i < n; i++) {
@@ -461,17 +461,22 @@ export function generateCavern(seed: number, opts: CavernOptsV2): Cavern {
   };
 
   const anchors: CavernAnchors = {
-    start: { x: startRoom.center.x, y: startRoom.center.y },
+    // Floor/boss arena: enter at the SOUTH rim facing the heart of the room —
+    // the guardian owns the center (staging beat, MAP-RULES L6).
+    start: opts.isFloor
+      ? { x: startRoom.center.x, y: startRoom.center.y + startRoom.coreR * 0.55 }
+      : { x: startRoom.center.x, y: startRoom.center.y },
     portal: opts.isFloor ? null : anchor(portalRoom, 60),
     vents: ventRooms.length ? ventRooms.map((r) => anchor(r, 40)) : [anchor(startRoom, 40)],
     relic: anchor(relicRoom, 30),
     spawnPoints: [],
     lootSpots: [],
   };
-  // Spawn points: per non-start room by size, min 6 total.
+  // Spawn points: per non-start room by size, min 6 total — and never on top of
+  // an objective (portal/vents/relic/loot keep a 450px berth).
   for (const room of others) {
     const n = Math.max(1, Math.min(3, Math.round((room.coreR * room.coreR) / 90000)));
-    for (let i = 0; i < n; i++) anchors.spawnPoints.push(sampleInRoom(room, 40, [], 0));
+    for (let i = 0; i < n; i++) anchors.spawnPoints.push(sampleInRoom(room, 40, placedAnchors, 450));
   }
   while (anchors.spawnPoints.length < 6) anchors.spawnPoints.push(sampleInRoom(byHops[anchors.spawnPoints.length % Math.max(1, byHops.length)] ?? startRoom, 40, [], 0));
   // Loot spots: a handful of pre-validated points across rooms.

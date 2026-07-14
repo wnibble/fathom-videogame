@@ -27,8 +27,12 @@ export interface PlayerView {
 
 export function buildPlayerView(assets?: AssetStore): PlayerView {
   const root = new Container();
-  // A restrained headlamp pool — enough to read "a small light," not a blinding disc.
-  const lamp = glow(126, COLOR.aqua, 0.22);
+  // Figure-ground (MAP-RULES C4): the ACTOR owns the brightest light. A wider
+  // lantern pool + a soft dark backing disc pop the diver off busy walls.
+  const lamp = glow(180, COLOR.aqua, 0.32);
+  const backing = new Graphics();
+  backing.circle(0, 0, 17).fill({ color: 0x04070f, alpha: 0.38 });
+  root.addChild(backing);
 
   // Prefer the real animated diver sprite. It's drawn side-on, so we FLIP L/R to
   // face travel (never full-rotate — that would tumble a side view). Aim direction

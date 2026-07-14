@@ -44,15 +44,18 @@ interface Stratum {
 // Depth (m) spent per stratum before descending to the next (with a fade + card).
 export const STRATA_DEPTH = 220;
 
+// MAP-RULES B3/C-section: caves pools are SOLID-MASS rock only (wispy corals
+// live in decor/growth); each stratum owns a distinct palette + motif —
+// Vents is EMBER (crystal + chimneys, no recycled Wreck barrels).
 export const STRATA: Stratum[] = [
-  { name: "Twilight Drift", tagline: "eerie open midwater", bg: 0x0a1a2e, structSheet: "twilight_drift_props", glow: ["plankton_dense", "plankton_sparse", "jelly_colony"], fauna: [{ kind: "spitter", weight: 3 }, { kind: "darter", weight: 1 }], resource: "lumen", landmark: "suspended_coral_chunk", caves: ["floating_reef_chunk", "fan_coral", "tube_coral", "amber_sponge"], decor: ["fan_coral", "tube_coral", "amber_sponge", "lure_grass"], ambient: ["jelly_mushroom_cluster", "danger_anemone"] },
+  { name: "Twilight Drift", tagline: "eerie open midwater", bg: 0x0a1a2e, structSheet: "twilight_drift_props", glow: ["plankton_dense", "plankton_sparse", "jelly_colony"], fauna: [{ kind: "spitter", weight: 3 }, { kind: "darter", weight: 1 }], resource: "lumen", landmark: "suspended_coral_chunk", caves: ["floating_reef_chunk", "abyssal_root_mass", "amber_sponge"], decor: ["fan_coral", "tube_coral", "amber_sponge", "lure_grass"], ambient: ["jelly_mushroom_cluster", "danger_anemone"] },
   // FULL LEVEL — a dense, living kelp forest.
-  { name: "Kelp Forest", tagline: "occlusion and ambush", bg: 0x0a241e, structSheet: "kelp_forest_props", glow: ["sprout_aqua_1", "sprout_aqua_2", "sprout_amber_1", "tangle_glowing"], fauna: [{ kind: "darter", weight: 3 }, { kind: "spitter", weight: 2 }], resource: "spore", landmark: "tangle_large_a", caves: ["abyssal_root_mass", "floating_reef_chunk", "tube_coral"], decor: ["kelp_tall_a", "kelp_tall_b", "kelp_branching", "kelp_bush", "lure_grass", "fan_coral"], ambient: ["angler_plant", "danger_anemone", "jelly_mushroom_cluster"] },
+  { name: "Kelp Forest", tagline: "occlusion and ambush", bg: 0x0c3322, structSheet: "kelp_forest_props", glow: ["sprout_aqua_1", "sprout_aqua_2", "sprout_amber_1", "tangle_glowing"], fauna: [{ kind: "darter", weight: 3 }, { kind: "spitter", weight: 2 }], resource: "spore", landmark: "tangle_large_a", caves: ["abyssal_root_mass", "floating_reef_chunk"], decor: ["kelp_tall_a", "kelp_tall_b", "kelp_branching", "kelp_bush", "lure_grass"], ambient: ["angler_plant", "danger_anemone", "jelly_mushroom_cluster"] },
   // FULL LEVEL — a broken industrial wreck.
   { name: "The Wreck", tagline: "tight salvage, mechanical hazards", bg: 0x17130e, structSheet: "wreck_thermal_props", glow: ["emergency_lamp", "gas_pocket"], fauna: [{ kind: "darter", weight: 2 }, { kind: "spitter", weight: 2 }, { kind: "drifter", weight: 1 }], resource: "alloy", landmark: "vent_chimney", caves: ["cargo_crate_closed", "rusted_barrel", "pipe_cluster", "floating_reef_chunk"], decor: ["cargo_crate_broken", "rusted_locker", "pipe_cluster", "large_valve", "chain_pile", "broken_console", "bollard", "floor_grate"], ambient: ["floodlight_on", "terminal_a", "damaged_generator"] },
-  { name: "Thermal Vents", tagline: "eruptions and aggression", bg: 0x1e0f0a, structSheet: "wreck_thermal_props", glow: ["sparking_cable", "gas_pocket"], fauna: [{ kind: "darter", weight: 2 }, { kind: "drifter", weight: 2 }, { kind: "spitter", weight: 1 }], resource: "ember", landmark: "pipe_cluster", caves: ["floating_reef_chunk", "crystal_coral", "rusted_barrel"], decor: ["pipe_cluster", "large_valve", "rusted_barrel", "amber_sponge"], ambient: ["thermal_vent_dormant", "damaged_generator", "wreck_generator_off"] },
+  { name: "Thermal Vents", tagline: "eruptions and aggression", bg: 0x2e0c06, structSheet: "wreck_thermal_props", glow: ["sparking_cable", "gas_pocket"], fauna: [{ kind: "darter", weight: 2 }, { kind: "drifter", weight: 2 }, { kind: "spitter", weight: 1 }], resource: "ember", landmark: "vent_chimney", caves: ["crystal_coral", "vent_chimney", "floating_reef_chunk"], decor: ["crystal_coral", "amber_sponge", "thermal_vent_dormant"], ambient: ["thermal_vent_dormant", "damaged_generator", "wreck_generator_off"] },
   { name: "Abyssal Plain", tagline: "dark, sparse, deadly", bg: 0x05080f, structSheet: "twilight_drift_props", glow: ["plankton_sparse"], fauna: [{ kind: "spitter", weight: 2 }, { kind: "drifter", weight: 3 }, { kind: "darter", weight: 1 }], resource: "shard", landmark: "dead_drifting_creature", caves: ["floating_reef_chunk", "crystal_coral", "abyssal_root_mass"], decor: ["crystal_coral", "abyssal_root_mass", "amber_sponge"], ambient: ["egg_cluster", "ancient_eye_closed", "jelly_mushroom_cluster"] },
-  { name: "The Cradle", tagline: "the bottom — something waits", bg: 0x0b0616, structSheet: "twilight_drift_props", glow: ["plankton_dense", "jelly_colony"], fauna: [{ kind: "drifter", weight: 2 }, { kind: "spitter", weight: 1 }], resource: "relic", landmark: "tube_worm_colony", caves: ["crystal_coral", "abyssal_root_mass"], decor: ["crystal_coral", "tube_coral", "amber_sponge"], ambient: ["egg_cluster", "tube_worm_colony", "jelly_mushroom_cluster"] },
+  { name: "The Cradle", tagline: "the bottom — something waits", bg: 0x0b0616, structSheet: "twilight_drift_props", glow: ["plankton_dense", "jelly_colony"], fauna: [{ kind: "drifter", weight: 2 }, { kind: "spitter", weight: 1 }], resource: "relic", landmark: "tube_worm_colony", caves: ["crystal_coral", "abyssal_root_mass"], decor: ["crystal_coral", "amber_sponge"], ambient: ["egg_cluster", "tube_worm_colony", "jelly_mushroom_cluster"] },
 ];
 
 // Sprite names owned by interactables — never scatter them as decoration.
@@ -188,12 +191,17 @@ export function buildStratum(index: number, seed: number, assets: AssetStore): A
 
   // Hero landmark — an oversized far beacon. It sits beyond the walls now, so
   // the darkness overlay turns it into a half-seen silhouette (mystery > clutter).
+  // On the FLOOR it becomes the cradle centerpiece at the boss arena's heart.
   let landmark: ArenaData["landmark"] = null;
   if (assets.sprites[S.landmark]) {
-    const corner = rng.int(0, 3);
-    const lx = corner % 2 === 0 ? bounds.w * 0.16 : bounds.w * 0.84;
-    const ly = corner < 2 ? bounds.h * 0.18 : bounds.h * 0.82;
-    landmark = { sprite: S.landmark, pos: { x: lx, y: ly }, scale: rng.range(3.2, 4.2) };
+    if (si === STRATA.length - 1) {
+      landmark = { sprite: S.landmark, pos: { x: cavern.anchors.start.x, y: cavern.anchors.start.y - 620 }, scale: rng.range(3.4, 4.0) };
+    } else {
+      const corner = rng.int(0, 3);
+      const lx = corner % 2 === 0 ? bounds.w * 0.16 : bounds.w * 0.84;
+      const ly = corner < 2 ? bounds.h * 0.18 : bounds.h * 0.82;
+      landmark = { sprite: S.landmark, pos: { x: lx, y: ly }, scale: rng.range(3.2, 4.2) };
+    }
   }
 
   return { bounds, playerStart, props, obstacles, currents, spawns, interactables, name: S.name, tagline: S.tagline, bg: S.bg, fauna: S.fauna, resource: S.resource, isFloor: si === STRATA.length - 1, landmark, cavern };

@@ -249,8 +249,22 @@ export class DiveScene implements HitSink, PickupSink {
       const node = this.assets.sprite(lm.sprite);
       node.position.set(lm.pos.x, lm.pos.y);
       node.scale.set(lm.scale);
-      node.alpha = 0.32;
-      node.tint = 0x7f9fb5;
+      if (this.arena.isFloor) {
+        // The cradle centerpiece — a violet presence at the arena's heart.
+        node.alpha = 0.55;
+        node.tint = 0xb08cff;
+        const halo = new Sprite(getGlowTexture());
+        halo.anchor.set(0.5);
+        halo.tint = 0x9a6cff;
+        halo.alpha = 0.4;
+        halo.scale.set(420 / 128);
+        halo.position.set(lm.pos.x, lm.pos.y);
+        this.engine.lightLayer.addChild(halo);
+        this.staticNodes.push(halo as unknown as Container);
+      } else {
+        node.alpha = 0.32;
+        node.tint = 0x7f9fb5;
+      }
       this.engine.worldLayer.addChildAt(node, 0);
       this.staticNodes.push(node as unknown as Container);
     }
@@ -288,9 +302,18 @@ export class DiveScene implements HitSink, PickupSink {
         });
       }
     }
-    // Subtle per-instance tint families break the one-teal-mass look — the same
-    // sprite reads warm here, cool there, pale beyond (position-hashed, stable).
-    const TINTS = [0xffffff, 0xffe8da, 0xd8e8ff, 0xe2ffe8, 0xf2ddff, 0xfff2c8, 0xd0f0f0];
+    // Per-STRATUM tint families (MAP-RULES C1): each place owns a palette —
+    // s0 cool cyans, s1 emerald, s2 rust/bronze, s3 ember, s4 pale abyss,
+    // s5 cradle violet. Position-hashed per instance, stable.
+    const FAMILIES: number[][] = [
+      [0xffffff, 0xd0f4ff, 0xb8e8f8, 0xd8e8ff, 0xc8fff4],
+      [0xffffff, 0xd8ffd8, 0xc0f0c8, 0xe2ffe8, 0xbfe8c8],
+      [0xffffff, 0xffe0c0, 0xf0c8a0, 0xe8d0b0, 0xffd8b8],
+      [0xffffff, 0xffd0b0, 0xffc0a0, 0xffc8b8, 0xffdca8],
+      [0xffffff, 0xd8e0ff, 0xc8d4f0, 0xbfd0e8, 0xdde6ff],
+      [0xffffff, 0xe8d0ff, 0xd8c0f0, 0xe0d0ff, 0xf0d8ff],
+    ];
+    const TINTS = FAMILIES[Math.min(FAMILIES.length - 1, this.stratumIndex)];
     const tintAt = (x: number, y: number) => TINTS[Math.abs((x * 31 + y * 17) | 0) % TINTS.length];
     for (const p of this.arena.props) {
       let node: Container;
@@ -300,6 +323,8 @@ export class DiveScene implements HitSink, PickupSink {
       node.position.set(p.pos.x, p.pos.y);
       node.scale.set(p.scale);
       (node as Sprite).tint = tintAt(p.pos.x, p.pos.y);
+      // Static decor glow must never outshine the actor (MAP-RULES C4).
+      if (p.glow) node.alpha = 0.62;
       (p.glow ? this.engine.lightLayer : this.engine.worldLayer).addChild(node);
       this.staticNodes.push(node);
       // Organic flora sways with the current — a whisper, not a wave (large
@@ -372,11 +397,37 @@ export class DiveScene implements HitSink, PickupSink {
     const spr = new Sprite(rt);
     spr.position.set(-PAD, -PAD);
     spr.scale.set(1 / RES);
-    // Near-black in the stratum's own hue; alpha < 1 so outer rocks stay as
-    // silhouettes (a wall face catching light, not a void).
+    // HUE-PRESERVING darkening (MAP-RULES C2): hold the stratum hue, push
+    // saturation, pin lightness low — the Wreck's dark reads rust, the Vents'
+    // reads ember, instead of every stratum collapsing to the same mud.
     const bg = this.arena.bg;
-    const dk = (c: number) => Math.round(c * 0.3) & 0xff;
-    spr.tint = (dk((bg >> 16) & 0xff) << 16) | (dk((bg >> 8) & 0xff) << 8) | dk(bg & 0xff);
+    const r0 = ((bg >> 16) & 0xff) / 255;
+    const g0 = ((bg >> 8) & 0xff) / 255;
+    const b0 = (bg & 0xff) / 255;
+    const mx = Math.max(r0, g0, b0);
+    const mn = Math.min(r0, g0, b0);
+    const l0 = (mx + mn) / 2;
+    let h = 0;
+    let s = 0;
+    if (mx !== mn) {
+      const d = mx - mn;
+      s = l0 > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+      h = mx === r0 ? ((g0 - b0) / d + (g0 < b0 ? 6 : 0)) / 6 : mx === g0 ? ((b0 - r0) / d + 2) / 6 : ((r0 - g0) / d + 4) / 6;
+    }
+    const s2 = Math.min(1, s * 1.6);
+    const l2 = 0.085;
+    const hue = (p: number, q: number, t: number) => {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1 / 6) return p + (q - p) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+      return p;
+    };
+    const q = l2 < 0.5 ? l2 * (1 + s2) : l2 + s2 - l2 * s2;
+    const pp = 2 * l2 - q;
+    const to255 = (v: number) => Math.round(Math.max(0, Math.min(1, v)) * 255);
+    spr.tint = (to255(hue(pp, q, h + 1 / 3)) << 16) | (to255(hue(pp, q, h)) << 8) | to255(hue(pp, q, h - 1 / 3));
     spr.alpha = 0.93;
     this.engine.worldLayer.addChild(spr);
     this.staticNodes.push(spr as unknown as Container);
@@ -623,25 +674,20 @@ export class DiveScene implements HitSink, PickupSink {
   }
 
   private spawnEnemy(tier: number): void {
-    // Nearest spawn point that isn't on top of the player: with the carved-room
-    // layout, pressure should come from YOUR room's neighborhood, not across the
-    // whole cavern (far spawns just grind along walls).
-    let best = this.arena.spawns[0];
-    let bestD = Infinity;
-    let fallback = this.arena.spawns[0];
-    let fallbackD = -1;
+    // Spawn ANNULUS (MAP-RULES V-combat): 420-680px from the player — close
+    // enough that the fight actually arrives on screen, never on top of you.
+    const annulus: Vec2[] = [];
+    let nearest = this.arena.spawns[0];
+    let nearestD = Infinity;
     for (const s of this.arena.spawns) {
       const d = Math.hypot(s.x - this.player.pos.x, s.y - this.player.pos.y);
-      if (d > 420 && d < bestD) {
-        bestD = d;
-        best = s;
-      }
-      if (d > fallbackD) {
-        fallbackD = d;
-        fallback = s;
+      if (d >= 420 && d <= 680) annulus.push(s);
+      if (d >= 420 && d < nearestD) {
+        nearestD = d;
+        nearest = s;
       }
     }
-    if (bestD === Infinity) best = fallback;
+    const best = annulus.length ? annulus[this.rng.int(0, annulus.length - 1)] : nearestD < Infinity ? nearest : this.arena.spawns[this.rng.int(0, this.arena.spawns.length - 1)];
     const elite = this.rng.chance(Math.min(0.6, tier * 0.075 * this.eliteMult));
     const kind = this.pickFauna();
 
@@ -1026,14 +1072,18 @@ export class DiveScene implements HitSink, PickupSink {
     const w = this.engine.width;
     const h = this.engine.height;
     const style = (size: number, color: number, weight: "normal" | "bold" = "normal") =>
-      new TextStyle({ fontFamily: "Consolas, monospace", fontSize: size, fill: color, fontWeight: weight, letterSpacing: 4, align: "center" });
+      new TextStyle({
+        fontFamily: "Consolas, monospace", fontSize: size, fill: color, fontWeight: weight, letterSpacing: 4, align: "center",
+        dropShadow: { alpha: 0.9, angle: Math.PI / 2, blur: 3, color: 0x04070f, distance: 2 },
+      });
     const num = new Text({ text: `STRATUM ${this.stratumIndex + 1}${this.arena.isFloor ? "  ·  THE FLOOR" : ""}`, style: style(13, COLOR.teal) });
     const name = new Text({ text: this.arena.name.toUpperCase(), style: style(34, COLOR.aquaBright, "bold") });
     const tag = new Text({ text: this.arena.tagline, style: style(15, COLOR.teal) });
     for (const t of [num, name, tag]) t.anchor.set(0.5);
-    num.position.set(w / 2, h * 0.34);
-    name.position.set(w / 2, h * 0.34 + 30);
-    tag.position.set(w / 2, h * 0.34 + 66);
+    // Top-third banner — off the spawn point so it never buries loot/the diver.
+    num.position.set(w / 2, h * 0.18);
+    name.position.set(w / 2, h * 0.18 + 30);
+    tag.position.set(w / 2, h * 0.18 + 66);
     c.addChild(num, name, tag);
     this.engine.uiRoot.addChild(c);
     this.cardRoot = c;
@@ -1716,6 +1766,9 @@ export class DiveScene implements HitSink, PickupSink {
   }
   get obstacleCount(): number {
     return this.arena.obstacles.length;
+  }
+  get boundsDebug(): { w: number; h: number } {
+    return this.arena.bounds;
   }
   /** Debug: teleport the player (QA only). */
   debugTeleport(x: number, y: number): void {
