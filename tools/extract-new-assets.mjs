@@ -220,11 +220,22 @@ function downscale(img, targetMax) {
 const anchorFor = (pivot) => PIVOT_TO_ANCHOR[pivot] || [0.5, 0.5];
 const animMatch = (name) => name.match(/^(.*)_f(\d+)$/);
 
-// Sheets whose generated frames are NOT pixel-aligned between cells. For these:
-// center each frame on its own alpha bounds (stable output), and strip stray
-// components (neighbor-cell slivers bleeding across the crop edge, baked label
-// text under the art) by keeping only components that are large relative to the
-// biggest one and don't hug the crop border.
+// Sheets whose generated frames are NOT pixel-aligned between cells — center
+// each frame on its own alpha bounds so animations play stably (fixes actor
+// jitter too; the diver/dog frames drift inside their cells).
+const CENTER_SHEETS = new Set([
+  "diver",
+  "bichon",
+  "fauna_enemies",
+  "gatekeeper",
+  "01_loot_samples_upgrades",
+  "02_bioluminescent_flora",
+  "03_hazards_and_ancient_tech",
+  "04_wreck_industrial_props",
+  "05_surface_station_devices",
+]);
+// Sheets that ALSO get stray-component stripping (neighbor-cell bleed, baked
+// label text). NOT the actor sheets — their detached bubbles/sparkles are art.
 const LOOSE_SHEETS = new Set([
   "gatekeeper",
   "01_loot_samples_upgrades",
@@ -274,7 +285,10 @@ function filterComponents(img) {
     const c = comp[p];
     if (c === -1 || c === largest) continue;
     const tiny = sizes[c] < sizes[largest] * 0.04;
-    const bleed = touchesBorder[c] && sizes[c] < sizes[largest] * 0.5;
+    // Any border-touching component that isn't THE subject is a neighbor-cell
+    // bleed — even near-equal ones (a whole second device fused alongside).
+    // Generous bboxes mean legit art never reaches the crop border.
+    const bleed = touchesBorder[c] && sizes[c] < sizes[largest] * 0.98;
     if (tiny || bleed) data[p * 4 + 3] = 0;
   }
 }
@@ -292,12 +306,13 @@ function processManifest(manifestPath, dir, atlas, counts) {
     const targetMax = TARGET_MAX[sheetKey] ?? 48;
     const fps = FPS[sheetKey] ?? 8;
 
-    const loose = LOOSE_SHEETS.has(sheetKey);
+    const loose = CENTER_SHEETS.has(sheetKey);
+    const filter = LOOSE_SHEETS.has(sheetKey);
     const extracted = sheet.entries.map((e) => {
       const [x0, y0, x1, y1] = e.bbox;
       const img = crop(src, Math.max(0, x0), Math.max(0, y0), Math.min(src.width, x1), Math.min(src.height, y1));
       removeBackground(img);
-      if (loose) filterComponents(img); // strip neighbor bleed + baked label text
+      if (filter) filterComponents(img); // strip neighbor bleed + baked label text
       return { name: e.name, pivot: e.pivot, img, bounds: alphaBounds(img) };
     });
 

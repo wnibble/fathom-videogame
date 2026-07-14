@@ -20,7 +20,7 @@ import { weatherAt } from "./content/weather";
 import { BOON_BY_ID } from "./content/boons";
 import { audio } from "./engine/audio";
 import { Hub } from "./game/hub";
-import { onlineEnabled, submitScore, fetchTop } from "./online/leaderboard";
+import { submitScore, fetchTop } from "./online/leaderboard";
 import { promptCallsign } from "./online/callsign";
 import { COLOR } from "./palette";
 import {
@@ -185,14 +185,12 @@ async function main(): Promise<void> {
         audio.setEnabled(save.settings.sound);
       },
     });
-    // Populate TOP DIVERS asynchronously (panel stays hidden when offline).
-    if (onlineEnabled) {
-      void fetchTop(8).then((rows) => {
-        if (activeOverlay !== menu) return; // menu already gone
-        menu.setLeaderboard(rows);
-        menu.layout(engine.width, engine.height); // board arrived — reflow columns
-      });
-    }
+    // Populate TOP DIVERS asynchronously; null = no backend live -> panel hidden.
+    void fetchTop(8).then((rows) => {
+      if (activeOverlay !== menu || rows === null) return;
+      menu.setLeaderboard(rows);
+      menu.layout(engine.width, engine.height); // board arrived — reflow columns
+    });
     return menu;
   };
 

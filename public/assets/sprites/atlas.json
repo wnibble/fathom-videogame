@@ -1412,8 +1412,8 @@
     },
     "core_socket_off": {
       "file": "sprites/core_socket_off.png",
-      "w": 64,
-      "h": 45,
+      "w": 51,
+      "h": 64,
       "anchor": [
         0.5,
         0.5
@@ -1422,8 +1422,8 @@
     },
     "specimen_lab_a": {
       "file": "sprites/specimen_lab_a.png",
-      "w": 64,
-      "h": 39,
+      "w": 63,
+      "h": 64,
       "anchor": [
         0.5,
         1
@@ -1432,8 +1432,8 @@
     },
     "specimen_lab_b": {
       "file": "sprites/specimen_lab_b.png",
-      "w": 64,
-      "h": 36,
+      "w": 46,
+      "h": 64,
       "anchor": [
         0.5,
         1
@@ -1482,8 +1482,8 @@
     },
     "bank_lantern_off": {
       "file": "sprites/bank_lantern_off.png",
-      "w": 64,
-      "h": 50,
+      "w": 35,
+      "h": 64,
       "anchor": [
         0.5,
         1
@@ -1914,7 +1914,7 @@
         "sprites/diver_idle_f1.png",
         "sprites/diver_idle_f2.png"
       ],
-      "w": 28,
+      "w": 27,
       "h": 34,
       "anchor": [
         0.5,
@@ -1943,7 +1943,7 @@
         "sprites/spitter_idle_f1.png",
         "sprites/spitter_idle_f2.png"
       ],
-      "w": 42,
+      "w": 41,
       "h": 46,
       "anchor": [
         0.5,
@@ -1957,7 +1957,7 @@
         "sprites/drifter_idle_f1.png",
         "sprites/drifter_idle_f2.png"
       ],
-      "w": 34,
+      "w": 33,
       "h": 46,
       "anchor": [
         0.5,
@@ -1972,7 +1972,7 @@
         "sprites/dog_idle_f2.png"
       ],
       "w": 30,
-      "h": 27,
+      "h": 30,
       "anchor": [
         0.5,
         0.5
@@ -1986,7 +1986,7 @@
         "sprites/dog_swim_f2.png"
       ],
       "w": 30,
-      "h": 23,
+      "h": 22,
       "anchor": [
         0.5,
         0.5
@@ -2307,7 +2307,7 @@
         "sprites/wreck_generator_charge_f2.png"
       ],
       "w": 52,
-      "h": 28,
+      "h": 49,
       "anchor": [
         0.5,
         1
@@ -2421,8 +2421,8 @@
         "sprites/core_socket_f1.png",
         "sprites/core_socket_f2.png"
       ],
-      "w": 64,
-      "h": 53,
+      "w": 43,
+      "h": 64,
       "anchor": [
         0.5,
         0.5
@@ -2436,7 +2436,7 @@
         "sprites/surface_buoy_f2.png",
         "sprites/surface_buoy_f3.png"
       ],
-      "w": 52,
+      "w": 33,
       "h": 64,
       "anchor": [
         0.5,

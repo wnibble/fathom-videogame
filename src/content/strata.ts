@@ -136,10 +136,11 @@ export function buildStratum(index: number, seed: number, assets: AssetStore): A
     currents.push({ pos: { x: bounds.w * 0.72, y: bounds.h * 0.66 }, half: { x: 120, y: bounds.h * 0.4 }, force: { x: 0, y: -220 }, sprite: "current_ribbon" });
   }
 
+  // Spawn points sit INSIDE the cavern walls (the border band is wall territory).
   const spawns: Vec2[] = [
-    { x: bounds.w * 0.18, y: bounds.h * 0.2 }, { x: bounds.w * 0.82, y: bounds.h * 0.22 },
-    { x: bounds.w * 0.2, y: bounds.h * 0.82 }, { x: bounds.w * 0.8, y: bounds.h * 0.8 },
-    { x: bounds.w * 0.5, y: bounds.h * 0.15 }, { x: bounds.w * 0.5, y: bounds.h * 0.85 },
+    { x: bounds.w * 0.26, y: bounds.h * 0.28 }, { x: bounds.w * 0.74, y: bounds.h * 0.28 },
+    { x: bounds.w * 0.26, y: bounds.h * 0.74 }, { x: bounds.w * 0.74, y: bounds.h * 0.72 },
+    { x: bounds.w * 0.5, y: bounds.h * 0.24 }, { x: bounds.w * 0.5, y: bounds.h * 0.78 },
   ];
   // Nudge any spawn that landed inside cavern wall toward open water.
   for (const s of spawns) {

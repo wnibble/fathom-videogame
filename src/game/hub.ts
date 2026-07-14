@@ -133,7 +133,7 @@ export class Hub {
       ["cargo_crate_closed", DECK.x1 - 100, DECK.y1 - 300, 1.15], ["rusted_barrel", DECK.x1 - 185, DECK.y1 - 290, 1.1],
       ["floor_grate", cx - 210, cy + 40, 1.3], ["floor_grate", cx + 210, cy + 40, 1.3],
       ["bollard", cx - 120, DECK.y1 - 90, 1.1], ["bollard", cx + 120, DECK.y1 - 90, 1.1],
-      ["large_valve", DECK.x1 - 250, cy - 20, 1.15],
+      ["large_valve", DECK.x1 - 100, cy + 210, 1.15],
     ];
     for (const [name, x, y, sc] of clutter) this.placeDevice(name, x, y, sc);
     // Floodlights at the corners cast warm pools across the deck.
@@ -141,25 +141,8 @@ export class Hub {
       this.placeDevice("floodlight_on", x, y, 1.15, 0xffe08a, 0.26);
     }
 
-    // Reef flora in the OPEN WATER fringing the deck (never on the metal).
-    const reef = this.assets.spritesInSheet("kelp_forest_props").filter((n) => /kelp|sprout|tangle|coral|frond/i.test(n));
-    if (reef.length) {
-      const spots: Vec2[] = [
-        { x: 60, y: BOUNDS.h - 210 }, { x: 66, y: BOUNDS.h - 90 }, { x: BOUNDS.w - 62, y: BOUNDS.h - 200 },
-        { x: BOUNDS.w - 70, y: BOUNDS.h - 80 }, { x: 60, y: 360 }, { x: BOUNDS.w - 60, y: 360 },
-        { x: DECK.x0 + 240, y: BOUNDS.h - 46 }, { x: DECK.x1 - 240, y: BOUNDS.h - 46 },
-      ];
-      spots.forEach((p, i) => {
-        const name = reef[(i * 3 + 1) % reef.length];
-        if (!this.assets.has(name)) return;
-        const s = this.assets.sprite(name);
-        s.position.set(p.x, p.y);
-        const sc = 1.1 + ((i * 37) % 40) / 100;
-        s.scale.set(sc);
-        this.root.addChild(s);
-        this.decor.push({ node: s, baseX: p.x, phase: (i * 1.7) % (Math.PI * 2), amp: 0.025, speed: 0.55 + (i % 3) * 0.12 });
-      });
-    }
+    // (No free-floating reef in the void — everything lives ON the deck now that
+    // the deck is the true boundary; stray flora past the railing read as broken.)
 
     // Kiosks.
     // Each shop is a themed device: OUTFITTER = upgrade shrine, MARKET = sample
@@ -268,27 +251,44 @@ export class Hub {
           deck.addChild(t);
         }
       }
-      // Clip the tile grid to a rounded platform so the edge reads clean.
+      // Clip the tile grid to a barely-rounded platform (a big radius left bare
+      // corners with railings floating past them — the reported top-right break).
       const mask = new Graphics();
-      mask.roundRect(DECK.x0 - 8, DECK.y0 - 6, DECK.x1 - DECK.x0 + 16, DECK.y1 - DECK.y0 + 14, 22).fill(0xffffff);
+      mask.roundRect(DECK.x0 - 8, DECK.y0 - 6, DECK.x1 - DECK.x0 + 16, DECK.y1 - DECK.y0 + 14, 10).fill(0xffffff);
       deck.addChild(mask);
       deck.mask = mask;
       this.root.addChildAt(deck, 1);
     }
 
-    // Railings along the top + bottom edges (bottom-center anchored props).
+    // Railings — a REAL boundary ring: continuous runs along top + bottom that
+    // stop inside the corners, with bollard posts marking the left/right edges.
     if (this.assets.has("railing_edge")) {
-      for (let x = DECK.x0 + 42; x < DECK.x1; x += 82) {
+      const railW = 82;
+      const endX = DECK.x1 - 46;
+      for (let x = DECK.x0 + 52; x <= endX; x += railW) {
         const rTop = this.assets.sprite("railing_edge");
         rTop.scale.set(1.3);
-        rTop.position.set(x, DECK.y0 + 8);
+        rTop.position.set(Math.min(x, endX), DECK.y0 + 8);
         rTop.alpha = 0.92;
         this.root.addChild(rTop);
         const rBot = this.assets.sprite("railing_edge");
         rBot.scale.set(1.3);
-        rBot.position.set(x, DECK.y1 + 6);
+        rBot.position.set(Math.min(x, endX), DECK.y1 + 6);
         rBot.alpha = 0.92;
         this.root.addChild(rBot);
+      }
+    }
+    // Side boundaries: bollard posts down the left/right edges (upright sprites —
+    // rotating the railing would break the pixel art).
+    if (this.assets.has("bollard")) {
+      for (let y = DECK.y0 + 90; y < DECK.y1 - 30; y += 120) {
+        for (const bx of [DECK.x0 + 16, DECK.x1 - 16]) {
+          const post = this.assets.sprite("bollard");
+          post.scale.set(1.1);
+          post.position.set(bx, y);
+          post.alpha = 0.95;
+          this.root.addChild(post);
+        }
       }
     }
   }
@@ -336,8 +336,11 @@ export class Hub {
     this.t += dt;
     const p = this.player;
 
-    // Movement (no currents in the safe harbor).
+    // Movement (no currents in the safe harbor). The DECK is the boundary — the
+    // railings are real; you can't drift into the void.
     updatePlayerMovement(p, input.state.move, [], dt, BOUNDS, 1);
+    p.pos.x = Math.max(DECK.x0 + 20, Math.min(DECK.x1 - 20, p.pos.x));
+    p.pos.y = Math.max(DECK.y0 + 34, Math.min(DECK.y1 - 12, p.pos.y));
     const spd = Math.hypot(p.vel.x, p.vel.y);
     if (spd > 12) this.facing = approach(this.facing, angleLerpTarget(this.facing, Math.atan2(p.vel.y, p.vel.x)), 10, dt);
 

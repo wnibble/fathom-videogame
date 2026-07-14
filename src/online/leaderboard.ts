@@ -1,12 +1,16 @@
-// Global highscores via Supabase's PostgREST API — plain fetch, no SDK (~0 KB).
-// Fully optional: when VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY are absent
-// (local dev, or Vercel before the keys are added), everything no-ops and the
-// game stays 100% offline-playable. Schema + policies: docs/supabase-setup.sql.
+// Global highscores — two interchangeable backends, zero SDKs:
+//  1. Supabase PostgREST (if VITE_SUPABASE_URL/ANON_KEY are baked in at build)
+//  2. Same-origin Vercel functions (/api/lb-*) backed by Upstash Redis from the
+//     Vercel Marketplace — no extra accounts, keys stay server-side.
+// Fully optional either way: on any failure the game stays offline-playable and
+// the TOP DIVERS panel simply doesn't show.
 
-const URL_ = (import.meta as { env?: Record<string, string | undefined> }).env?.VITE_SUPABASE_URL;
-const KEY = (import.meta as { env?: Record<string, string | undefined> }).env?.VITE_SUPABASE_ANON_KEY;
-
-export const onlineEnabled = !!(URL_ && KEY);
+const SB_URL = (import.meta as { env?: Record<string, string | undefined> }).env?.VITE_SUPABASE_URL;
+const SB_KEY = (import.meta as { env?: Record<string, string | undefined> }).env?.VITE_SUPABASE_ANON_KEY;
+const useSupabase = !!(SB_URL && SB_KEY);
+// The /api functions only exist on the deployed site — don't probe them from
+// local dev/preview (404 noise in the console, QA flags it).
+const apiAvailable = typeof location !== "undefined" && !/^(localhost|127\.)/.test(location.hostname);
 
 export interface ScoreRow {
   name: string;
@@ -17,30 +21,36 @@ export interface ScoreRow {
   won: boolean;
 }
 
-function headers(): Record<string, string> {
-  return {
-    apikey: KEY!,
-    Authorization: `Bearer ${KEY}`,
-    "Content-Type": "application/json",
-  };
+function sbHeaders(): Record<string, string> {
+  return { apikey: SB_KEY!, Authorization: `Bearer ${SB_KEY}`, "Content-Type": "application/json" };
 }
 
 /** Fire-and-forget run submission. Never throws; returns whether it landed. */
 export async function submitScore(guestId: string, row: ScoreRow): Promise<boolean> {
-  if (!onlineEnabled) return false;
+  const body = {
+    guest_id: guestId,
+    guestId,
+    name: row.name.slice(0, 20),
+    score: Math.round(row.score),
+    depth: Math.round(row.depth),
+    kills: row.kills,
+    stratum: row.stratum,
+    won: row.won,
+  };
   try {
-    const res = await fetch(`${URL_}/rest/v1/scores`, {
+    if (useSupabase) {
+      const res = await fetch(`${SB_URL}/rest/v1/scores`, {
+        method: "POST",
+        headers: { ...sbHeaders(), Prefer: "return=minimal" },
+        body: JSON.stringify(body),
+      });
+      return res.ok;
+    }
+    if (!apiAvailable) return false;
+    const res = await fetch("/api/lb-submit", {
       method: "POST",
-      headers: { ...headers(), Prefer: "return=minimal" },
-      body: JSON.stringify({
-        guest_id: guestId,
-        name: row.name.slice(0, 20),
-        score: Math.round(row.score),
-        depth: Math.round(row.depth),
-        kills: row.kills,
-        stratum: row.stratum,
-        won: row.won,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
     });
     return res.ok;
   } catch {
@@ -48,17 +58,24 @@ export async function submitScore(guestId: string, row: ScoreRow): Promise<boole
   }
 }
 
-/** Top runs, one best entry per player (the `leaderboard` view dedupes). */
-export async function fetchTop(limit = 8): Promise<ScoreRow[]> {
-  if (!onlineEnabled) return [];
+/** Top runs, one best entry per player. Returns null when no backend is live
+ * (local dev, storage not configured) — callers hide the board entirely. */
+export async function fetchTop(limit = 8): Promise<ScoreRow[] | null> {
   try {
-    const res = await fetch(
-      `${URL_}/rest/v1/leaderboard?select=name,score,depth,kills,stratum,won&order=score.desc&limit=${limit}`,
-      { headers: headers() }
-    );
-    if (!res.ok) return [];
-    return (await res.json()) as ScoreRow[];
+    if (useSupabase) {
+      const res = await fetch(
+        `${SB_URL}/rest/v1/leaderboard?select=name,score,depth,kills,stratum,won&order=score.desc&limit=${limit}`,
+        { headers: sbHeaders() }
+      );
+      if (!res.ok) return null;
+      return (await res.json()) as ScoreRow[];
+    }
+    if (!apiAvailable) return null;
+    const res = await fetch("/api/lb-top");
+    if (!res.ok) return null;
+    const data = (await res.json()) as { rows?: ScoreRow[] };
+    return Array.isArray(data.rows) ? data.rows.slice(0, limit) : null;
   } catch {
-    return [];
+    return null;
   }
 }

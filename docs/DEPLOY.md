@@ -17,23 +17,28 @@ npx vercel login          # one-time browser auth
 npx vercel --prod         # from the repo root
 ```
 
-## Supabase — global leaderboard (BUILT, needs 3 setup steps)
+## Global leaderboard (BUILT — one setup step, all inside Vercel)
 
-The game already ships the client (`src/online/leaderboard.ts`): every finished
-run auto-submits (callsign, score, depth, kills, stratum, won) and the menu
-shows a TOP DIVERS board. With no keys configured it all silently no-ops and the
-game stays fully offline-playable. To turn it on:
+The game ships the full client: every finished run auto-submits (callsign,
+score, depth, kills, stratum, won) and the menu shows a TOP DIVERS board. With
+no storage configured it silently no-ops and the game stays offline-playable.
 
-1. **Create a project** at supabase.com (free tier is plenty).
-2. **Run the schema**: Dashboard → SQL Editor → paste `docs/supabase-setup.sql`
-   → Run. (Table + RLS: anon can insert/read runs, never update/delete; a
-   `leaderboard` view keeps one best entry per player.)
-3. **Add env vars** in Vercel → Project → Settings → Environment Variables:
-   - `VITE_SUPABASE_URL` = your project URL (Settings → API)
-   - `VITE_SUPABASE_ANON_KEY` = the anon/public key (safe to expose under RLS)
-   Then **Redeploy**. Local testing: put the same two lines in `.env.local`.
+**Primary path — Upstash Redis via Vercel Marketplace ($0, no extra account):**
+
+1. Vercel Dashboard → your project → **Storage** tab → **Create Database** →
+   **Upstash for Redis** (Marketplace) → free plan → **Connect to project**.
+   That injects `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` (or
+   `KV_REST_API_*`) automatically.
+2. **Redeploy.** Done — `api/lb-submit.ts` + `api/lb-top.ts` (serverless
+   functions in this repo) handle writes/reads; a Redis sorted set keeps each
+   player's best run. Keys never reach the browser.
 
 Players get a default callsign (`DIVER-XXXX`) editable from the main menu.
+
+**Alternative — Supabase** (if you have a free project slot): run
+`docs/supabase-setup.sql` in its SQL editor and set `VITE_SUPABASE_URL` +
+`VITE_SUPABASE_ANON_KEY` in Vercel env vars; the client auto-prefers Supabase
+when those exist.
 
 ### Later, if wanted
 - **Cloud saves** — mirror localStorage `SaveData` into `saves(guest_id, data

@@ -48,7 +48,7 @@ export function buildPlayerView(assets?: AssetStore): PlayerView {
       flip.addChild(hurt);
     }
     let hurtT = 0;
-    let face = 1; // sprite art faces LEFT at scale.x=1; flip to face right
+    let face = 1; // diver art faces RIGHT at scale.x=1; mirror when heading left
     const update = (dt: number, moving: boolean, faceX: number, isHurt: boolean) => {
       if (isHurt) hurtT = 0.2;
       hurtT = Math.max(0, hurtT - dt);
@@ -56,7 +56,7 @@ export function buildPlayerView(assets?: AssetStore): PlayerView {
       idle.visible = !showHurt && !moving;
       swim.visible = !showHurt && moving;
       if (hurt) hurt.visible = showHurt;
-      if (Math.abs(faceX) > 0.06) face = faceX > 0 ? -1 : 1;
+      if (Math.abs(faceX) > 0.06) face = faceX > 0 ? 1 : -1;
       flip.scale.x = face;
     };
     return { root, lamp, update };

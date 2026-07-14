@@ -262,8 +262,16 @@ export class Interactables {
               if (g.y < -40) g.y = 0;
             }
           }
-          if (it.glow) it.glow.alpha = 0.4 + 0.25 * pulse;
-          if (playerAlive && dist <= it.radius + playerRadius) sink.surface();
+          // Deliberate extraction: hold in the beam ~1s (a graze can't end your
+          // run by accident). The glow surges as the winch takes hold.
+          if (playerAlive && dist <= it.radius + playerRadius) {
+            it.dwell += dt;
+            if (it.glow) it.glow.alpha = 0.45 + 0.55 * Math.min(1, it.dwell / 0.9);
+            if (it.dwell >= 0.9) sink.surface();
+          } else {
+            it.dwell = Math.max(0, it.dwell - dt * 2);
+            if (it.glow) it.glow.alpha = 0.4 + 0.25 * pulse;
+          }
           break;
         }
         case "descend_portal": {

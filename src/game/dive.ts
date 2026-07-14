@@ -101,7 +101,7 @@ export class DiveScene implements HitSink, PickupSink {
   private wisps: { s: Sprite; age: number; life: number }[] = [];
   private wispTimer = 0;
   private currentBase: Vec2[] = []; // base current forces (for dynamic ebb/flow)
-  private streams: { s: Sprite; axisStart: number; cross: number; span: number; base: number; dir: number; horiz: boolean }[] = [];
+  private streams: { s: Sprite; axisStart: number; cross: number; span: number; base: number; dir: number; horiz: boolean; speedMul: number; bobAmp: number; bobFreq: number; phase: number }[] = [];
   private sway: { node: Container; baseX: number; baseRot: number; phase: number; amp: number; speed: number }[] = [];
   private flow!: FlowField; // ambient sea drift over the whole arena
   private flowFx: FlowParticles | null = null;
@@ -263,19 +263,32 @@ export class DiveScene implements HitSink, PickupSink {
       const startY = horiz ? c.pos.y : c.pos.y - c.half.y;
       for (let i = 0; i < count; i++) {
         const s = this.assets.sprite(c.sprite);
+        // Index-hash variance (not this.rng — keeps the sim stream untouched):
+        // each ribbon gets its own look, pace and lateral drift so the lane
+        // doesn't read as one wisp stamped in a row.
+        const h1 = ((i * 2654435761) % 997) / 997;
+        const h2 = ((i * 40503 + 9973) % 991) / 991;
+        const h3 = ((i * 69621 + 131) % 983) / 983;
         s.rotation = horiz ? 0 : Math.PI / 2;
-        s.scale.set(0.85);
-        s.alpha = 0.32;
+        s.scale.set(0.6 + h1 * 0.5);
+        s.alpha = 0.16 + h2 * 0.16;
         s.tint = COLOR.aquaBright;
-        const jitter = ((i * 53) % 70) - 35;
-        const base = span * ((i + 0.5) / count);
+        const jitter = (h3 - 0.5) * 90;
+        const base = span * ((i + 0.5) / count) + (h1 - 0.5) * 80;
         const cross = horiz ? startY + jitter : startX + jitter;
         s.position.set(horiz ? startX + base : cross, horiz ? cross : startY + base);
         this.engine.worldLayer.addChild(s);
         this.staticNodes.push(s as unknown as Container);
-        this.streams.push({ s, axisStart: horiz ? startX : startY, cross, span, base, dir, horiz });
+        this.streams.push({
+          s, axisStart: horiz ? startX : startY, cross, span, base, dir, horiz,
+          speedMul: 0.65 + h2 * 0.8, bobAmp: 3 + h3 * 8, bobFreq: 0.5 + h1 * 0.6, phase: h2 * Math.PI * 2,
+        });
       }
     }
+    // Subtle per-instance tint families break the one-teal-mass look — the same
+    // sprite reads warm here, cool there, pale beyond (position-hashed, stable).
+    const TINTS = [0xffffff, 0xffe8da, 0xd8e8ff, 0xe2ffe8, 0xf2ddff, 0xfff2c8, 0xd0f0f0];
+    const tintAt = (x: number, y: number) => TINTS[Math.abs((x * 31 + y * 17) | 0) % TINTS.length];
     for (const p of this.arena.props) {
       let node: Container;
       if (p.animation && this.assets.has(p.animation)) node = this.assets.anim(p.animation);
@@ -283,6 +296,7 @@ export class DiveScene implements HitSink, PickupSink {
       else continue;
       node.position.set(p.pos.x, p.pos.y);
       node.scale.set(p.scale);
+      (node as Sprite).tint = tintAt(p.pos.x, p.pos.y);
       (p.glow ? this.engine.lightLayer : this.engine.worldLayer).addChild(node);
       this.staticNodes.push(node);
       // Organic flora sways with the current — a whisper, not a wave (large
@@ -303,6 +317,7 @@ export class DiveScene implements HitSink, PickupSink {
         const node = this.assets.sprite(o.sprite);
         node.position.set(o.pos.x, o.pos.y);
         node.scale.set(o.scale);
+        node.tint = tintAt(o.pos.x, o.pos.y); // rocks vary too — no monochrome wall
         this.engine.worldLayer.addChild(node);
         this.staticNodes.push(node);
       } else {
@@ -465,6 +480,11 @@ export class DiveScene implements HitSink, PickupSink {
           this.hazards.spawn(e.pos.x, e.pos.y, 20, 3, 8, 0x8fe04a);
         }
       }
+      // Keep fauna INSIDE the cavern — the border strip behind the perimeter
+      // wall isn't play space (enemies lurking there read as "outside the map").
+      const inm = 150;
+      e.pos.x = Math.max(inm, Math.min(this.arena.bounds.w - inm, e.pos.x));
+      e.pos.y = Math.max(inm, Math.min(this.arena.bounds.h - inm, e.pos.y));
       // Enemies collide with rocks too (except the boss, which hovers above).
       if (e !== this.boss && this.arena.obstacles.length) resolveObstacles(e.pos, e.radius, e.vel, this.arena.obstacles);
     }
@@ -1164,9 +1184,10 @@ export class DiveScene implements HitSink, PickupSink {
     }
     const flowSpeed = 62;
     for (const st of this.streams) {
-      const along = (((st.base + this.elapsed * flowSpeed * st.dir) % st.span) + st.span) % st.span;
-      if (st.horiz) st.s.position.set(st.axisStart + along, st.cross);
-      else st.s.position.set(st.cross, st.axisStart + along);
+      const along = (((st.base + this.elapsed * flowSpeed * st.speedMul * st.dir) % st.span) + st.span) % st.span;
+      const bob = Math.sin(this.elapsed * st.bobFreq + st.phase) * st.bobAmp;
+      if (st.horiz) st.s.position.set(st.axisStart + along, st.cross + bob);
+      else st.s.position.set(st.cross + bob, st.axisStart + along);
     }
 
     // Procedural hit bursts — expand + fade, then self-remove.
