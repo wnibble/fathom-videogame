@@ -92,37 +92,53 @@ export function generateCavern(seed: number, opts: CavernOptsV2): Cavern {
   const rooms: RoomInfo[] = [];
 
   // ---- 1. rooms ----
-  const nRooms = opts.isFloor ? 4 : 6 + Math.round(rockiness * 4); // 6..10
-  const startR = opts.isFloor ? 620 : 340;
+  // Vast + varied: expedition-scale caverns, not cells. Count and sizes swing
+  // per run so no two dives read alike.
+  const nRooms = opts.isFloor ? rng.int(4, 5) : rng.int(7, 10) + Math.round(rockiness * 2);
+  const startR = opts.isFloor ? rng.range(640, 760) : rng.range(440, 580);
   const addRoomShape = (room: RoomInfo, c: { x: number; y: number; r: number }) => {
     room.circles.push(c);
     shapes.push({ kind: "circle", x: c.x, y: c.y, r: c.r });
   };
 
-  const mkRoom = (id: number, cx: number, cy: number, kindRoll: number, scale: number): RoomInfo => {
+  // Size tier per room — wide variance is the point: vast caverns you fight
+  // across, mid rooms, and pocket alcoves that hide treasure.
+  const rollTier = (): number => {
+    const t = rng.next();
+    if (t < 0.18) return rng.range(560, 820); // vast — multi-screen expanse
+    if (t < 0.58) return rng.range(380, 560); // large
+    if (t < 0.88) return rng.range(260, 380); // mid
+    return rng.range(180, 250); // pocket alcove
+  };
+
+  const mkRoom = (id: number, cx: number, cy: number, kindRoll: number, baseR: number): RoomInfo => {
     const room: RoomInfo = { id, center: { x: cx, y: cy }, circles: [], coreR: 0, boundR: 0, degree: 0, hops: -1 };
-    if (kindRoll < 0.4) {
-      const r = rng.range(260, 400) * scale;
-      addRoomShape(room, { x: cx, y: cy, r });
-      room.coreR = r;
-      room.boundR = r;
-    } else if (kindRoll < 0.7) {
-      // Oblong: three collinear circles.
-      const rm = rng.range(220, 290) * scale;
+    if (kindRoll < 0.38 || baseR < 260) {
+      addRoomShape(room, { x: cx, y: cy, r: baseR });
+      room.coreR = baseR;
+      room.boundR = baseR;
+    } else if (kindRoll < 0.68) {
+      // Oblong great-hall: 3-5 collinear circles — long spaces that take time to cross.
+      const nSeg = rng.int(3, 5);
+      const rm = baseR * rng.range(0.62, 0.78);
       const th = rng.range(0, Math.PI);
-      const s = rm * 0.95;
-      for (const t of [-1, 0, 1]) addRoomShape(room, { x: cx + Math.cos(th) * s * t, y: cy + Math.sin(th) * s * t, r: rm });
+      const s = rm * rng.range(0.9, 1.1);
+      const half = (nSeg - 1) / 2;
+      for (let i = 0; i < nSeg; i++) {
+        const t = i - half;
+        addRoomShape(room, { x: cx + Math.cos(th) * s * t, y: cy + Math.sin(th) * s * t, r: rm });
+      }
       room.coreR = rm;
-      room.boundR = s + rm;
+      room.boundR = s * half + rm;
     } else {
-      // Weird blob: core + satellites agglomerated at random angles.
-      const r0 = rng.range(240, 330) * scale;
+      // Weird blob: core + up to 7 satellites agglomerated at random angles.
+      const r0 = baseR * rng.range(0.75, 0.95);
       addRoomShape(room, { x: cx, y: cy, r: r0 });
-      const nSat = rng.int(2, 4);
+      const nSat = rng.int(3, 7);
       let bound = r0;
       for (let i = 0; i < nSat; i++) {
         const parent = room.circles[rng.int(0, room.circles.length - 1)];
-        const ri = r0 * rng.range(0.55, 0.8);
+        const ri = r0 * rng.range(0.45, 0.8);
         const a = rng.range(0, Math.PI * 2);
         const d = parent.r * rng.range(0.6, 0.95);
         const sx = parent.x + Math.cos(a) * d;
@@ -137,31 +153,29 @@ export function generateCavern(seed: number, opts: CavernOptsV2): Cavern {
   };
 
   // Start room: plain circle at center (+ jitter), owns the player start.
-  const startRoom = mkRoom(0, bounds.w / 2 + rng.range(-60, 60), bounds.h / 2 + rng.range(-60, 60), 0, 1);
-  // Force its radius to startR for a reliable opening arena.
-  startRoom.circles[0].r = startR;
-  (shapes[0] as { kind: "circle"; x: number; y: number; r: number }).r = startR;
-  startRoom.coreR = startR;
-  startRoom.boundR = startR;
+  const startRoom = mkRoom(0, bounds.w / 2 + rng.range(-80, 80), bounds.h / 2 + rng.range(-80, 80), 0, startR);
   rooms.push(startRoom);
 
-  // Remaining rooms: best-candidate sampling for even spread + thick walls.
-  const sizeScale = 1 - rockiness * 0.1;
-  for (let id = 1; id < nRooms; id++) {
-    const margin = 420;
+  // Remaining rooms: roll the size FIRST, then best-candidate placement with a
+  // margin scaled to that size (big caverns need big berths).
+  for (let attempt = 1; attempt < nRooms; attempt++) {
+    const baseR = rollTier();
+    const margin = baseR + 220;
     let best: Vec2 | null = null;
     let bestScore = -Infinity;
-    for (let c = 0; c < 12; c++) {
+    for (let c = 0; c < 16; c++) {
       const p = { x: rng.range(margin, bounds.w - margin), y: rng.range(margin, bounds.h - margin) };
       let score = Infinity;
-      for (const r of rooms) score = Math.min(score, Math.hypot(p.x - r.center.x, p.y - r.center.y) - r.boundR - 300);
+      for (const r of rooms) score = Math.min(score, Math.hypot(p.x - r.center.x, p.y - r.center.y) - r.boundR - baseR);
       if (score > bestScore) {
         bestScore = score;
         best = p;
       }
     }
-    if (!best || bestScore < 220) continue; // no space for a well-separated room — skip
-    rooms.push(mkRoom(id, best.x, best.y, rng.next(), sizeScale));
+    if (!best || bestScore < 240) continue; // no space for a well-separated room — skip
+    // id MUST be the array index (skipped placements would leave holes and
+    // blow up adjacency indexing otherwise).
+    rooms.push(mkRoom(rooms.length, best.x, best.y, rng.next(), baseR));
   }
 
   // ---- 2. tunnels: MST + loops ----
@@ -178,9 +192,10 @@ export function generateCavern(seed: number, opts: CavernOptsV2): Cavern {
   const adj: number[][] = rooms.map(() => []);
 
   const carveTunnel = (A: RoomInfo, B: RoomInfo, main: boolean) => {
-    let rT = rng.range(95, 135) - rockiness * 10;
-    if (main) rT = Math.max(rT, rng.range(110, 135));
-    rT = Math.max(92, rT);
+    // Wide passages — you fight and dodge IN them, they never pinch.
+    let rT = rng.range(115, 175) - rockiness * 10;
+    if (main) rT = Math.max(rT, rng.range(140, 175));
+    rT = Math.max(110, rT);
     // Endpoints extended INSIDE each room's nearest circle so the union is sealed.
     const near = (room: RoomInfo, toward: Vec2) => {
       let bc = room.circles[0];
@@ -255,6 +270,10 @@ export function generateCavern(seed: number, opts: CavernOptsV2): Cavern {
   };
   const inside = (x: number, y: number, pad = 0): boolean => sd(x, y) <= -pad;
 
+  // SOFT confinement — brushing a wall, not hitting glass. Inside the contact
+  // band the body eases toward the interior (partial blend); only a center that
+  // has fully LEFT the carve gets snapped. Outward velocity is bled, tangential
+  // velocity survives (slide).
   const confine = (pos: Vec2, radius: number, vel: Vec2 | null): void => {
     for (let iter = 0; iter < 2; iter++) {
       let best: CarveShape | null = null;
@@ -266,8 +285,8 @@ export function generateCavern(seed: number, opts: CavernOptsV2): Cavern {
           best = s;
         }
       }
-      if (!best || bestD <= -radius) return; // already safely inside
-      // Project to depth `radius` inside the nearest shape.
+      if (!best || bestD <= -radius) return; // clear water — free
+      // Target: depth `radius` inside the nearest shape.
       let qx: number;
       let qy: number;
       if (best.kind === "circle") {
@@ -293,15 +312,19 @@ export function generateCavern(seed: number, opts: CavernOptsV2): Cavern {
       const nx = qx - pos.x;
       const ny = qy - pos.y;
       const nl = Math.hypot(nx, ny) || 1;
-      pos.x = qx;
-      pos.y = qy;
+      // Blend: gentle while overlapping the wall band, full snap only when the
+      // CENTER is outside carved space entirely.
+      const k = bestD > 0 ? 1 : 0.35;
+      pos.x += nx * k;
+      pos.y += ny * k;
       if (vel) {
         const vn = (vel.x * nx + vel.y * ny) / nl;
         if (vn < 0) {
-          vel.x -= (nx / nl) * vn;
-          vel.y -= (ny / nl) * vn;
+          vel.x -= (nx / nl) * vn * 0.9;
+          vel.y -= (ny / nl) * vn * 0.9;
         }
       }
+      if (k < 1) return; // soft pass done — don't double-apply
     }
   };
 

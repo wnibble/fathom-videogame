@@ -340,8 +340,9 @@ export class DiveScene implements HitSink, PickupSink {
    * then tinted near-black in the stratum's hue. The barrier reads SOLID. */
   private buildDarkness(): void {
     const PAD = 480;
-    const RES = 0.5;
     const b = this.arena.bounds;
+    // Bigger arenas bake at lower res (the penumbra hides it; keeps VRAM sane).
+    const RES = b.w + PAD * 2 > 4600 ? 0.35 : 0.5;
     const cont = new Container();
     const base = new Graphics();
     base.rect(0, 0, b.w + PAD * 2, b.h + PAD * 2).fill(0xffffff);

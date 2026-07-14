@@ -69,6 +69,8 @@ try {
     if (k === 24) { await page.keyboard.up("KeyW"); await page.keyboard.down("KeyA"); await page.mouse.move(500, 460); }
     if (k === 36) { await page.keyboard.up("KeyA"); await page.keyboard.down("KeyS"); }
     if (k === 20) await page.keyboard.press("ShiftLeft"); // dash
+    // Descent is portal-gated now — exercise the transition explicitly.
+    if (k === 40) await page.evaluate(() => window.__fathomDive && window.__fathomDive().debugDescend());
     const i = await info();
     if (i) {
       if (i.state === "levelup") {
@@ -124,7 +126,7 @@ try {
   };
   if (maxScore < 1) report.defects.push("[major] score never increased — combat/scoring may be dead");
   if (maxEnemies < 1) report.defects.push("[major] no enemies spawned");
-  if (maxStratum < 1) report.defects.push("[major] never transitioned to a new stratum (depth 240 should be stratum 1)");
+  if (maxStratum < 1) report.defects.push("[major] portal descent (debugDescend) failed to reach stratum 1");
   if (!paused) report.defects.push("[major] pause (Esc) did not work");
   if (errors.length) { report.verdict = "FAIL"; report.defects.push(`[blocker] ${errors.length} console/page error(s)`); }
 } catch (e) {

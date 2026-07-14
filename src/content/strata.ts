@@ -69,8 +69,12 @@ export function buildStratum(index: number, seed: number, assets: AssetStore): A
   const si = Math.max(0, Math.min(STRATA.length - 1, index));
   const S = STRATA[si];
   const rng = new Rng((seed + si * 2654435761) >>> 0);
-  // Map expands with depth — the deep opens up (1900x1500 -> ~2700x2100).
-  const bounds = { w: 1900 + si * 160, h: 1500 + si * 120 };
+  // Expedition-scale maps: big, and DIFFERENT every run — size and aspect both
+  // roll per seed, so one dive is a sprawling wide cavern, the next tall+deep.
+  const bounds = {
+    w: Math.round((3000 + si * 260) * rng.range(0.85, 1.18)),
+    h: Math.round((2400 + si * 200) * rng.range(0.85, 1.18)),
+  };
 
   // Decoration pools from this stratum's sheet (structural sprites), plus curated glow.
   const structPool = assets.spritesInSheet(S.structSheet).filter((n) => !RESERVED.has(n) && !/^kelp_tall/.test(n));
@@ -120,17 +124,19 @@ export function buildStratum(index: number, seed: number, assets: AssetStore): A
       made++;
     }
   };
-  // Fresh curated decor leads; the old struct sheet fills in behind it (less of it
-  // when the new pack is rich, so each place reads as its own authored world).
-  scatter(decorSprites, richness >= 6 ? 12 : 8, false, false, [0.85, 1.5], 120);
-  scatter(decorAnims, 4, false, true, [0.9, 1.35], 150);
-  scatter(structPool, richness >= 6 ? 4 : 7, false, false, [1, 1.5], 130);
-  if (kelp.length) scatter(kelp, 6, false, false, [1, 1.4], 110); // kelp forest verticals
-  scatter(glowSprites, 8, true, false, [1, 1.4], 100);
-  scatter(glowAnims, 5, true, true, [1, 1.3], 140);
+  // Fresh curated decor leads; the old struct sheet fills in behind it. Counts
+  // scale with arena area so expedition-size maps don't feel bare.
+  const areaK = Math.min(3, (bounds.w * bounds.h) / (1900 * 1500));
+  const n = (base: number) => Math.round(base * areaK);
+  scatter(decorSprites, n(richness >= 6 ? 12 : 8), false, false, [0.85, 1.5], 120);
+  scatter(decorAnims, n(4), false, true, [0.9, 1.35], 150);
+  scatter(structPool, n(richness >= 6 ? 4 : 7), false, false, [1, 1.5], 130);
+  if (kelp.length) scatter(kelp, n(6), false, false, [1, 1.4], 110); // kelp forest verticals
+  scatter(glowSprites, n(8), true, false, [1, 1.4], 100);
+  scatter(glowAnims, n(5), true, true, [1, 1.3], 140);
   // Sparse animated "life" props (anemones, vents, generators, eggs).
-  scatter(ambSprites, 4, false, false, [0.9, 1.3], 220);
-  scatter(ambAnims, 4, false, true, [0.9, 1.25], 240);
+  scatter(ambSprites, n(4), false, false, [0.9, 1.3], 220);
+  scatter(ambAnims, n(4), false, true, [0.9, 1.25], 240);
   // Growth planted ON the rock surfaces by the generator (upright, terrain-bound).
   props.push(...cavern.growth);
 
