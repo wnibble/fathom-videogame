@@ -3,7 +3,7 @@
 // interactables + hidden relics, magnetized loot, and depth/level difficulty
 // scaling. Permadeath: dying loses unbanked samples but banks depth + score.
 
-import { Container, Graphics, Sprite, Text, TextStyle } from "pixi.js";
+import { Container, Graphics, RenderTexture, Sprite, Text, TextStyle } from "pixi.js";
 import { getGlowTexture } from "../engine/glow";
 import { clamp } from "../engine/tween";
 import { squashStretch, phaseOf } from "../render/vitality";
@@ -106,6 +106,7 @@ export class DiveScene implements HitSink, PickupSink {
   private flow!: FlowField; // ambient sea drift over the whole arena
   private flowFx: FlowParticles | null = null;
   private flowVec: Vec2 = { x: 0, y: 0 };
+  private darknessRT: RenderTexture | null = null; // baked beyond-the-walls overlay
   // The Cradle guardian (boss) — only present on the floor.
   private boss: Enemy | null = null;
   private bossView: SpitterView | null = null;
@@ -159,6 +160,8 @@ export class DiveScene implements HitSink, PickupSink {
     this.hazards = new Hazards(engine.lightLayer);
     this.floaters = new Floaters(engine.sceneRoot); // above world+light, moves with camera
     this.playerView = buildPlayerView(assets);
+    // Bullets die on cavern walls — closure reads the CURRENT arena every call.
+    this.proj.wallQuery = (x, y) => this.arena.cavern.bulletBlocked(x, y);
     this.run = freshRun(PLAYER_SHOT, meta);
 
     // Weather modifiers (a double-edged climate) + one-run Market boons.
@@ -327,6 +330,56 @@ export class DiveScene implements HitSink, PickupSink {
         this.staticNodes.push(g as unknown as Container);
       }
     }
+
+    // The darkness beyond the walls — baked once per stratum (1 sprite, 1 draw call).
+    this.buildDarkness();
+  }
+
+  /** Bake the un-carved region into a RenderTexture: white slab, carve shapes
+   * punched out with 'erase' (plus a +40px half-alpha pass = wall-face penumbra),
+   * then tinted near-black in the stratum's hue. The barrier reads SOLID. */
+  private buildDarkness(): void {
+    const PAD = 480;
+    const RES = 0.5;
+    const b = this.arena.bounds;
+    const cont = new Container();
+    const base = new Graphics();
+    base.rect(0, 0, b.w + PAD * 2, b.h + PAD * 2).fill(0xffffff);
+    const pen = new Graphics();
+    pen.blendMode = "erase";
+    pen.alpha = 0.55;
+    const full = new Graphics();
+    full.blendMode = "erase";
+    const draw = (g: Graphics, grow: number) => {
+      for (const s of this.arena.cavern.shapes) {
+        if (s.kind === "circle") {
+          g.circle(s.x + PAD, s.y + PAD, s.r + grow).fill(0xffffff);
+        } else {
+          g.moveTo(s.ax + PAD, s.ay + PAD).lineTo(s.bx + PAD, s.by + PAD).stroke({ width: (s.r + grow) * 2, color: 0xffffff, cap: "round" });
+          g.circle(s.ax + PAD, s.ay + PAD, s.r + grow).fill(0xffffff);
+          g.circle(s.bx + PAD, s.by + PAD, s.r + grow).fill(0xffffff);
+        }
+      }
+    };
+    draw(pen, 44);
+    draw(full, 0);
+    cont.addChild(base, pen, full);
+    cont.scale.set(RES);
+    const rt = RenderTexture.create({ width: Math.ceil((b.w + PAD * 2) * RES), height: Math.ceil((b.h + PAD * 2) * RES) });
+    this.engine.app.renderer.render({ container: cont, target: rt, clear: true });
+    cont.destroy({ children: true });
+    const spr = new Sprite(rt);
+    spr.position.set(-PAD, -PAD);
+    spr.scale.set(1 / RES);
+    // Near-black in the stratum's own hue; alpha < 1 so outer rocks stay as
+    // silhouettes (a wall face catching light, not a void).
+    const bg = this.arena.bg;
+    const dk = (c: number) => Math.round(c * 0.3) & 0xff;
+    spr.tint = (dk((bg >> 16) & 0xff) << 16) | (dk((bg >> 8) & 0xff) << 8) | dk(bg & 0xff);
+    spr.alpha = 0.93;
+    this.engine.worldLayer.addChild(spr);
+    this.staticNodes.push(spr as unknown as Container);
+    this.darknessRT = rt;
   }
 
   // ---- update ----
@@ -432,6 +485,7 @@ export class DiveScene implements HitSink, PickupSink {
     }
 
     updatePlayerMovement(p, input.state.move, this.arena.currents, dt, this.arena.bounds, this.run.stats.moveSpeedMult, this.arena.obstacles);
+    this.arena.cavern.confine(p.pos, p.radius, p.vel); // the carved space is the world
 
     // Movement wisps — trailing motes while moving (juice, no new art).
     const spd = Math.hypot(p.vel.x, p.vel.y);
@@ -480,12 +534,9 @@ export class DiveScene implements HitSink, PickupSink {
           this.hazards.spawn(e.pos.x, e.pos.y, 20, 3, 8, 0x8fe04a);
         }
       }
-      // Keep fauna INSIDE the cavern — the border strip behind the perimeter
-      // wall isn't play space (enemies lurking there read as "outside the map").
-      const inm = 150;
-      e.pos.x = Math.max(inm, Math.min(this.arena.bounds.w - inm, e.pos.x));
-      e.pos.y = Math.max(inm, Math.min(this.arena.bounds.h - inm, e.pos.y));
-      // Enemies collide with rocks too (except the boss, which hovers above).
+      // Fauna lives inside the carved space, same as the player.
+      this.arena.cavern.confine(e.pos, Math.min(e.radius, 40), e.vel);
+      // Enemies collide with cover pillars too (except the boss, which hovers above).
       if (e !== this.boss && this.arena.obstacles.length) resolveObstacles(e.pos, e.radius, e.vel, this.arena.obstacles);
     }
 
@@ -571,15 +622,25 @@ export class DiveScene implements HitSink, PickupSink {
   }
 
   private spawnEnemy(tier: number): void {
+    // Nearest spawn point that isn't on top of the player: with the carved-room
+    // layout, pressure should come from YOUR room's neighborhood, not across the
+    // whole cavern (far spawns just grind along walls).
     let best = this.arena.spawns[0];
-    let bestD = -1;
+    let bestD = Infinity;
+    let fallback = this.arena.spawns[0];
+    let fallbackD = -1;
     for (const s of this.arena.spawns) {
       const d = Math.hypot(s.x - this.player.pos.x, s.y - this.player.pos.y);
-      if (d > bestD) {
+      if (d > 420 && d < bestD) {
         bestD = d;
         best = s;
       }
+      if (d > fallbackD) {
+        fallbackD = d;
+        fallback = s;
+      }
     }
+    if (bestD === Infinity) best = fallback;
     const elite = this.rng.chance(Math.min(0.6, tier * 0.075 * this.eliteMult));
     const kind = this.pickFauna();
 
@@ -623,7 +684,8 @@ export class DiveScene implements HitSink, PickupSink {
   private spawnBoss(): void {
     if (this.boss) return;
     const hp = Math.round(2600 + this.run.xp.level * 120 + this.run.stats.maxHpBonus * 5);
-    const boss = makeBoss({ x: this.arena.bounds.w / 2, y: this.arena.bounds.h * 0.2 }, hp);
+    // The guardian rises at the top of the Cradle's (extra-large) start room.
+    const boss = makeBoss({ x: this.arena.playerStart.x, y: this.arena.playerStart.y - 320 }, hp);
     const view = buildBossView(this.assets);
     this.boss = boss;
     this.bossView = view;
@@ -934,6 +996,10 @@ export class DiveScene implements HitSink, PickupSink {
     this.staticNodes = [];
     this.streams = [];
     this.sway = [];
+    if (this.darknessRT) {
+      this.darknessRT.destroy(true);
+      this.darknessRT = null;
+    }
     this.floaters.clear();
     this.teardownBoss();
     if (this.flowFx) {
@@ -976,16 +1042,26 @@ export class DiveScene implements HitSink, PickupSink {
   private resupplyInteractables(): void {
     const b = this.arena.bounds;
     const kinds: ("loot_pod" | "salvage_crate" | "mineral_crystal")[] = ["loot_pod", "loot_pod", "salvage_crate", "mineral_crystal"];
+    const cav = this.arena.cavern;
     for (const k of kinds) {
-      const pos = { x: this.rng.range(90, b.w - 90), y: this.rng.range(90, b.h - 90) };
-      if (Math.hypot(pos.x - this.player.pos.x, pos.y - this.player.pos.y) < 220) continue;
-      this.interactables.spawnOne(k, pos);
+      // A few tries to land inside carved water, away from the player.
+      for (let t = 0; t < 12; t++) {
+        const pos = { x: this.rng.range(90, b.w - 90), y: this.rng.range(90, b.h - 90) };
+        if (!cav.inside(pos.x, pos.y, 60)) continue;
+        if (Math.hypot(pos.x - this.player.pos.x, pos.y - this.player.pos.y) < 220) continue;
+        this.interactables.spawnOne(k, pos);
+        break;
+      }
     }
     if (this.rng.chance(0.5)) {
-      const edge = this.rng.chance(0.5)
-        ? { x: this.rng.range(80, 160), y: this.rng.range(120, b.h - 120) }
-        : { x: this.rng.range(b.w - 160, b.w - 80), y: this.rng.range(120, b.h - 120) };
-      this.interactables.spawnOne("relic", edge);
+      for (let t = 0; t < 16; t++) {
+        const edge = this.rng.chance(0.5)
+          ? { x: this.rng.range(120, 380), y: this.rng.range(140, b.h - 140) }
+          : { x: this.rng.range(b.w - 380, b.w - 120), y: this.rng.range(140, b.h - 140) };
+        if (!cav.inside(edge.x, edge.y, 40)) continue;
+        this.interactables.spawnOne("relic", edge);
+        break;
+      }
     }
   }
 
@@ -1133,6 +1209,7 @@ export class DiveScene implements HitSink, PickupSink {
   // Procedural hit burst — an expanding additive ring + radial sparks. Replaces the
   // extracted impact sprites (which had a clipped flat edge) for the frequent hits.
   private spawnHitFx(x: number, y: number, color: number, big = false): void {
+    if (this.hitFx.length > 48) return; // cap — max-fire-rate builds were drowning the GPU
     const ring = new Graphics();
     ring.position.set(x, y);
     this.engine.lightLayer.addChild(ring);
@@ -1510,6 +1587,10 @@ export class DiveScene implements HitSink, PickupSink {
       d.glow.destroy();
     }
     this.dyingViews = [];
+    if (this.darknessRT) {
+      this.darknessRT.destroy(true);
+      this.darknessRT = null;
+    }
     this.teardownBoss();
     this.floaters.destroy();
     if (this.flowFx) {

@@ -33,6 +33,8 @@ export class Projectiles {
   private sprites: (Sprite | null)[] = [];
   private free: number[] = [];
   enemySlow = 0; // fraction; enemy bullet speed ×(1-this)
+  /** Set per stratum: returns true when a point is inside solid cavern wall. */
+  wallQuery: ((x: number, y: number) => boolean) | null = null;
 
   constructor(private assets: AssetStore, private layer: Container) {
     for (let i = 0; i < CAP; i++) {
@@ -130,6 +132,12 @@ export class Projectiles {
       b.pos.y += b.vel.y * dt;
       b.ttl -= dt;
       if (b.ttl <= 0 || b.pos.x < -pad || b.pos.y < -pad || b.pos.x > worldBounds.w + pad || b.pos.y > worldBounds.h + pad) {
+        this.kill(i);
+        continue;
+      }
+      // Cavern walls stop shots (both factions) — the barrier is real, and wall
+      // lips become tactical cover. Coarse-grid test: usually one array read.
+      if (this.wallQuery && this.wallQuery(b.pos.x, b.pos.y)) {
         this.kill(i);
         continue;
       }

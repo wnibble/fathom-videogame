@@ -83,10 +83,13 @@ export function freshStats(): PlayerStats {
 }
 
 export function xpForLevel(level: number): number {
-  // Quadratic early (gentle ramp), then flattens so the upgrade decision beat
-  // keeps arriving deep into a run instead of stalling out.
+  // Quadratic early (gentle ramp), flat through the midgame so the upgrade beat
+  // keeps arriving, then rising again late — loot-compounding builds (Chum Bag +
+  // magnet stacks) were hitting level 40+ and melting the frame budget.
   if (level <= 6) return Math.round(40 + 25 * level + 4 * level * level);
-  return Math.round(40 + 25 * 6 + 4 * 36 + (level - 6) * 170);
+  const base = 40 + 25 * 6 + 4 * 36 + (level - 6) * 170;
+  const late = level > 18 ? (level - 18) * (level - 18) * 6 : 0;
+  return Math.round(base + late);
 }
 
 export function deriveWeapon(base: EmitterSpec, s: PlayerStats): EmitterSpec {

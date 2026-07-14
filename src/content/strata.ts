@@ -7,7 +7,7 @@ import type { AssetStore } from "../engine/assets";
 import type { Current, EnemyKind, Obstacle, Prop, Vec2 } from "../core/types";
 import type { InteractableData, InteractableKind } from "../systems/interactables";
 import { Rng } from "../core/rng";
-import { generateCavern } from "./cavegen";
+import { generateCavern, type Cavern } from "./cavegen";
 
 export interface ArenaData {
   bounds: { w: number; h: number };
@@ -24,6 +24,7 @@ export interface ArenaData {
   resource: string;
   isFloor: boolean;
   landmark: { sprite: string; pos: Vec2; scale: number } | null;
+  cavern: Cavern; // carved-space source of truth (collision, bullets, darkness)
 }
 
 interface Stratum {
@@ -70,7 +71,6 @@ export function buildStratum(index: number, seed: number, assets: AssetStore): A
   const rng = new Rng((seed + si * 2654435761) >>> 0);
   // Map expands with depth — the deep opens up (1900x1500 -> ~2700x2100).
   const bounds = { w: 1900 + si * 160, h: 1500 + si * 120 };
-  const playerStart = { x: bounds.w / 2, y: bounds.h / 2 };
 
   // Decoration pools from this stratum's sheet (structural sprites), plus curated glow.
   const structPool = assets.spritesInSheet(S.structSheet).filter((n) => !RESERVED.has(n) && !/^kelp_tall/.test(n));
@@ -84,31 +84,36 @@ export function buildStratum(index: number, seed: number, assets: AssetStore): A
   const ambAnims = (S.ambient ?? []).filter((n) => assets.anims[n]);
   const richness = decorSprites.length + decorAnims.length; // "full" levels have more
 
-  // ---- procedural cavern FIRST: everything else placed around the terrain ----
+  // ---- carved cavern FIRST: rooms + tunnels own the space; the generator owns
+  // the player start and every anchor. Everything else decorates INSIDE it. ----
   const caves = S.caves.filter((n) => assets.sprites[n]);
   const growthPool = S.decor.filter((n) => assets.sprites[n] && /kelp|coral|grass|sponge|sprout|root|frond|anemone/i.test(n));
   const cavern = generateCavern(seed + si * 7919, {
     bounds,
-    playerStart,
     rockiness: 0.22 + si * 0.12, // Twilight airy -> Cradle rocky
-    wallSprites: caves,
+    isFloor: si === STRATA.length - 1,
+    wallSprites: caves.length ? caves : ["floating_reef_chunk"],
     growthSprites: growthPool.length ? growthPool : decorSprites,
   });
+  const playerStart = cavern.anchors.start;
   const obstacles = cavern.obstacles;
   const inRock = (p: Vec2, pad: number): boolean => obstacles.some((o) => Math.hypot(p.x - o.pos.x, p.y - o.pos.y) < o.radius + pad);
 
   const props: Prop[] = [];
+  // Boundary rock dressing renders FIRST (under the free decor + growth).
+  props.push(...cavern.wallRocks);
   const placed: Vec2[] = [playerStart];
   const scatter = (pool: string[], count: number, glow: boolean, isAnim: boolean, sr: [number, number], gap: number) => {
     if (!pool.length) return;
     let tries = 0;
     let made = 0;
-    while (made < count && tries < count * 14) {
+    while (made < count && tries < count * 16) {
       tries++;
       const pos = { x: rng.range(70, bounds.w - 70), y: rng.range(70, bounds.h - 70) };
+      if (!cavern.inside(pos.x, pos.y, 40)) continue; // only decorate carved water
       if (!farFrom(pos, placed, gap)) continue;
       if (Math.hypot(pos.x - playerStart.x, pos.y - playerStart.y) < 190) continue;
-      if (inRock(pos, 26)) continue; // free-floating decor stays off the rocks
+      if (inRock(pos, 26)) continue;
       const name = rng.pick(pool);
       props.push({ sprite: name, pos, scale: rng.range(sr[0], sr[1]), glow, animation: isAnim ? name : undefined });
       placed.push(pos);
@@ -117,9 +122,9 @@ export function buildStratum(index: number, seed: number, assets: AssetStore): A
   };
   // Fresh curated decor leads; the old struct sheet fills in behind it (less of it
   // when the new pack is rich, so each place reads as its own authored world).
-  scatter(decorSprites, richness >= 6 ? 14 : 9, false, false, [0.85, 1.5], 120);
+  scatter(decorSprites, richness >= 6 ? 12 : 8, false, false, [0.85, 1.5], 120);
   scatter(decorAnims, 4, false, true, [0.9, 1.35], 150);
-  scatter(structPool, richness >= 6 ? 4 : 8, false, false, [1, 1.5], 130);
+  scatter(structPool, richness >= 6 ? 4 : 7, false, false, [1, 1.5], 130);
   if (kelp.length) scatter(kelp, 6, false, false, [1, 1.4], 110); // kelp forest verticals
   scatter(glowSprites, 8, true, false, [1, 1.4], 100);
   scatter(glowAnims, 5, true, true, [1, 1.3], 140);
@@ -136,66 +141,47 @@ export function buildStratum(index: number, seed: number, assets: AssetStore): A
     currents.push({ pos: { x: bounds.w * 0.72, y: bounds.h * 0.66 }, half: { x: 120, y: bounds.h * 0.4 }, force: { x: 0, y: -220 }, sprite: "current_ribbon" });
   }
 
-  // Spawn points sit INSIDE the cavern walls (the border band is wall territory).
-  const spawns: Vec2[] = [
-    { x: bounds.w * 0.26, y: bounds.h * 0.28 }, { x: bounds.w * 0.74, y: bounds.h * 0.28 },
-    { x: bounds.w * 0.26, y: bounds.h * 0.74 }, { x: bounds.w * 0.74, y: bounds.h * 0.72 },
-    { x: bounds.w * 0.5, y: bounds.h * 0.24 }, { x: bounds.w * 0.5, y: bounds.h * 0.78 },
-  ];
-  // Nudge any spawn that landed inside cavern wall toward open water.
-  for (const s of spawns) {
-    for (let t = 0; t < 20 && inRock(s, 40); t++) {
-      const dx = playerStart.x - s.x;
-      const dy = playerStart.y - s.y;
-      const l = Math.hypot(dx, dy) || 1;
-      s.x += (dx / l) * 60;
-      s.y += (dy / l) * 60;
-    }
-  }
+  // Spawn points come from the generator — distributed across rooms + tunnels.
+  const spawns: Vec2[] = cavern.anchors.spawnPoints;
 
-  // Interactables — functional objects + a guaranteed hidden relic + Ascend vents.
+  // Interactables — the generator tags rooms: portal at the BFS-far room, vents
+  // spread apart, relic in a dead-end alcove; loot uses pre-validated spots.
   const interactables: InteractableData[] = [];
-  const place = (kind: InteractableKind, minStartGap = 240) => {
-    for (let t = 0; t < 44; t++) {
-      const pos = { x: rng.range(100, bounds.w - 100), y: rng.range(100, bounds.h - 100) };
-      if (Math.hypot(pos.x - playerStart.x, pos.y - playerStart.y) < minStartGap) continue;
-      if (!farFrom(pos, placed, 130)) continue;
-      if (inRock(pos, 46)) continue; // never bury a functional object in a wall
+  const lootQueue = cavern.anchors.lootSpots.slice();
+  const takeLoot = (kind: InteractableKind) => {
+    const pos = lootQueue.shift();
+    if (pos) {
       interactables.push({ kind, pos });
       placed.push(pos);
       return;
     }
+    for (let t = 0; t < 30; t++) {
+      const p = { x: rng.range(120, bounds.w - 120), y: rng.range(120, bounds.h - 120) };
+      if (!cavern.inside(p.x, p.y, 70)) continue;
+      if (!farFrom(p, placed, 130)) continue;
+      interactables.push({ kind, pos: p });
+      placed.push(p);
+      return;
+    }
   };
-  place("loot_pod", 180);
-  place("loot_pod");
-  place("salvage_crate");
-  place("salvage_crate");
-  place("mineral_crystal");
-  place("research_probe");
-  place("bubble_vent");
-  place("bubble_vent");
-  // Ascend vents — the extract decision. Two, so surfacing is always reachable.
-  place("ascend_vent", 320);
-  place("ascend_vent", 320);
-  // Descent portal — the ONLY way deeper. A physical gateway you swim into, so
-  // the terrain never changes under you: it changes because you chose to travel.
-  // (The floor has no portal — the guardian + the Cradle are the end.)
-  if (si < STRATA.length - 1) place("descend_portal", 360);
-  // Hidden relic near an edge (rewards exploration) — tucked against the cave
-  // wall but never inside it.
-  let relicPos: Vec2 | null = null;
-  for (let t = 0; t < 30 && !relicPos; t++) {
-    const cand = rng.pick([
-      { x: rng.range(120, 260), y: rng.range(160, bounds.h - 160) },
-      { x: rng.range(bounds.w - 260, bounds.w - 120), y: rng.range(160, bounds.h - 160) },
-      { x: rng.range(180, bounds.w - 180), y: rng.range(120, 260) },
-      { x: rng.range(180, bounds.w - 180), y: rng.range(bounds.h - 260, bounds.h - 120) },
-    ]);
-    if (!inRock(cand, 30)) relicPos = cand;
-  }
-  interactables.push({ kind: "relic", pos: relicPos ?? { x: bounds.w * 0.5, y: bounds.h * 0.82 } });
+  takeLoot("loot_pod");
+  takeLoot("loot_pod");
+  takeLoot("salvage_crate");
+  takeLoot("salvage_crate");
+  takeLoot("mineral_crystal");
+  takeLoot("research_probe");
+  takeLoot("bubble_vent");
+  takeLoot("bubble_vent");
+  // Ascend vents — the extract decision. Two rooms apart, always reachable.
+  for (const v of cavern.anchors.vents) interactables.push({ kind: "ascend_vent", pos: v });
+  // Descent portal — the ONLY way deeper, in the room farthest from the start
+  // (the run's journey is literally across the cavern). Floor has none.
+  if (cavern.anchors.portal) interactables.push({ kind: "descend_portal", pos: cavern.anchors.portal });
+  // Hidden relic in a dead-end alcove (rewards exploring the side branches).
+  interactables.push({ kind: "relic", pos: cavern.anchors.relic });
 
-  // Hero landmark — an oversized far beacon that gives the stratum character.
+  // Hero landmark — an oversized far beacon. It sits beyond the walls now, so
+  // the darkness overlay turns it into a half-seen silhouette (mystery > clutter).
   let landmark: ArenaData["landmark"] = null;
   if (assets.sprites[S.landmark]) {
     const corner = rng.int(0, 3);
@@ -204,5 +190,5 @@ export function buildStratum(index: number, seed: number, assets: AssetStore): A
     landmark = { sprite: S.landmark, pos: { x: lx, y: ly }, scale: rng.range(3.2, 4.2) };
   }
 
-  return { bounds, playerStart, props, obstacles, currents, spawns, interactables, name: S.name, tagline: S.tagline, bg: S.bg, fauna: S.fauna, resource: S.resource, isFloor: si === STRATA.length - 1, landmark };
+  return { bounds, playerStart, props, obstacles, currents, spawns, interactables, name: S.name, tagline: S.tagline, bg: S.bg, fauna: S.fauna, resource: S.resource, isFloor: si === STRATA.length - 1, landmark, cavern };
 }

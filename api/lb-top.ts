@@ -2,8 +2,19 @@
 // Reads the Upstash sorted set + per-player run hashes; responses are edge-cached
 // briefly so a busy menu screen costs almost nothing.
 
-const URL_ = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
-const TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+// Marketplace integrations name their env vars differently per install (UPSTASH_*,
+// KV_*, or a custom prefix chosen at connect time) — resolve any REST url/token pair.
+function resolveRedisEnv(): { url?: string; token?: string } {
+  const env = process.env;
+  const url =
+    env.UPSTASH_REDIS_REST_URL || env.KV_REST_API_URL ||
+    Object.entries(env).find(([k, v]) => /(REST_API_URL|REDIS_REST_URL)$/.test(k) && !!v && /^https:/.test(v))?.[1];
+  const token =
+    env.UPSTASH_REDIS_REST_TOKEN || env.KV_REST_API_TOKEN ||
+    Object.entries(env).find(([k, v]) => /(REST_API_TOKEN|REDIS_REST_TOKEN)$/.test(k) && !/READ_ONLY/.test(k) && !!v)?.[1];
+  return { url, token };
+}
+const { url: URL_, token: TOKEN } = resolveRedisEnv();
 
 async function redis(commands: (string | number)[][]): Promise<{ result?: unknown }[] | null> {
   const res = await fetch(`${URL_}/pipeline`, {

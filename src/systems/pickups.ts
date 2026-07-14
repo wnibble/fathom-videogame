@@ -48,6 +48,39 @@ export class Pickups {
   }
 
   spawn(kind: PickupKind, x: number, y: number, value: number, spreadVel = 60): void {
+    // MERGE instead of stack: piles of drops used to render as one white blob
+    // (additive glows saturating) and tanked perf. A nearby same-kind pickup
+    // absorbs the value; its glow stays constant and it grows slightly.
+    for (const p of this.items) {
+      if (p.kind !== kind) continue;
+      const dx = p.pos.x - x;
+      const dy = p.pos.y - y;
+      if (dx * dx + dy * dy < 34 * 34) {
+        p.value += value;
+        p.ttl = 20; // refresh
+        const sc = Math.min(1.6, 1 + Math.log1p(p.value) * 0.09);
+        p.node.scale.set(sc);
+        return;
+      }
+    }
+    // Hard cap: beyond it, fold the drop into the nearest same-kind pickup.
+    if (this.items.length >= 140) {
+      let best: Pickup | null = null;
+      let bestD = Infinity;
+      for (const p of this.items) {
+        if (p.kind !== kind) continue;
+        const d = (p.pos.x - x) ** 2 + (p.pos.y - y) ** 2;
+        if (d < bestD) {
+          bestD = d;
+          best = p;
+        }
+      }
+      if (best) {
+        best.value += value;
+        best.ttl = 20;
+        return;
+      }
+    }
     const tint = TINT[kind];
     const node = new Container();
     // Prefer the real item sprite; fall back to the procedural core.
