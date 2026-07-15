@@ -17,7 +17,7 @@ import { Projectiles } from "../systems/projectiles";
 import { Hazards } from "../systems/hazards";
 import { updatePlayerMovement, resolveObstacles } from "../systems/movement";
 import { FlowField, FlowParticles } from "../systems/flow";
-import { makeSpitter, updateSpitter } from "../systems/spitter";
+import { makeSpitter, updateSpitter, tickVolley } from "../systems/spitter";
 import { makeDarter, updateDarter } from "../systems/darter";
 import { makeDrifter, updateDrifter } from "../systems/drifter";
 import { makeBoss, buildBossView, updateBoss, BOSS_TELEGRAPH, type BossCtx } from "../systems/boss";
@@ -116,6 +116,10 @@ export class DiveScene implements HitSink, PickupSink {
   private bossCtx: BossCtx | null = null;
   private winSeqT = -1; // >=0 while the victory sequence plays
   private winCard: Container | null = null;
+  // The Ancient Eye — a dormant warden posted at the descent portal (strata 2+).
+  private eyeWarden: Enemy | null = null;
+  private eyeAwake = false;
+  private sealMsgT = 0; // cooldown on the "portal is sealed" floater
   private floaters!: Floaters;
   private lastMult = 1; // combo multiplier last frame (detect tier-ups)
 
@@ -232,6 +236,16 @@ export class DiveScene implements HitSink, PickupSink {
       fx: (anim, x, y) => this.spawnFx(anim, x, y),
       surface: () => this.onSurface(),
       descend: () => {
+        // The Eye seals the way down until it's dead (strata 2+).
+        if (this.eyeWarden?.alive) {
+          if (this.sealMsgT <= 0) {
+            this.sealMsgT = 1.4;
+            const portal = this.arena.interactables.find((i) => i.kind === "descend_portal");
+            if (portal) this.floaters.spawn(portal.pos.x, portal.pos.y - 50, "THE EYE HOLDS THE WAY", 0xff9a6a, 13, true);
+            audio.uiMove();
+          }
+          return;
+        }
         if (!this.transitioning && !this.ended && this.stratumIndex < STRATA.length - 1) {
           this.transitionStratum(this.stratumIndex + 1);
         }
@@ -248,6 +262,7 @@ export class DiveScene implements HitSink, PickupSink {
     engine.lightLayer.addChild(this.haulGlow);
     engine.centerOn(this.player.pos.x, this.player.pos.y, true);
     this.showStratumCard();
+    audio.setAtmosphere(this.stratumIndex); // the sea starts breathing
   }
 
   // ---- static views ----
@@ -580,6 +595,8 @@ export class DiveScene implements HitSink, PickupSink {
       if (e === this.boss) {
         const phase = e.hp / e.maxHp < 0.5 ? 2 : 1;
         updateBoss(e, dt, p, this.bossCtx!, phase);
+      } else if (e === this.eyeWarden) {
+        this.updateEyeWarden(e, dt, p);
       } else if (e.kind === "darter") {
         updateDarter(e, dt, p, this.arena.bounds);
         if (p.alive && p.invuln <= 0) {
@@ -663,6 +680,7 @@ export class DiveScene implements HitSink, PickupSink {
     this.lowHp = lowNow;
 
     if (this.shake > 0) this.shake = Math.max(0, this.shake - dt * 1.8);
+    if (this.sealMsgT > 0) this.sealMsgT -= dt;
 
     if (!p.alive && !this.ended) {
       this.ended = true;
@@ -740,6 +758,92 @@ export class DiveScene implements HitSink, PickupSink {
     this.enemyViews.set(e, v);
     this.engine.worldLayer.addChild(v.root);
     this.engine.lightLayer.addChild(v.glow);
+  }
+
+  /** Post the Ancient Eye at the descent portal on deeper strata (2+): the way
+   * down is SEALED until it dies. It sleeps until you come close. */
+  private spawnEyeWarden(): void {
+    this.eyeWarden = null;
+    this.eyeAwake = false;
+    if (this.stratumIndex < 2 || this.arena.isFloor) return;
+    const portal = this.arena.interactables.find((i) => i.kind === "descend_portal");
+    if (!portal || !this.assets.has("ancient_eye_closed")) return;
+    const pos = { x: portal.pos.x, y: portal.pos.y - 130 };
+    const tier = depthTier(this.depth, this.run.xp.level) + this.stratumIndex * 0.8;
+    const e = makeSpitter(pos, { elite: true, hp: Math.round(520 + tier * 95), speed: 0, bulletCount: 20 });
+    e.radius = 26;
+    e.attackTimer = 0.9;
+    this.eyeWarden = e;
+    this.enemies.push(e);
+    // Pose view: closed (asleep) -> open (aggro) -> charge (wind-up).
+    const root = new Container();
+    const closed = this.assets.sprite("ancient_eye_closed");
+    const open = this.assets.anims["ancient_eye_open"] ? this.assets.anim("ancient_eye_open") : this.assets.sprite("ancient_eye_closed");
+    const charge = this.assets.has("ancient_eye_charge") ? this.assets.sprite("ancient_eye_charge") : null;
+    root.addChild(closed, open);
+    if (charge) {
+      charge.visible = false;
+      root.addChild(charge);
+    }
+    open.visible = false;
+    for (const c of root.children) c.scale.set(2.2);
+    const glow = new Sprite(getGlowTexture());
+    glow.anchor.set(0.5);
+    glow.tint = 0xff7a4a;
+    glow.alpha = 0.18;
+    glow.scale.set(150 / 128);
+    const v: SpitterView = {
+      root,
+      glow,
+      update: (en, _dt, elapsed) => {
+        const tele = en.telegraphTimer > 0;
+        closed.visible = !this.eyeAwake;
+        open.visible = this.eyeAwake && !tele;
+        if (charge) charge.visible = this.eyeAwake && tele;
+        glow.alpha = this.eyeAwake ? (tele ? 0.7 : 0.4) + 0.1 * Math.sin(elapsed * 3) : 0.14 + 0.05 * Math.sin(elapsed * 0.8);
+        root.scale.set(1 + (this.eyeAwake ? 0.03 : 0.012) * Math.sin(elapsed * (this.eyeAwake ? 2.4 : 0.9)));
+      },
+    };
+    this.enemyViews.set(e, v);
+    this.engine.worldLayer.addChild(v.root);
+    this.engine.lightLayer.addChild(v.glow);
+    v.root.position.set(pos.x, pos.y);
+    v.glow.position.set(pos.x, pos.y);
+  }
+
+  /** The Eye's brain: sleeps, wakes, then cycles gap-ring / wave / spiral hose. */
+  private updateEyeWarden(e: Enemy, dt: number, p: Player): void {
+    e.flash = Math.max(0, e.flash - dt);
+    if (tickVolley(e, dt, (spec, pos, base) => this.proj.fireBurst(spec, pos, base, "enemy"))) return;
+    const dist = Math.hypot(p.pos.x - e.pos.x, p.pos.y - e.pos.y);
+    if (!this.eyeAwake) {
+      if (dist < 480 && p.alive) {
+        this.eyeAwake = true;
+        this.floaters.spawn(e.pos.x, e.pos.y - 40, "THE EYE WAKES", 0xff9a6a, 15, true);
+        audio.lowHp();
+        if (this.shakeEnabled) this.shake = Math.min(1, this.shake + 0.35);
+      }
+      return;
+    }
+    if (e.telegraphTimer > 0) {
+      e.telegraphTimer -= dt;
+      if (e.telegraphTimer <= 0) {
+        const aim = Math.atan2(p.pos.y - e.pos.y, p.pos.x - e.pos.x);
+        const kind = e.attackCount % 3;
+        if (kind === 0) {
+          this.proj.fireBurst({ ...SPITTER_RADIAL, count: 24, speed: 160, ttl: 3.8, gapArc: 0.75, gapAt: 0, telegraph: undefined }, e.pos, aim + Math.PI * 0.4, "enemy");
+        } else if (kind === 1) {
+          this.proj.fireBurst({ ...SPITTER_RADIAL, count: 11, spread: 1.7, aim: "aimed", speed: 185, ttl: 3.2, speedSpread: 0.32, telegraph: undefined }, e.pos, aim, "enemy");
+        } else {
+          e.volley = { spec: { ...SPITTER_RADIAL, count: 2, spread: 0.15, speed: 175, ttl: 3.2, telegraph: undefined }, shotsLeft: 8, interval: 0.1, timer: 0, base: aim - 0.8, step: 0.2 };
+        }
+        e.attackCount++;
+        e.attackTimer = 1.9;
+      }
+      return;
+    }
+    e.attackTimer -= dt;
+    if (e.attackTimer <= 0 && dist < 620) e.telegraphTimer = 0.8;
   }
 
   /** Summon the Cradle guardian — the climax fight. Scales with the run's power. */
@@ -1013,8 +1117,11 @@ export class DiveScene implements HitSink, PickupSink {
     this.spawnTimer = 2;
     this.showStratumCard();
     audio.relic();
+    audio.setAtmosphere(this.stratumIndex); // pad glides to the new chord
     // The floor is a boss arena — the guardian rises to meet you.
     if (this.arena.isFloor) this.spawnBoss();
+    // Deeper strata post a warden at the portal — the way down is earned.
+    this.spawnEyeWarden();
   }
 
   private clearWorld(): void {
@@ -1058,6 +1165,8 @@ export class DiveScene implements HitSink, PickupSink {
     this.staticNodes = [];
     this.streams = [];
     this.sway = [];
+    this.eyeWarden = null;
+    this.eyeAwake = false;
     if (this.darknessRT) {
       this.darknessRT.destroy(true);
       this.darknessRT = null;
@@ -1177,6 +1286,14 @@ export class DiveScene implements HitSink, PickupSink {
       this.runResources[res] = (this.runResources[res] ?? 0) + 12;
       this.onCradleCleared();
       return;
+    }
+    // The warden falls — the portal unseals.
+    if (enemy === this.eyeWarden) {
+      this.eyeWarden = null;
+      addScore(this.run, 1200, false);
+      const portal = this.arena.interactables.find((i) => i.kind === "descend_portal");
+      if (portal) this.floaters.spawn(portal.pos.x, portal.pos.y - 50, "THE WAY OPENS", COLOR.aquaBright, 15, true);
+      audio.relic();
     }
     const scoreBefore = this.run.score.score;
     onKill(this.run, enemy.elite);
@@ -1784,6 +1901,10 @@ export class DiveScene implements HitSink, PickupSink {
   }
   get boundsDebug(): { w: number; h: number } {
     return this.arena.bounds;
+  }
+  get portalDebug(): { x: number; y: number } | null {
+    const p = this.arena.interactables.find((i) => i.kind === "descend_portal");
+    return p ? { x: p.pos.x, y: p.pos.y } : null;
   }
   /** Debug: teleport the player (QA only). */
   debugTeleport(x: number, y: number): void {
