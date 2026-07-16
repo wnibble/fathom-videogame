@@ -165,7 +165,10 @@ export function bankDive(
   r: DiveResult
 ): { save: SaveData; pearlsEarned: number; newBadges: string[] } {
   const ratio = r.surfaced ? 1 : DEATH_BANK_RATIO + 0.05 * (data.metaTiers["salvage-training"] ?? 0);
-  const pearlsEarned = Math.floor(r.samples * Math.min(1, ratio));
+  // The greed loop: surfacing from DEEPER strata banks richer (+12%/stratum).
+  // Dying forfeits the bonus — carry your haul deep at your own risk.
+  const depthBonus = r.surfaced ? 1 + 0.12 * r.stratum : 1;
+  const pearlsEarned = Math.floor(r.samples * Math.min(1, ratio) * depthBonus);
   let next: SaveData = {
     ...data,
     bestDepth: Math.max(data.bestDepth, r.depth),

@@ -123,6 +123,10 @@ export class DiveScene implements HitSink, PickupSink {
   private eyeAwake = false;
   private sealMsgT = 0; // cooldown on the "portal is sealed" floater
   private lastSpawnPt: Vec2 | null = null; // anti-camp: don't reuse the same point
+  private stratumTime = 0; // seconds spent in the current stratum (overstay pressure)
+  private noticedT = 0; // has "THE DEEP NOTICES YOU" fired for this stratum
+  private stratumHits = 0; // damage taken this stratum (flawless-descent bonus)
+  private stratumKills = 0; // kills this stratum (flawless must be earned in combat)
   private floaters!: Floaters;
   private lastMult = 1; // combo multiplier last frame (detect tier-ups)
 
@@ -250,6 +254,11 @@ export class DiveScene implements HitSink, PickupSink {
           return;
         }
         if (!this.transitioning && !this.ended && this.stratumIndex < STRATA.length - 1) {
+          // Flawless descent: fought (4+ kills) and left untouched — nerve pays.
+          if (this.stratumHits === 0 && this.stratumKills >= 4) {
+            addScore(this.run, 600, false);
+            this.floaters.spawn(this.player.pos.x, this.player.pos.y - 36, "FLAWLESS DESCENT +600", COLOR.aquaBright, 15, true);
+          }
           this.transitionStratum(this.stratumIndex + 1);
         }
       },
@@ -657,7 +666,17 @@ export class DiveScene implements HitSink, PickupSink {
     this.spawnTimer -= dt;
     const tier = this.currentTier();
     const maxAlive = Math.min(10, 2 + Math.floor(tier * 1.25));
-    const interval = Math.max(0.7, 3.0 - tier * 0.34) * this.spawnIntervalMult;
+    // Overstay pressure: linger past ~100s in one stratum and the deep notices —
+    // spawn pressure ratchets toward 0.55x interval by ~4 minutes. Farming one
+    // room forever stops being free; the way out is DOWN.
+    this.stratumTime += dt;
+    const overstay = Math.max(0.55, 1 - Math.max(0, this.stratumTime - 100) * 0.0035);
+    if (this.stratumTime > 100 && this.noticedT === 0) {
+      this.noticedT = 1;
+      this.floaters.spawn(p.pos.x, p.pos.y - 40, "THE DEEP NOTICES YOU", COLOR.coralBright, 14, true);
+      audio.lowHp();
+    }
+    const interval = Math.max(0.7, 3.0 - tier * 0.34) * this.spawnIntervalMult * overstay;
     const aliveCount = this.enemies.reduce((n, e) => n + (e.alive ? 1 : 0), 0);
     // While the guardian lives, the normal wave stops — it summons its own adds.
     if (!this.boss?.alive && this.spawnTimer <= 0 && aliveCount < maxAlive) {
@@ -1136,6 +1155,10 @@ export class DiveScene implements HitSink, PickupSink {
     this.engine.centerOn(this.player.pos.x, this.player.pos.y, true);
     this.dread = 0;
     this.spawnTimer = 2;
+    this.stratumTime = 0;
+    this.noticedT = 0;
+    this.stratumHits = 0;
+    this.stratumKills = 0;
     this.showStratumCard();
     audio.relic();
     audio.setAtmosphere(this.stratumIndex); // pad glides to the new chord
@@ -1271,6 +1294,7 @@ export class DiveScene implements HitSink, PickupSink {
     const { hpDamage, absorbed } = absorb(this.player, damage);
     this.player.hp -= hpDamage;
     this.player.invuln = 0.85;
+    this.stratumHits++;
     if (this.shakeEnabled) {
       this.shake = Math.min(1, this.shake + (absorbed ? 0.35 : 0.7));
       const dx = this.player.pos.x - at.x;
@@ -1324,6 +1348,7 @@ export class DiveScene implements HitSink, PickupSink {
     const scoreBefore = this.run.score.score;
     onKill(this.run, enemy.elite);
     if (enemy.elite) this.eliteKills++;
+    this.stratumKills++;
     // Floating score pop (combo-scaled, so a hot streak visibly pays off).
     const gained = this.run.score.score - scoreBefore;
     if (gained > 0) this.floaters.spawn(enemy.pos.x, enemy.pos.y - 10, `+${gained}`, COLOR.amberBright, enemy.elite ? 16 : 13, enemy.elite);
