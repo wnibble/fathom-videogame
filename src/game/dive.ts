@@ -46,6 +46,8 @@ import {
   tickScore,
   depthMilestone,
   depthTier,
+  stratumTierFloor,
+  expectedLevel,
   applyUpgrade as applyRunUpgrade,
   deriveWeapon,
   rollChoices,
@@ -120,6 +122,7 @@ export class DiveScene implements HitSink, PickupSink {
   private eyeWarden: Enemy | null = null;
   private eyeAwake = false;
   private sealMsgT = 0; // cooldown on the "portal is sealed" floater
+  private lastSpawnPt: Vec2 | null = null; // anti-camp: don't reuse the same point
   private floaters!: Floaters;
   private lastMult = 1; // combo multiplier last frame (detect tier-ups)
 
@@ -652,7 +655,7 @@ export class DiveScene implements HitSink, PickupSink {
     // waves (scaled by depth, build power AND how deep you've chosen to travel —
     // each stratum is a real step up now that descent is portal-gated)
     this.spawnTimer -= dt;
-    const tier = depthTier(this.depth, this.run.xp.level) + this.stratumIndex * 0.8;
+    const tier = this.currentTier();
     const maxAlive = Math.min(10, 2 + Math.floor(tier * 1.25));
     const interval = Math.max(0.7, 3.0 - tier * 0.34) * this.spawnIntervalMult;
     const aliveCount = this.enemies.reduce((n, e) => n + (e.alive ? 1 : 0), 0);
@@ -709,18 +712,29 @@ export class DiveScene implements HitSink, PickupSink {
   private spawnEnemy(tier: number): void {
     // Spawn ANNULUS (MAP-RULES V-combat): 420-680px from the player — close
     // enough that the fight actually arrives on screen, never on top of you.
+    // Anti-camp: never the same point twice in a row, and every spawn jitters.
     const annulus: Vec2[] = [];
     let nearest = this.arena.spawns[0];
     let nearestD = Infinity;
     for (const s of this.arena.spawns) {
       const d = Math.hypot(s.x - this.player.pos.x, s.y - this.player.pos.y);
-      if (d >= 420 && d <= 680) annulus.push(s);
+      if (d >= 420 && d <= 680 && s !== this.lastSpawnPt) annulus.push(s);
       if (d >= 420 && d < nearestD) {
         nearestD = d;
         nearest = s;
       }
     }
-    const best = annulus.length ? annulus[this.rng.int(0, annulus.length - 1)] : nearestD < Infinity ? nearest : this.arena.spawns[this.rng.int(0, this.arena.spawns.length - 1)];
+    const pick = annulus.length ? annulus[this.rng.int(0, annulus.length - 1)] : nearestD < Infinity ? nearest : this.arena.spawns[this.rng.int(0, this.arena.spawns.length - 1)];
+    this.lastSpawnPt = pick;
+    // Jitter within the room so the emergence point itself wanders.
+    let best: Vec2 = pick;
+    for (let t = 0; t < 5; t++) {
+      const j = { x: pick.x + this.rng.range(-130, 130), y: pick.y + this.rng.range(-130, 130) };
+      if (this.arena.cavern.inside(j.x, j.y, 60)) {
+        best = j;
+        break;
+      }
+    }
     const elite = this.rng.chance(Math.min(0.6, tier * 0.075 * this.eliteMult));
     const kind = this.pickFauna();
 
@@ -760,6 +774,12 @@ export class DiveScene implements HitSink, PickupSink {
     this.engine.lightLayer.addChild(v.glow);
   }
 
+  /** Danger scalar: depth/build push it up, but every stratum has a FLOOR —
+   * portal-rushing puts you in water tuned for a build you don't have yet. */
+  private currentTier(): number {
+    return Math.max(depthTier(this.depth, this.run.xp.level), stratumTierFloor(this.stratumIndex)) + this.stratumIndex * 0.8;
+  }
+
   /** Post the Ancient Eye at the descent portal on deeper strata (2+): the way
    * down is SEALED until it dies. It sleeps until you come close. */
   private spawnEyeWarden(): void {
@@ -769,7 +789,7 @@ export class DiveScene implements HitSink, PickupSink {
     const portal = this.arena.interactables.find((i) => i.kind === "descend_portal");
     if (!portal || !this.assets.has("ancient_eye_closed")) return;
     const pos = { x: portal.pos.x, y: portal.pos.y - 130 };
-    const tier = depthTier(this.depth, this.run.xp.level) + this.stratumIndex * 0.8;
+    const tier = this.currentTier();
     const e = makeSpitter(pos, { elite: true, hp: Math.round(520 + tier * 95), speed: 0, bulletCount: 20 });
     e.radius = 26;
     e.attackTimer = 0.9;
@@ -849,7 +869,8 @@ export class DiveScene implements HitSink, PickupSink {
   /** Summon the Cradle guardian — the climax fight. Scales with the run's power. */
   private spawnBoss(): void {
     if (this.boss) return;
-    const hp = Math.round(2600 + this.run.xp.level * 120 + this.run.stats.maxHpBonus * 5);
+    // Floor at the level the Cradle EXPECTS — rushing here doesn't shrink him.
+    const hp = Math.round(2600 + Math.max(this.run.xp.level, expectedLevel(5)) * 120 + this.run.stats.maxHpBonus * 5);
     // The guardian rises at the top of the Cradle's (extra-large) start room.
     const boss = makeBoss({ x: this.arena.playerStart.x, y: this.arena.playerStart.y - 320 }, hp);
     const view = buildBossView(this.assets);
@@ -1118,6 +1139,11 @@ export class DiveScene implements HitSink, PickupSink {
     this.showStratumCard();
     audio.relic();
     audio.setAtmosphere(this.stratumIndex); // pad glides to the new chord
+    // The gamble, telegraphed: arriving under-built gets a warning, not a wall.
+    if (this.run.xp.level < expectedLevel(this.stratumIndex) - 2) {
+      this.floaters.spawn(this.player.pos.x, this.player.pos.y - 40, "THE DEEP OUTMATCHES YOU", COLOR.coralBright, 15, true);
+      audio.lowHp();
+    }
     // The floor is a boss arena — the guardian rises to meet you.
     if (this.arena.isFloor) this.spawnBoss();
     // Deeper strata post a warden at the portal — the way down is earned.
@@ -1309,8 +1335,9 @@ export class DiveScene implements HitSink, PickupSink {
     if (this.shakeEnabled) this.shake = Math.min(1, this.shake + (enemy.elite ? 0.5 : 0.28));
     if (!this.reducedMotion) this.hitstop = enemy.elite ? 0.08 : 0.05;
     this.spawnFx("sample_burst", enemy.pos.x, enemy.pos.y);
-    // Loot: elites drop richer; weather/boons scale the haul.
-    const drops = Math.max(1, Math.round((enemy.elite ? 2 : 1) * this.lootMult));
+    // Loot: elites drop richer; weather/boons scale the haul — and the DEEP pays
+    // better (+18%/stratum): diving early is a real gamble, not just a trap.
+    const drops = Math.max(1, Math.round((enemy.elite ? 2 : 1) * this.lootMult * (1 + this.stratumIndex * 0.18)));
     for (let i = 0; i < drops; i++) this.pickups.spawn("sample", enemy.pos.x, enemy.pos.y, 1);
     // Stratum material — the Market currency.
     const res = this.arena.resource;

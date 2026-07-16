@@ -472,11 +472,14 @@ export function generateCavern(seed: number, opts: CavernOptsV2): Cavern {
     spawnPoints: [],
     lootSpots: [],
   };
-  // Spawn points: per non-start room by size, min 6 total — and never on top of
-  // an objective (portal/vents/relic/loot keep a 450px berth).
+  // Spawn points: per non-start room by size, min 6 total — never on top of an
+  // objective (450px berth) and SEPARATED from each other (330px) so pressure
+  // can't be funneled through one campable choke.
   for (const room of others) {
-    const n = Math.max(1, Math.min(3, Math.round((room.coreR * room.coreR) / 90000)));
-    for (let i = 0; i < n; i++) anchors.spawnPoints.push(sampleInRoom(room, 40, placedAnchors, 450));
+    const n = Math.max(1, Math.min(4, Math.round((room.coreR * room.coreR) / 70000)));
+    for (let i = 0; i < n; i++) {
+      anchors.spawnPoints.push(sampleInRoom(room, 40, [...placedAnchors, ...anchors.spawnPoints], 330));
+    }
   }
   while (anchors.spawnPoints.length < 6) anchors.spawnPoints.push(sampleInRoom(byHops[anchors.spawnPoints.length % Math.max(1, byHops.length)] ?? startRoom, 40, [], 0));
   // Loot spots: a handful of pre-validated points across rooms.

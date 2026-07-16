@@ -193,6 +193,19 @@ export function depthTier(depth: number, level: number): number {
   return depth / 100 + level * 0.35;
 }
 
+/** Each stratum's danger FLOOR — applies no matter how fast you got there.
+ * Natural play arrives at/above it; portal-rushers get outmatched. That's the
+ * gamble: dive deep early for richer loot, against enemies tuned for a build
+ * you don't have yet. */
+export function stratumTierFloor(si: number): number {
+  return si * 1.8;
+}
+
+/** The build level a stratum "expects" — used to warn the under-prepared. */
+export function expectedLevel(si: number): number {
+  return 2 + si * 3;
+}
+
 // ---- upgrades ----
 export interface UpgradeChoice {
   id: string;
