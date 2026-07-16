@@ -134,6 +134,14 @@ export class Hub {
       ["floor_grate", cx - 210, cy + 40, 1.3], ["floor_grate", cx + 210, cy + 40, 1.3],
       ["bollard", cx - 120, DECK.y1 - 90, 1.1], ["bollard", cx + 120, DECK.y1 - 90, 1.1],
       ["large_valve", DECK.x1 - 100, cy + 210, 1.15],
+      // Salvage corner + maintenance dressing (previously-unused pack sprites).
+      ["anchor", DECK.x0 + 70, cy + 60, 1.25],
+      ["chain_pile", DECK.x0 + 150, cy + 90, 1.1],
+      ["moon_pool_closed", DECK.x0 + 320, DECK.y0 + 210, 1.5],
+      ["specimen_lab_b", DECK.x1 - 240, DECK.y0 + 150, 1.3],
+      ["hanging_hook", cx - 40, DECK.y0 + 60, 1.1],
+      ["hanging_hook", cx + 40, DECK.y0 + 62, 1.1],
+      ["bulkhead_hatch", cx + 210, DECK.y1 - 200, 1.25],
     ];
     for (const [name, x, y, sc] of clutter) this.placeDevice(name, x, y, sc);
     // Floodlights at the corners cast warm pools across the deck.
@@ -153,6 +161,21 @@ export class Hub {
       { tab: 2, name: "ARCHIVE", color: COLOR.aqua, device: "codex_terminal", pos: { x: cx + 360, y: BOUNDS.h * 0.5 } },
     ];
     for (const d of kioskDefs) {
+      // SHOP PAD — the kiosks were drowning in the uniform tile grid. A darker
+      // inset platform + category-color rim + light pool gives each station
+      // value contrast, a hue accent, and a clean silhouette.
+      const pad = new Graphics();
+      pad.roundRect(d.pos.x - 86, d.pos.y - 64, 172, 128, 14).fill({ color: 0x060d18, alpha: 0.72 });
+      pad.roundRect(d.pos.x - 86, d.pos.y - 64, 172, 128, 14).stroke({ width: 2.5, color: d.color, alpha: 0.65 });
+      pad.roundRect(d.pos.x - 78, d.pos.y - 56, 156, 112, 10).stroke({ width: 1, color: d.color, alpha: 0.22 });
+      this.root.addChild(pad);
+      const pool = new Sprite(getGlowTexture());
+      pool.anchor.set(0.5);
+      pool.tint = d.color;
+      pool.alpha = 0.16;
+      pool.scale.set(230 / 128);
+      pool.position.set(d.pos.x, d.pos.y);
+      this.light.addChild(pool);
       const placed = this.placeDevice(d.device, d.pos.x, d.pos.y + 30, 1.5) ?? this.placeDevice("shop_console", d.pos.x, d.pos.y + 28, 1.1);
       if (!placed) {
         const pillar = new Graphics();

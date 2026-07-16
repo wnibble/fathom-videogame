@@ -25,7 +25,7 @@ import { buildStratum, STRATA, STRATA_DEPTH, type ArenaData } from "../content/s
 import { SPECIES_FOR_STRATUM } from "../content/species";
 import { WEATHER, type Weather } from "../content/weather";
 import { buildPlayerView, buildSpitterView, buildDarterView, buildDrifterView, type SpitterView, type PlayerView } from "../render/actors";
-import { PLAYER_SHOT, SPITTER_RADIAL } from "../content/emitters";
+import { PLAYER_SHOT, SPITTER_RADIAL, SPITTER_AIMED } from "../content/emitters";
 import { rollMutation, MUTATION_BY_ID } from "../content/mutations";
 import { bus } from "../core/events";
 import { COLOR } from "../palette";
@@ -123,6 +123,9 @@ export class DiveScene implements HitSink, PickupSink {
   private eyeAwake = false;
   private sealMsgT = 0; // cooldown on the "portal is sealed" floater
   private lastSpawnPt: Vec2 | null = null; // anti-camp: don't reuse the same point
+  private turrets = new Set<Enemy>(); // stationary wall-gun emplacements (strata 2+)
+  // Thermal vents (s3): dormant -> warning -> ERUPT AoE cycle.
+  private vents: { pos: Vec2; dormant: Container; warning: Container | null; erupt: Container | null; state: number; timer: number }[] = [];
   private stratumTime = 0; // seconds spent in the current stratum (overstay pressure)
   private noticedT = 0; // has "THE DEEP NOTICES YOU" fired for this stratum
   private stratumHits = 0; // damage taken this stratum (flawless-descent bonus)
@@ -609,6 +612,8 @@ export class DiveScene implements HitSink, PickupSink {
         updateBoss(e, dt, p, this.bossCtx!, phase);
       } else if (e === this.eyeWarden) {
         this.updateEyeWarden(e, dt, p);
+      } else if (this.turrets.has(e)) {
+        this.updateTurret(e, dt, p);
       } else if (e.kind === "darter") {
         updateDarter(e, dt, p, this.arena.bounds);
         if (p.alive && p.invuln <= 0) {
@@ -636,6 +641,7 @@ export class DiveScene implements HitSink, PickupSink {
       if (e !== this.boss && this.arena.obstacles.length) resolveObstacles(e.pos, e.radius, e.vel, this.arena.obstacles);
     }
 
+    this.tickVents(dt);
     this.proj.enemySlow = this.run.stats.enemyBulletSlow;
     this.proj.update(dt, p, this.enemies, this.interactables.destructibles(), this, this.arena.bounds);
     this.hazards.update(dt, p, this);
@@ -791,6 +797,137 @@ export class DiveScene implements HitSink, PickupSink {
     this.enemyViews.set(e, v);
     this.engine.worldLayer.addChild(v.root);
     this.engine.lightLayer.addChild(v.glow);
+  }
+
+  /** Stationary wall-gun emplacements — the pack's turret set (strata 2+). */
+  private spawnTurrets(): void {
+    this.turrets.clear();
+    if (this.stratumIndex < 2 || this.arena.isFloor || !this.assets.has("turret_idle")) return;
+    const n = this.stratumIndex >= 4 ? 2 : 1 + (this.rng.chance(0.5) ? 1 : 0);
+    for (let k = 0; k < n; k++) {
+      let pos: Vec2 | null = null;
+      for (let t = 0; t < 24 && !pos; t++) {
+        const c = { x: this.rng.range(200, this.arena.bounds.w - 200), y: this.rng.range(200, this.arena.bounds.h - 200) };
+        if (!this.arena.cavern.inside(c.x, c.y, 60)) continue;
+        if (Math.hypot(c.x - this.arena.playerStart.x, c.y - this.arena.playerStart.y) < 700) continue;
+        pos = c;
+      }
+      if (!pos) continue;
+      const tier = this.currentTier();
+      const e = makeSpitter(pos, { elite: false, hp: Math.round(230 + tier * 45), speed: 0, bulletCount: 10 });
+      e.radius = 18;
+      e.attackTimer = this.rng.range(0.6, 1.4);
+      this.turrets.add(e);
+      this.enemies.push(e);
+      const root = new Container();
+      const idle = this.assets.sprite("turret_idle");
+      const windup = this.assets.has("turret_windup") ? this.assets.sprite("turret_windup") : null;
+      const fire = this.assets.has("turret_fire") ? this.assets.sprite("turret_fire") : null;
+      root.addChild(idle);
+      for (const s of [windup, fire]) if (s) { s.visible = false; root.addChild(s); }
+      for (const c of root.children) c.scale.set(1.5);
+      const glow = new Sprite(getGlowTexture());
+      glow.anchor.set(0.5);
+      glow.tint = 0xff8a5a;
+      glow.alpha = 0.3;
+      glow.scale.set(90 / 128);
+      const v: SpitterView = {
+        root,
+        glow,
+        update: (en, _dt, elapsed) => {
+          const tele = en.telegraphTimer > 0;
+          const justFired = en.attackTimer > 1.25; // fire pose flashes right after a shot
+          idle.visible = !tele && !justFired;
+          if (windup) windup.visible = tele;
+          if (fire) fire.visible = !tele && justFired;
+          glow.alpha = (tele ? 0.55 : 0.26) + 0.06 * Math.sin(elapsed * 3);
+        },
+      };
+      this.enemyViews.set(e, v);
+      this.engine.worldLayer.addChild(v.root);
+      this.engine.lightLayer.addChild(v.glow);
+      v.root.position.set(pos.x, pos.y);
+      v.glow.position.set(pos.x, pos.y);
+    }
+  }
+
+  /** Turret brain: hold position, windup, aimed 3-shot (every 3rd a wide fan). */
+  private updateTurret(e: Enemy, dt: number, p: Player): void {
+    e.flash = Math.max(0, e.flash - dt);
+    const dist = Math.hypot(p.pos.x - e.pos.x, p.pos.y - e.pos.y);
+    if (e.telegraphTimer > 0) {
+      e.telegraphTimer -= dt;
+      if (e.telegraphTimer <= 0) {
+        const aim = Math.atan2(p.pos.y - e.pos.y, p.pos.x - e.pos.x);
+        const wide = e.attackCount % 3 === 2;
+        this.proj.fireBurst({ ...SPITTER_AIMED, count: wide ? 6 : 3, spread: wide ? 0.9 : 0.34, speed: 250, telegraph: undefined }, e.pos, aim, "enemy");
+        e.attackCount++;
+        e.attackTimer = 1.6;
+      }
+      return;
+    }
+    e.attackTimer -= dt;
+    if (e.attackTimer <= 0 && dist < 540 && p.alive) e.telegraphTimer = 0.7;
+  }
+
+  /** Thermal vents (s3): scatter eruption fixtures that cycle dormant ->
+   * warning -> ERUPT (AoE hazard). The stratum's signature mechanic. */
+  private buildVents(): void {
+    this.vents = [];
+    if (this.stratumIndex !== 3 || !this.assets.has("thermal_vent_dormant")) return;
+    const n = 6;
+    for (let k = 0; k < n; k++) {
+      let pos: Vec2 | null = null;
+      for (let t = 0; t < 20 && !pos; t++) {
+        const c = { x: this.rng.range(200, this.arena.bounds.w - 200), y: this.rng.range(200, this.arena.bounds.h - 200) };
+        if (!this.arena.cavern.inside(c.x, c.y, 70)) continue;
+        if (Math.hypot(c.x - this.arena.playerStart.x, c.y - this.arena.playerStart.y) < 420) continue;
+        pos = c;
+      }
+      if (!pos) continue;
+      const dormant = this.assets.sprite("thermal_vent_dormant");
+      const warning = this.assets.has("thermal_vent_warning") ? this.assets.sprite("thermal_vent_warning") : null;
+      const erupt = this.assets.anims["thermal_vent_erupt"] ? this.assets.anim("thermal_vent_erupt") : null;
+      for (const node of [dormant, warning, erupt]) {
+        if (!node) continue;
+        node.position.set(pos.x, pos.y);
+        node.scale.set(1.4);
+        this.engine.worldLayer.addChild(node);
+        this.staticNodes.push(node as Container);
+      }
+      if (warning) warning.visible = false;
+      if (erupt) erupt.visible = false;
+      this.vents.push({ pos, dormant, warning, erupt, state: 0, timer: this.rng.range(2, 8) });
+    }
+  }
+
+  /** Advance the vent cycles (sim step). */
+  private tickVents(dt: number): void {
+    for (const v of this.vents) {
+      v.timer -= dt;
+      if (v.timer > 0) continue;
+      if (v.state === 0) {
+        // dormant -> warning
+        v.state = 1;
+        v.timer = 1.1;
+        v.dormant.visible = false;
+        if (v.warning) v.warning.visible = true;
+      } else if (v.state === 1) {
+        // warning -> ERUPT: damage zone + a vertical plume of bullets? No — pure AoE.
+        v.state = 2;
+        v.timer = 0.85;
+        if (v.warning) v.warning.visible = false;
+        if (v.erupt) v.erupt.visible = true;
+        this.hazards.spawn(v.pos.x, v.pos.y, 54, 0.9, 18, 0xff7a3a);
+        audio.enemyHit();
+      } else {
+        // back to dormant
+        v.state = 0;
+        v.timer = this.rng.range(4, 9);
+        if (v.erupt) v.erupt.visible = false;
+        v.dormant.visible = true;
+      }
+    }
   }
 
   /** Danger scalar: depth/build push it up, but every stratum has a FLOOR —
@@ -1171,6 +1308,8 @@ export class DiveScene implements HitSink, PickupSink {
     if (this.arena.isFloor) this.spawnBoss();
     // Deeper strata post a warden at the portal — the way down is earned.
     this.spawnEyeWarden();
+    this.spawnTurrets();
+    this.buildVents();
   }
 
   private clearWorld(): void {
@@ -1216,6 +1355,8 @@ export class DiveScene implements HitSink, PickupSink {
     this.sway = [];
     this.eyeWarden = null;
     this.eyeAwake = false;
+    this.turrets.clear();
+    this.vents = []; // vent nodes live in staticNodes — destroyed with them
     if (this.darknessRT) {
       this.darknessRT.destroy(true);
       this.darknessRT = null;

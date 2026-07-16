@@ -31,8 +31,8 @@ interface Def {
 const DEFS: Record<InteractableKind, Def> = {
   loot_pod: { radius: 15, hp: 0, samples: 3, xpOrbs: 1, upgradeChance: 0.15, score: 80, sprite: "loot_pod_closed" },
   salvage_crate: { radius: 17, hp: 30, samples: 2, xpOrbs: 1, upgradeChance: 0.1, score: 80, sprite: "salvage_crate" },
-  mineral_crystal: { radius: 20, hp: 90, samples: 5, xpOrbs: 2, upgradeChance: 0.22, score: 250, sprite: "mineral_crystal" },
-  research_probe: { radius: 22, hp: 0, samples: 0, xpOrbs: 0, upgradeChance: 0, score: 60, sprite: "research_probe" },
+  mineral_crystal: { radius: 20, hp: 90, samples: 5, xpOrbs: 2, upgradeChance: 0.22, score: 250, sprite: "mineral_cluster" },
+  research_probe: { radius: 22, hp: 0, samples: 0, xpOrbs: 0, upgradeChance: 0, score: 60, sprite: "scan_beacon" },
   bubble_vent: { radius: 44, hp: 0, samples: 0, xpOrbs: 0, upgradeChance: 0, score: 0, sprite: "bubble_vent" },
   relic: { radius: 16, hp: 0, samples: 0, xpOrbs: 0, upgradeChance: 0, score: 500, sprite: "fish_skeleton" },
   ascend_vent: { radius: 26, hp: 0, samples: 0, xpOrbs: 0, upgradeChance: 0, score: 0, sprite: "" },
@@ -118,8 +118,8 @@ export class Interactables {
         ventBubbles.push(g);
       }
       node = c;
-    } else if (this.assets.sprites[def.sprite]) node = this.assets.sprite(def.sprite);
-    else if (this.assets.anims[def.sprite]) node = this.assets.anim(def.sprite);
+    } else if (this.assets.anims[def.sprite]) node = this.assets.anim(def.sprite); // animated versions win (shimmering crates etc.)
+    else if (this.assets.sprites[def.sprite]) node = this.assets.sprite(def.sprite);
     else node = new Container();
     node.scale.set(d.kind === "relic" ? 0.9 : d.kind === "descend_portal" ? 1.5 : 1);
     view.addChild(node);
