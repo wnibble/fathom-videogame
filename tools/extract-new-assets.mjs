@@ -220,6 +220,14 @@ function downscale(img, targetMax) {
 const anchorFor = (pivot) => PIVOT_TO_ANCHOR[pivot] || [0.5, 0.5];
 const animMatch = (name) => name.match(/^(.*)_f(\d+)$/);
 
+// Manifest bboxes verified wrong against the actual art — corrected by eye.
+// (bank_lantern_on's box sliced through the lamp; _off's reached into the
+// moon-pool row below, so the component filter kept a well-rim strip.)
+const BBOX_OVERRIDES = {
+  bank_lantern_off: [495, 755, 615, 985],
+  bank_lantern_on: [615, 745, 745, 985],
+};
+
 // Sheets whose generated frames are NOT pixel-aligned between cells — center
 // each frame on its own alpha bounds so animations play stably (fixes actor
 // jitter too; the diver/dog frames drift inside their cells).
@@ -308,9 +316,14 @@ function processManifest(manifestPath, dir, atlas, counts) {
 
     const loose = CENTER_SHEETS.has(sheetKey);
     const filter = LOOSE_SHEETS.has(sheetKey);
+    // On filtered sheets, GROW the crop so art that reaches its bbox edge gets
+    // breathing room — otherwise the border-touching bleed filter eats the far
+    // half of the sprite (the cut-off bank lantern). Actual neighbor spill that
+    // rides in with the growth still touches the border and still gets dropped.
+    const GROW = filter ? 12 : 0;
     const extracted = sheet.entries.map((e) => {
-      const [x0, y0, x1, y1] = e.bbox;
-      const img = crop(src, Math.max(0, x0), Math.max(0, y0), Math.min(src.width, x1), Math.min(src.height, y1));
+      const [x0, y0, x1, y1] = BBOX_OVERRIDES[e.name] ?? e.bbox;
+      const img = crop(src, Math.max(0, x0 - GROW), Math.max(0, y0 - GROW), Math.min(src.width, x1 + GROW), Math.min(src.height, y1 + GROW));
       removeBackground(img);
       if (filter) filterComponents(img); // strip neighbor bleed + baked label text
       return { name: e.name, pivot: e.pivot, img, bounds: alphaBounds(img) };

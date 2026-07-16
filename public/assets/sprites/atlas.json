@@ -1003,7 +1003,7 @@
     "meta_pearl": {
       "file": "sprites/meta_pearl.png",
       "w": 24,
-      "h": 12,
+      "h": 15,
       "anchor": [
         0.5,
         0.5
@@ -1103,7 +1103,7 @@
     "crystal_coral": {
       "file": "sprites/crystal_coral.png",
       "w": 60,
-      "h": 53,
+      "h": 52,
       "anchor": [
         0.5,
         1
@@ -1162,7 +1162,7 @@
     },
     "spike_mound_attack": {
       "file": "sprites/spike_mound_attack.png",
-      "w": 45,
+      "w": 50,
       "h": 52,
       "anchor": [
         0.5,
@@ -1182,7 +1182,7 @@
     },
     "wreck_generator_active": {
       "file": "sprites/wreck_generator_active.png",
-      "w": 44,
+      "w": 48,
       "h": 52,
       "anchor": [
         0.5,
@@ -1252,7 +1252,7 @@
     },
     "cargo_crate_broken": {
       "file": "sprites/cargo_crate_broken.png",
-      "w": 46,
+      "w": 49,
       "h": 60,
       "anchor": [
         0.5,
@@ -1283,7 +1283,7 @@
     "chain_pile": {
       "file": "sprites/chain_pile.png",
       "w": 60,
-      "h": 42,
+      "h": 43,
       "anchor": [
         0.5,
         1
@@ -1292,7 +1292,7 @@
     },
     "anchor": {
       "file": "sprites/anchor.png",
-      "w": 55,
+      "w": 52,
       "h": 60,
       "anchor": [
         0.5,
@@ -1302,7 +1302,7 @@
     },
     "floodlight_off": {
       "file": "sprites/floodlight_off.png",
-      "w": 39,
+      "w": 37,
       "h": 60,
       "anchor": [
         0.5,
@@ -1312,7 +1312,7 @@
     },
     "floodlight_on": {
       "file": "sprites/floodlight_on.png",
-      "w": 39,
+      "w": 37,
       "h": 60,
       "anchor": [
         0.5,
@@ -1322,7 +1322,7 @@
     },
     "broken_console": {
       "file": "sprites/broken_console.png",
-      "w": 60,
+      "w": 56,
       "h": 60,
       "anchor": [
         0.5,
@@ -1332,7 +1332,7 @@
     },
     "terminal_a": {
       "file": "sprites/terminal_a.png",
-      "w": 57,
+      "w": 53,
       "h": 60,
       "anchor": [
         0.5,
@@ -1342,7 +1342,7 @@
     },
     "terminal_b": {
       "file": "sprites/terminal_b.png",
-      "w": 56,
+      "w": 53,
       "h": 60,
       "anchor": [
         0.5,
@@ -1352,7 +1352,7 @@
     },
     "hanging_hook": {
       "file": "sprites/hanging_hook.png",
-      "w": 24,
+      "w": 23,
       "h": 60,
       "anchor": [
         0.5,
@@ -1412,7 +1412,7 @@
     },
     "core_socket_off": {
       "file": "sprites/core_socket_off.png",
-      "w": 51,
+      "w": 58,
       "h": 64,
       "anchor": [
         0.5,
@@ -1432,7 +1432,7 @@
     },
     "specimen_lab_b": {
       "file": "sprites/specimen_lab_b.png",
-      "w": 46,
+      "w": 40,
       "h": 64,
       "anchor": [
         0.5,
@@ -1442,7 +1442,7 @@
     },
     "moon_pool_closed": {
       "file": "sprites/moon_pool_closed.png",
-      "w": 50,
+      "w": 57,
       "h": 64,
       "anchor": [
         0.5,
@@ -1452,7 +1452,7 @@
     },
     "moon_pool_open": {
       "file": "sprites/moon_pool_open.png",
-      "w": 32,
+      "w": 38,
       "h": 64,
       "anchor": [
         0.5,
@@ -1472,7 +1472,7 @@
     },
     "communications_dish_active": {
       "file": "sprites/communications_dish_active.png",
-      "w": 40,
+      "w": 45,
       "h": 64,
       "anchor": [
         0.5,
@@ -1492,7 +1492,7 @@
     },
     "bank_lantern_on": {
       "file": "sprites/bank_lantern_on.png",
-      "w": 15,
+      "w": 36,
       "h": 64,
       "anchor": [
         0.5,
@@ -1512,7 +1512,7 @@
     },
     "companion_portal_on": {
       "file": "sprites/companion_portal_on.png",
-      "w": 53,
+      "w": 54,
       "h": 64,
       "anchor": [
         0.5,
@@ -1532,7 +1532,7 @@
     },
     "vault_door_powered": {
       "file": "sprites/vault_door_powered.png",
-      "w": 59,
+      "w": 64,
       "h": 64,
       "anchor": [
         0.5,
@@ -2060,7 +2060,7 @@
         "sprites/upgrade_core_f3.png"
       ],
       "w": 24,
-      "h": 18,
+      "h": 21,
       "anchor": [
         0.5,
         0.5
@@ -2074,7 +2074,7 @@
         "sprites/energy_shard_f2.png",
         "sprites/energy_shard_f3.png"
       ],
-      "w": 18,
+      "w": 16,
       "h": 24,
       "anchor": [
         0.5,
@@ -2090,7 +2090,7 @@
         "sprites/healing_orb_f3.png"
       ],
       "w": 24,
-      "h": 20,
+      "h": 23,
       "anchor": [
         0.5,
         0.5
@@ -2104,7 +2104,7 @@
         "sprites/power_cell_f2.png",
         "sprites/power_cell_f3.png"
       ],
-      "w": 13,
+      "w": 12,
       "h": 24,
       "anchor": [
         0.5,
@@ -2119,8 +2119,8 @@
         "sprites/rune_fragment_f2.png",
         "sprites/rune_fragment_f3.png"
       ],
-      "w": 24,
-      "h": 23,
+      "w": 23,
+      "h": 24,
       "anchor": [
         0.5,
         1
@@ -2307,7 +2307,7 @@
         "sprites/wreck_generator_charge_f2.png"
       ],
       "w": 52,
-      "h": 49,
+      "h": 45,
       "anchor": [
         0.5,
         1
@@ -2350,7 +2350,7 @@
         "sprites/damaged_generator_f2.png"
       ],
       "w": 60,
-      "h": 54,
+      "h": 57,
       "anchor": [
         0.5,
         1
@@ -2392,7 +2392,7 @@
         "sprites/upgrade_shrine_f1.png",
         "sprites/upgrade_shrine_f2.png"
       ],
-      "w": 49,
+      "w": 50,
       "h": 64,
       "anchor": [
         0.5,
@@ -2421,7 +2421,7 @@
         "sprites/core_socket_f1.png",
         "sprites/core_socket_f2.png"
       ],
-      "w": 43,
+      "w": 47,
       "h": 64,
       "anchor": [
         0.5,
@@ -2436,7 +2436,7 @@
         "sprites/surface_buoy_f2.png",
         "sprites/surface_buoy_f3.png"
       ],
-      "w": 33,
+      "w": 38,
       "h": 64,
       "anchor": [
         0.5,
